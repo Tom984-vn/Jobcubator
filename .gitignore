@@ -1,0 +1,6 @@
+.venv
+.env
+
+#Passwords
+db_admin_pass.txt
+db_spring_boot_user.txt

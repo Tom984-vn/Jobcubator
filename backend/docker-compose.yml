@@ -1,0 +1,64 @@
+version : '3.8'
+
+services:
+
+  app:
+    build: ./jobcubator
+    container_name: spring-boot-backend
+    ports:
+      - "8080:8080"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/jobcubator_application_database
+      SPRING_DATASOURCE_USERNAME: spring_boot_backend
+      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_app_password
+    
+    depends_on:
+      db:
+        condition: service_healthy
+
+    networks:
+      - backend-network
+
+    secrets:
+        - db_app_password
+
+  db: 
+    image: postgres:18.0-alpine3.22
+    container_name: application-database
+    
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_admin_password
+      POSTGRES_DB: jobcubator_application_database
+
+    volumes: 
+      - ./init-script/:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+
+    networks:
+      - backend-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d jobcubator_application_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    secrets:
+      - db_admin_password
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  backend-network:
+    driver: bridge
+
+secrets:
+  db_app_password:
+    file: ./db_spring_boot_user.txt  # Path to the app user's password file
+    
+  db_admin_password:
+    file: ./db_admin_pass.txt # Path to the admin's password file
