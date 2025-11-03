@@ -2,7 +2,6 @@ package org.jobcubator.jobcubator.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -36,14 +35,5 @@ public class GlobalExceptionHandler {
 
         // Return it as a ResponseEntity
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleUsernameNotFoundException(UsernameNotFoundException ex){
-        ApiErrorResponse response = new ApiErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage()
-        );
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }
