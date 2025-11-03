@@ -4,3 +4,4 @@
 #Passwords
 db_admin_pass.txt
 db_spring_boot_user.txt
+jwt_secret_key.txt
