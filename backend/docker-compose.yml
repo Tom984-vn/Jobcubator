@@ -12,6 +12,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/jobcubator_application_database
       SPRING_DATASOURCE_USERNAME: spring_boot_backend
       SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_app_password
+      JWT_SECRET_KEY: /run/secrets/jwt_secret_key
     
     depends_on:
       db:
@@ -22,6 +23,7 @@ services:
 
     secrets:
         - db_app_password
+        - jwt_secret_key
 
   db: 
     image: postgres:18.0-alpine3.22
@@ -62,3 +64,6 @@ secrets:
     
   db_admin_password:
     file: ./db_admin_pass.txt # Path to the admin's password file
+
+  jwt_secret_key:
+    file: ./jwt_secret_key.txt

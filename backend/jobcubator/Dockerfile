@@ -39,4 +39,4 @@ EXPOSE 8080
 
 # The command to run your application
 #ENTRYPOINT ["","java", "-jar", "app.jar"]
-ENTRYPOINT export SPRING_DATASOURCE_PASSWORD=$(cat /run/secrets/db_app_password | tr -d '\n' | tr -d '\r') && exec java -jar app.jar
+ENTRYPOINT  export JWT_SECRET_KEY=$(cat /run/secrets/jwt_secret_key) && export SPRING_DATASOURCE_PASSWORD=$(cat /run/secrets/db_app_password | tr -d '\n' | tr -d '\r') && exec java -jar app.jar
