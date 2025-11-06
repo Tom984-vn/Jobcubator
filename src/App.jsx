@@ -4,6 +4,8 @@ import Homepage from "./pages/Home/Homepage";
 import Login from "./pages/Authentication/Login";
 import SignUp from "./pages/Authentication/Signup";
 import ProfilePage from "./pages/Profile/ProfilePage";
+import Chat from "./pages/Chat/Chat";
+
 function App() {
   return (
     <BrowserRouter>
@@ -12,6 +14,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/chat" element={<Chat />} />
       </Routes>
     </BrowserRouter>
   );

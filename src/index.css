@@ -7,7 +7,7 @@
     --color-avocado-500: oklch(0.84 0.18 117.33);
     --color-avocado-600: #66740b;
 
-    --color-primary-100: #ffc6c4;
+    --color-primary-100: #464cbc;
     --color-primary-200: #3037af;
     --color-primary-300: #1c229e;
     --color-primary-400: #161b82;
@@ -38,27 +38,25 @@
         cursor: pointer;
         border-radius: 5px;
         border: 1px;
-        @apply focus:outline-offset-2 focus:outline-2;
+        @apply active:outline-offset-2 active:outline-2;
     }
 
     .header-icon {
         background-color: gray-500;
     }
 
-    /*
-    * You can define styles for 'header-icon' and 'header-name' here as well
-    * if they require custom CSS or a combination of utilities that you want
-    * to encapsulate into a single class.
-    *
-    * For example:
-    * .header-icon {
-    *   @apply w-8 h-8 bg-gray-500 rounded-full;
-    *   // Add any other specific styles
-    * }
-    *
-    * .header-name {
-    *   @apply text-xl font-bold;
-    *   // Add any other specific styles
-    * }
-    */
+    .hexagon {
+        clip-path: polygon(
+            50% 0%,
+            100% 25%,
+            100% 75%,
+            50% 100%,
+            0% 75%,
+            0% 25%
+        );
+    }
+
+    .fun-facts {
+        @apply flex flex-row justify-self-stretch place-items-center content-center text-left items-center relative rounded-md transition duration-300 ease-in-out border border-slate-200 hover:border-slate-300 hover:shadow-md  focus:border-slate-400 w-46 h-16 mx-2 cursor-default;
+    }
 }
