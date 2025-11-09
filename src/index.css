@@ -1,1 +1,64 @@
 @import "tailwindcss";
+
+@theme {
+    --color-avocado-100: oklch(0.99 0 0);
+    --color-avocado-200: oklch(0.98 0.04 113.22);
+    --color-avocado-400: oklch(0.92 0.19 114.08);
+    --color-avocado-500: oklch(0.84 0.18 117.33);
+    --color-avocado-600: #66740b;
+
+    --color-primary-100: #ffc6c4;
+    --color-primary-200: #3037af;
+    --color-primary-300: #1c229e;
+    --color-primary-400: #161b82;
+    --color-primary-500: #0e136a;
+
+    --color-secondary-1-100: #ffec45;
+    --color-secondary-1-200: #fce727;
+    --color-secondary-1-300: #e4ce09;
+    --color-secondary-1-400: #bba806;
+    --color-secondary-1-500: #998900;
+
+    --color-secondary-2-100: #ffad45;
+    --color-secondary-2-200: #fc9e27;
+    --color-secondary-2-300: #e48309;
+    --color-secondary-2-400: #bb6b06;
+    --color-secondary-2-500: #995500;
+
+    --color-complement-100: #ffce45;
+    --color-complement-200: #fcc527;
+    --color-complement-300: #e4ab09;
+    --color-complement-400: #bb8b06;
+    --color-complement-500: #997100;
+}
+
+@layer utilities {
+    /* Define common button styles */
+    .btn {
+        cursor: pointer;
+        border-radius: 5px;
+        border: 1px;
+        @apply focus:outline-offset-2 focus:outline-2;
+    }
+
+    .header-icon {
+        background-color: gray-500;
+    }
+
+    /*
+    * You can define styles for 'header-icon' and 'header-name' here as well
+    * if they require custom CSS or a combination of utilities that you want
+    * to encapsulate into a single class.
+    *
+    * For example:
+    * .header-icon {
+    *   @apply w-8 h-8 bg-gray-500 rounded-full;
+    *   // Add any other specific styles
+    * }
+    *
+    * .header-name {
+    *   @apply text-xl font-bold;
+    *   // Add any other specific styles
+    * }
+    */
+}
