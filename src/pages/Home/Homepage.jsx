@@ -6,13 +6,13 @@ import MySvg from "../../assets/react.svg";
 // } from "@heroicons/react";
 import { useState } from "react";
 import Sidebar from "../../components/Sidebar/Sidebar";
-
+import { useNavigate } from "react-router-dom";
 export default function Homepage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
-
+  const navigate = useNavigate();
   return (
     <header className="bg-white p-4 flex items-center text-black">
       {/* <div className="btn">
@@ -38,11 +38,17 @@ export default function Homepage() {
       <div className="header-name text-xl font-bold ml-2">Jobcubator</div>
       <div className="grow"></div>
 
-      <button className="btn bg-secondary-1-200 text-secondary-1-500 active:bg-secondary-1-500 active:text-secondary-1-200 py-2 px-4">
+      <button
+        onClick={() => navigate("/login")}
+        className="btn bg-secondary-1-200 text-secondary-1-500 active:bg-secondary-1-500 active:text-secondary-1-200 py-2 px-4"
+      >
         Log in
       </button>
 
-      <button className="btn bg-secondary-2-200 text-secondary-2-500 active:bg-secondary-2-500 active:text-secondary-2-200 py-2 px-4 ml-2">
+      <button
+        onClick={() => navigate("/signup")}
+        className="btn bg-secondary-2-200 text-secondary-2-500 active:bg-secondary-2-500 active:text-secondary-2-200 py-2 px-4 ml-2"
+      >
         Sign up
       </button>
     </header>
