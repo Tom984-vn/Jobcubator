@@ -19,4 +19,4 @@ fi
 # Now, execute the original command passed to the container
 # (which will be "server /data --console-address :9001" from our compose file)
 # The minio process will inherit the exported variables.
-exec "$@"
+exec minio "$@"
