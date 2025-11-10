@@ -17,8 +17,8 @@ import org.jobcubator.jobcubator.company.domain.Company;
 @Table(name = "jobpost")
 public class JobPost {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID) // Chạy thay cho hàm prepersist để tạo ra id tự động 
-    @Column(updatable = false)
+    // @GeneratedValue(strategy = GenerationType.UUID) // Chạy thay cho hàm prepersist để tạo ra id tự động 
+    @Column(updatable = false, insertable = false)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY) //Lazy sẽ tối ưu hiệu năng. 

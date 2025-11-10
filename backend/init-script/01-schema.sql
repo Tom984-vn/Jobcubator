@@ -24,3 +24,31 @@ CREATE TABLE user_profile (
 
 -- Create indexes for better query performance
 CREATE INDEX idx_users_username ON users(username);
+
+
+CREATE TABLE company (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    name VARCHAR(100) NOT NULL UNIQUE,
+    description_path VARCHAR(150) NOT NULL,
+    website VARCHAR(150) NOT NULL UNIQUE,
+    size VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE jobpost (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    company_id UUID NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    description_path VARCHAR(100) NOT NULL,
+    location VARCHAR(150),
+    number_of_vacancies INTEGER,
+    job_type VARCHAR(100) NOT NULL,
+    application_deadline TIMESTAMP,
+    min_salary INTEGER,
+    max_salary INTEGER,
+    CONSTRAINT fk_company FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+);
+
+-- Create indexes for better query performance
+CREATE INDEX idx_jobpost_company_id ON jobpost(company_id);
+CREATE INDEX idx_jobpost_application_deadline ON jobpost(application_deadline);
+CREATE INDEX idx_jobpost_job_type ON jobpost(job_type);

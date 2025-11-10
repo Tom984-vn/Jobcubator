@@ -15,7 +15,7 @@ import java.util.UUID;
 @Table(name = "company")
 public class Company {
     @Id
-    @Column(name = "id", updatable = false, nullable = false, unique = true)
+    @Column(name = "id", updatable = false, nullable = false, unique = true, insertable = false)
     private UUID id;
 
     @Column(name = "name",length = 100, updatable = true, nullable = false, unique = true)
@@ -30,11 +30,11 @@ public class Company {
     @Column(name = "size",length = 50, updatable = true, nullable = false)
     private String size;
 
-    @PrePersist
-    public void generateId(){
-        if (this.id == null){
-            this.id = UUID.randomUUID();
-        }
-    }
+    // @PrePersist
+    // public void generateId(){
+    //     if (this.id == null){
+    //         this.id = UUID.randomUUID();
+    //     }
+    // }
 
 }

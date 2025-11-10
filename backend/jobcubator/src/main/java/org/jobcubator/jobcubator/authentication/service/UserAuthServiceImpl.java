@@ -45,7 +45,7 @@ public class UserAuthServiceImpl implements UserAuthService {
         User user = new User();
         user.setUsername(request.username());
         user.setEmail(request.email());
-        user.setPassword(passwordEncoder.encode(request.password()));
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
 
         userRepository.save(user);
 
