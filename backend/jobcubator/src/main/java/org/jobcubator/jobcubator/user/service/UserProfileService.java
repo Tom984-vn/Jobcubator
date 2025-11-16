@@ -11,5 +11,6 @@ public interface UserProfileService {
     UpdateUserProfileResponse updateUserProfile(User user, UpdateUserProfileRequest request);
     GetUserProfileResponse getUserProfile(User user);
     GetUserProfileResponse getUserProfileByUsername(String username);
-    public void SaveUserProfileAvatar(User user, String objectKey);
+    public void saveUserProfileAvatar(User user, String objectKey);
+    public void saveUserProfileCV(User user, String objectKey);
 }

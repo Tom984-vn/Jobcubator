@@ -71,7 +71,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     @Override
     @Transactional
-    public void SaveUserProfileAvatar(User user, String objectKey)
+    public void saveUserProfileAvatar(User user, String objectKey)
     {
         UserProfile userProfile = userProfileRepository.findById(user.getId()).orElseThrow(() -> new RuntimeException("UserProfile not found for user: " + user.getUsername()));
 
@@ -87,6 +87,24 @@ public class UserProfileServiceImpl implements UserProfileService {
             }
         }
         userProfile.setAvatarPath(objectKey);
+    }
+
+    @Override
+    public void saveUserProfileCV(User user, String objectKey) {
+        UserProfile userProfile = userProfileRepository.findById(user.getId()).orElseThrow(() -> new RuntimeException("UserProfile not found for user: " + user.getUsername()));
+
+        String pathPrefix = "cv/";
+        String oldObjectKey = userProfile.getCvPath();
+
+        if(oldObjectKey != null && !oldObjectKey.equals(objectKey))
+        {
+            try {
+                storageService.deleteFile(oldObjectKey);
+            } catch (Exception e) {
+                System.err.println("Failed to delete old avatar: " + oldObjectKey + "; Error: " + e.getMessage());
+            }
+        }
+        userProfile.setCvPath(objectKey);
     }
 
     @Override
