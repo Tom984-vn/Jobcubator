@@ -22,7 +22,6 @@ CREATE TABLE user_profile (
     CONSTRAINT fk_user_profile_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Create indexes for better query performance
 CREATE INDEX idx_users_username ON users(username);
 
 
@@ -34,8 +33,16 @@ CREATE TABLE company (
     size VARCHAR(50) NOT NULL
 );
 
+CREATE TABLE course (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(50) NOT NULL,
+    level VARCHAR(10) NOT NULL,
+    provider VARCHAR(50) NOT NULL,
+    url VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE jobpost (
--- Create JobPost table
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     company_id UUID NOT NULL,
     title VARCHAR(100) NOT NULL,
@@ -49,7 +56,6 @@ CREATE TABLE jobpost (
     CONSTRAINT fk_company FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
 );
 
--- Create indexes for better query performance
 CREATE INDEX idx_jobpost_company_id ON jobpost(company_id);
 CREATE INDEX idx_jobpost_application_deadline ON jobpost(application_deadline);
 CREATE INDEX idx_jobpost_job_type ON jobpost(job_type);
@@ -64,7 +70,7 @@ CREATE TABLE post_tags (
 );
 
 CREATE TABLE course_tags (
-    course_id UUID NOT NULL,
+    course_id INTEGER NOT NULL,
     tag_id INTEGER NOT NULL,
     PRIMARY KEY (course_id, tag_id),
     FOREIGN KEY (course_id) REFERENCES course(id),
