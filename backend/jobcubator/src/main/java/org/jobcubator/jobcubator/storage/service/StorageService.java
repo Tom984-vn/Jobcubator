@@ -9,5 +9,7 @@ public interface StorageService {
     String updateUserAvatarFromFile(User user, MultipartFile file, String pathPrefix)throws IOException;
     String updateUserAvatarFromUrl(User user, String url, String pathPrefix);
     String getPresignedUrl(String objectKey);
+    String updateUserCVFromFile(User user, MultipartFile file, String pathPrefix)throws IOException;
+    String updateUserCVFromUrl(User user, String url, String pathPrefix);
     void deleteFile(String objectKey);
 }

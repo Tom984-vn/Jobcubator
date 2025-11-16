@@ -2,6 +2,7 @@ package org.jobcubator.jobcubator.storage.api;
 
 import lombok.RequiredArgsConstructor;
 import org.jobcubator.jobcubator.storage.dto.UpdateUserAvatarResponse;
+import org.jobcubator.jobcubator.storage.dto.UpdateUserCVResponse;
 import org.jobcubator.jobcubator.storage.service.StorageService;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.http.HttpStatus;
@@ -21,7 +22,6 @@ class StorageController {
     public ResponseEntity<UpdateUserAvatarResponse> uploadAvatar(@AuthenticationPrincipal User user, @RequestParam("file") MultipartFile file)
     {
         try{
-
             String objectKey = storageService.updateUserAvatarFromFile(user, file, "avatars");
             UpdateUserAvatarResponse response = UpdateUserAvatarResponse.builder()
                     .message("Avatar uploaded successfully")
@@ -38,7 +38,7 @@ class StorageController {
     }
 
     @PostMapping("/avatar/upload-url")
-    public ResponseEntity<UpdateUserAvatarResponse> uploadAvatarUrl(@AuthenticationPrincipal User user, @RequestBody String url)
+    public ResponseEntity<UpdateUserAvatarResponse> uploadAvatarFromUrl(@AuthenticationPrincipal User user, @RequestBody String url)
     {
         try{
             String objectKey = storageService.updateUserAvatarFromUrl(user, url, "avatars");
@@ -56,5 +56,40 @@ class StorageController {
         }
     }
 
+    @PostMapping("/cv/upload")
+    public ResponseEntity<UpdateUserCVResponse> uploadCVFromFile(@AuthenticationPrincipal User user, @RequestParam("file") MultipartFile file)
+    {
+        try{
+            String objectKey = storageService.updateUserCVFromFile(user, file, "cv");
+            UpdateUserCVResponse response = UpdateUserCVResponse.builder()
+                    .message("Uploaded cv successfully")
+                    .objectKey(objectKey)
+                    .cvUrl(storageService.getPresignedUrl(objectKey))
+                    .build();
+            return ResponseEntity.ok(response);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(UpdateUserCVResponse.builder().message("Failed to upload CV").build());
+        }
+    }
+
+    @PostMapping("/cv/upload-url")
+    public ResponseEntity<UpdateUserCVResponse> uploadCVFromUrl(@AuthenticationPrincipal User user, @RequestBody String url){
+        try{
+            String objectKey = storageService.updateUserCVFromUrl(user, url, "cv");
+            UpdateUserCVResponse response = UpdateUserCVResponse.builder()
+                    .message("Uploaded cv successfully")
+                    .objectKey(objectKey)
+                    .cvUrl(storageService.getPresignedUrl(objectKey))
+                    .build();
+            return ResponseEntity.ok(response);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(UpdateUserCVResponse.builder().message("Failed to upload CV").build());
+        }
+    }
     // TODO: IMPLEMENT CV UPLOAD IN THIS SECTION.
 }

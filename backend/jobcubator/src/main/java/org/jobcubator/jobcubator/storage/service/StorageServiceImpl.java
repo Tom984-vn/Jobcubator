@@ -17,6 +17,8 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -49,11 +51,34 @@ class StorageServiceImpl implements StorageService {
 
     @Override
     public String updateUserAvatarFromFile(User user, MultipartFile file, String pathPrefix) throws IOException {
+
+        // Validate file type
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Only image files are allowed. Provided: " + contentType);
+        }
+
+        // Additional validation for specific image types
+        List<String> allowedTypes = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp");
+        if (!allowedTypes.contains(contentType.toLowerCase())) {
+            throw new IllegalArgumentException("Unsupported image type. Allowed: JPEG, PNG, GIF, WebP");
+        }
+
         String originalFileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
         String fileExtension = "";
 
         if(originalFileName.contains(".")){
             fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        }
+
+        // Validate file extension
+        List<String> allowedExtensions = Arrays.asList(".jpg", ".jpeg", ".png", ".gif", ".webp");
+        if (!allowedExtensions.contains(fileExtension.toLowerCase())) {
+            throw new IllegalArgumentException("Invalid file extension: " + fileExtension);
         }
 
         String objectKey = String.format("%s/%s-%s%s",
@@ -141,6 +166,86 @@ class StorageServiceImpl implements StorageService {
 
         PresignedGetObjectRequest presignedGetObjectRequest = s3Presigner.presignGetObject(presignRequest);
         return presignedGetObjectRequest.url().toString();
+    }
+
+    @Override
+    public String updateUserCVFromFile(User user, MultipartFile file, String pathPrefix) throws IOException {
+        String originalFileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+        String fileExtension = "";
+
+        if(originalFileName.contains(".")){
+            fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        }
+
+        String objectKey = String.format("%s/%s-%s%s",
+                pathPrefix,
+                UUID.randomUUID(),
+                originalFileName.replace(fileExtension, ""),
+                fileExtension
+        );
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(objectKey)
+                .contentType(file.getContentType())
+                .build();
+
+        try (InputStream inputStream = file.getInputStream()) {
+            s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(inputStream, file.getSize()));
+        }
+        return objectKey;
+    }
+
+    @Override
+    public String updateUserCVFromUrl(User user, String url, String pathPrefix) {
+        byte[] fileByte = webClient.get()
+                .uri(url)
+                .accept(MediaType.APPLICATION_OCTET_STREAM)
+                .retrieve()
+                .bodyToMono(byte[].class)
+                .block(Duration.ofSeconds(30));
+
+        if (fileByte == null){
+            throw new RuntimeException("Failed to download file from URL: " + url);
+        }
+
+        String contentType = MediaType.APPLICATION_OCTET_STREAM.toString();
+        String originalFileName = "file-from-url";
+
+        try{
+            originalFileName = url.subSequence(url.lastIndexOf("/")+1, url.length()).toString();
+            if (originalFileName.contains("?")) {
+                originalFileName = originalFileName.substring(0, originalFileName.indexOf("?"));
+            }
+        }
+        catch (Exception e){
+            // TODO: WTF YOU MEAN IGNORE?
+        }
+
+        String fileExtension = "";
+        if(originalFileName.contains(".")){
+            fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        }
+
+        String objectKey = String.format("%s/%s-%s%s",
+                pathPrefix,
+                UUID.randomUUID(),
+                originalFileName.replace(fileExtension, ""),
+                fileExtension
+        );
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(objectKey)
+                .contentType(contentType)
+                .build();
+        try {
+            s3Client.putObject(putObjectRequest, RequestBody.fromBytes(fileByte));
+        }
+        catch (Exception e){
+            // IDK WHAT TO CATCH HERE, MAYBE WILL LEARN IN THE FUTURE AND THIS BLOCK ONLY FOR STOPPING THE FILE FROM BEING WRITE INTO THE DATABASE.
+        }
+        return objectKey;
     }
 
     @Override
