@@ -6,8 +6,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
+
 import org.jobcubator.jobcubator.company.domain.Company;
+import org.jobcubator.jobcubator.tag.domain.Tag;
 
 @Entity
 @Getter
@@ -50,5 +53,29 @@ public class JobPost {
 
     @Column(name = "max_salary")
     private Integer maxSalary;
+
+    @ManyToMany
+    @JoinTable(
+            name = "post_tags",           // Junction table name
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags;
+
+    // Helper methods
+    public void addTag(Tag tag) {
+        tags.add(tag);
+        tag.getJobPosts().add(this);
+    }
+
+    public void removeTag(Tag tag) {
+        tags.remove(tag);
+        tag.getJobPosts().remove(this);
+    }
+
+    public void clearTags() {
+        tags.forEach(tag -> tag.getJobPosts().remove(this));
+        tags.clear();
+    }
 }
 

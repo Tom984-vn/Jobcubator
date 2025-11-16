@@ -35,6 +35,7 @@ CREATE TABLE company (
 );
 
 CREATE TABLE jobpost (
+-- Create JobPost table
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     company_id UUID NOT NULL,
     title VARCHAR(100) NOT NULL,
@@ -52,3 +53,20 @@ CREATE TABLE jobpost (
 CREATE INDEX idx_jobpost_company_id ON jobpost(company_id);
 CREATE INDEX idx_jobpost_application_deadline ON jobpost(application_deadline);
 CREATE INDEX idx_jobpost_job_type ON jobpost(job_type);
+
+
+CREATE TABLE post_tags (
+    post_id UUID NOT NULL,
+    tag_id INTEGER NOT NULL,
+    PRIMARY KEY (post_id, tag_id),
+    FOREIGN KEY (post_id) REFERENCES job_post(id),
+    FOREIGN KEY (tag_id) REFERENCES tag(id)
+);
+
+CREATE TABLE course_tags (
+    course_id UUID NOT NULL,
+    tag_id INTEGER NOT NULL,
+    PRIMARY KEY (course_id, tag_id),
+    FOREIGN KEY (course_id) REFERENCES course(id),
+    FOREIGN KEY (tag_id) REFERENCES tag(id)
+);
