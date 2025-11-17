@@ -10,20 +10,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-interface TagRepository extends JpaRepository<Tag, Integer> {
+public interface TagRepository extends JpaRepository<Tag, Integer> {
     Optional<Tag> findByName(String tagName);
     Optional<Tag> findByNameIgnoreCase(String tagName);
 
-    List<Tag> findByNameIn(Set<String> names, Pageable pageable);
+    List<Tag> findByNameIn(Set<String> names);
 
     @Query("SELECT t FROM Tag t WHERE LOWER(t.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    List<Tag> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+    List<Tag> searchByKeyword(@Param("keyword") String keyword);
 
     @Query("SELECT t FROM Tag t JOIN t.jobPosts jp GROUP BY t.id ORDER BY COUNT(jp) DESC")
-    List<Tag> findMostUsedTagsInJobPosts(Pageable pageable);
+    List<Tag> findMostUsedTagsInJobPosts();
 
     @Query("SELECT t FROM Tag t JOIN t.courses c GROUP BY t.id ORDER BY COUNT(c) DESC")
-    List<Tag> findMostUsedTagsInCourses(Pageable pageable);
+    List<Tag> findMostUsedTagsInCourses();
 
     boolean existsByNameIgnoreCase(String tagName);
 }

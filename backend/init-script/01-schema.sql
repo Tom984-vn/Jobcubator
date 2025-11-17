@@ -61,11 +61,16 @@ CREATE INDEX idx_jobpost_application_deadline ON jobpost(application_deadline);
 CREATE INDEX idx_jobpost_job_type ON jobpost(job_type);
 
 
+CREATE TABLE tag (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(20) NOT NULL
+);
+
 CREATE TABLE post_tags (
     post_id UUID NOT NULL,
     tag_id INTEGER NOT NULL,
     PRIMARY KEY (post_id, tag_id),
-    FOREIGN KEY (post_id) REFERENCES job_post(id),
+    FOREIGN KEY (post_id) REFERENCES jobpost(id),
     FOREIGN KEY (tag_id) REFERENCES tag(id)
 );
 
