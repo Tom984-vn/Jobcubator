@@ -60,7 +60,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
         UserProfile savedProfile = userProfileRepository.save(userProfile);
 
-        // Gui api den AI service 
+        // Gui api den AI service
 
         return new UpdateUserProfileResponse(savedProfile.getBirthDate(),
                 savedProfile.getYearsOfExperience(),
