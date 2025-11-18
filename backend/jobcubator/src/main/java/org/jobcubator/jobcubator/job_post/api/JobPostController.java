@@ -18,7 +18,7 @@ import java.util.UUID;
  * REST Controller xử lý các yêu cầu liên quan đến Bài đăng tuyển dụng (JobPost).
  */
 @RestController
-@RequestMapping("/api/jobposts") 
+@RequestMapping("/api/job_posts")
 public class JobPostController {
 
     private final JobPostService jobPostService;

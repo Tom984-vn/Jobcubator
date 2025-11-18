@@ -59,6 +59,14 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                     .requestMatchers("/api/auth/**").permitAll()
+                    // Public Company endpoints (GET only)
+                    .requestMatchers("GET", "/api/company/get-by-id/**").permitAll()
+                    .requestMatchers("GET", "/api/company/get-by-most-vacancy").permitAll()
+                    .requestMatchers("POST", "/api/company/filter").permitAll()
+
+                    // Public JobPost endpoints (GET only)
+                    .requestMatchers("GET", "/api/job_posts/**").permitAll()
+                    .requestMatchers("POST", "/api/job_posts/filter").permitAll()
                     .anyRequest().authenticated())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
