@@ -61,12 +61,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
 
-            User domainUser = userRepository.findByUsername(username).orElse(null);
-if (domainUser != null) {
-    UsernamePasswordAuthenticationToken auth =
-        new UsernamePasswordAuthenticationToken(domainUser, null, Collections.emptyList());
-    SecurityContextHolder.getContext().setAuthentication(auth);
-}
+        User domainUser = userRepository.findByUsername(username).orElse(null);
+        if (domainUser != null) {
+            UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(domainUser, null, Collections.emptyList());
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        }
             
         } catch (Exception e) {
             logger.error("Error while authenticating user", e);
