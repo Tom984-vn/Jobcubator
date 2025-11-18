@@ -35,6 +35,7 @@ export default function SignIn() {
           username: userData.username,
           password: userData.password,
         });
+
         navigate("/");
       } catch (err) {
         setError("Tên tài khoản hoặc mật khẩu không đúng.");

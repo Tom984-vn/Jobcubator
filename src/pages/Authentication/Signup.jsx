@@ -79,13 +79,6 @@ export default function SignIn() {
         });
 
         console.log("Registration successful!");
-
-        //Automatically log them in
-        await loginUser({
-          username: userData.username,
-          password: userData.password,
-        });
-
         navigate("/");
       } catch (err) {
         console.error("Registration/Login failed:", err);

@@ -1,9 +1,23 @@
 import API from "../../api.jsx";
 
 export async function registerUser({ username, email, password }) {
-  return API.post("/auth/register", { username, email, password });
+  const { data } = await API.post("/auth/register", {
+    username,
+    password,
+    email,
+  });
+  localStorage.setItem("accessToken", data.accessToken);
+  localStorage.setItem("refreshToken", data.refreshToken);
+  return data;
 }
-
+export async function getUserData({ accessToken }) {
+  const { data } = await API.get("/user/me", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return data;
+}
 export async function loginUser({ username, password }) {
   const { data } = await API.post("/auth/login", { username, password });
   localStorage.setItem("accessToken", data.accessToken);
