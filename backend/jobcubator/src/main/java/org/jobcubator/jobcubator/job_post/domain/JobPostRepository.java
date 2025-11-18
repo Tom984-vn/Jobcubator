@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 public interface JobPostRepository extends JpaRepository<JobPost, UUID>,JpaSpecificationExecutor<JobPost> {

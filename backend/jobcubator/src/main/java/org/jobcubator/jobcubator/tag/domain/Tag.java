@@ -18,7 +18,8 @@ import java.util.HashSet;
 public class Tag {
 
     @Id
-    @Column(name = "id", updatable = false, nullable = false, unique = true, insertable = false)
+    @Column(name = "id", updatable = false, nullable = false, unique = true)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "name", updatable = false, nullable = false, insertable = false, length = 50)

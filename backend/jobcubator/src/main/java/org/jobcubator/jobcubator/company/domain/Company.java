@@ -15,7 +15,8 @@ import java.util.UUID;
 @Table(name = "company")
 public class Company {
     @Id
-    @Column(name = "id", updatable = false, nullable = false, unique = true, insertable = false)
+    @Column(name = "id", updatable = false, nullable = false, unique = true)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "name", length = 100, updatable = true, nullable = false, unique = true)

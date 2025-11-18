@@ -20,8 +20,8 @@ import org.jobcubator.jobcubator.tag.domain.Tag;
 @Table(name = "jobpost")
 public class JobPost {
     @Id
-    // @GeneratedValue(strategy = GenerationType.UUID) // Chạy thay cho hàm prepersist để tạo ra id tự động 
-    @Column(updatable = false, insertable = false)
+    @GeneratedValue(strategy = GenerationType.UUID) // Chạy thay cho hàm prepersist để tạo ra id tự động 
+    @Column(updatable = false)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY) //Lazy sẽ tối ưu hiệu năng. 
