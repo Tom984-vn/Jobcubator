@@ -6,6 +6,7 @@ import org.jobcubator.jobcubator.company.domain.CompanyRepository;
 import org.jobcubator.jobcubator.company.dto.CompanyDTO;
 import org.jobcubator.jobcubator.company.dto.CompanyFilterDTO;
 import org.jobcubator.jobcubator.company.dto.CompanyRequestDTO;
+import org.jobcubator.jobcubator.company.dto.CompanyVacancyDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -16,6 +17,7 @@ import jakarta.persistence.criteria.Predicate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -101,5 +103,23 @@ public class CompanyServiceImpl implements CompanyService{
             c.getWebsite(),
             Integer.valueOf(c.getSize())
         ));
+    }
+
+    @Override
+    public Page<CompanyVacancyDTO> getCompaniesByMostVacancies(String tagName, Pageable pageable) {
+        Page<Object[]> results = companyRepository.findCompaniesWithVacanciesByTag(tagName, pageable);
+
+        return results.map(row -> {
+            UUID companyId = (UUID) row[0];
+            Set<String> tags = companyRepository.findTagsByCompanyId(companyId);
+
+            return new CompanyVacancyDTO(
+                    (String) row[1],
+                    (String) row[2],
+                    (String) row[3],
+                    ((Number) row[4]).longValue(),
+                    tags
+            );
+        });
     }
 }

@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.jobcubator.jobcubator.company.dto.CompanyRequestDTO;
 import org.jobcubator.jobcubator.company.dto.CompanyDTO;
 import org.jobcubator.jobcubator.company.dto.CompanyFilterDTO;
+import org.jobcubator.jobcubator.company.dto.CompanyVacancyDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 public interface CompanyService {
@@ -46,6 +47,6 @@ public interface CompanyService {
      */
     Page<CompanyDTO> filterCompanies(CompanyFilterDTO filterDTO, Pageable pageable);
 
-
+    Page<CompanyVacancyDTO> getCompaniesByMostVacancies(String tagName, Pageable pageable);
 
 }

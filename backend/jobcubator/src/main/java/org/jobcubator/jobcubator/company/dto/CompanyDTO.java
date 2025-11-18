@@ -1,5 +1,6 @@
 package org.jobcubator.jobcubator.company.dto;
 
+import java.util.Set;
 import java.util.UUID;
 
 
@@ -11,5 +12,6 @@ public record CompanyDTO(
     UUID id,
     String name,
     String website,
-    Integer size) {
+    Integer size
+) {
 }

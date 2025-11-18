@@ -7,9 +7,11 @@ import java.util.UUID;
 import org.jobcubator.jobcubator.company.dto.CompanyDTO;
 import org.jobcubator.jobcubator.company.dto.CompanyFilterDTO;
 import org.jobcubator.jobcubator.company.dto.CompanyRequestDTO;
+import org.jobcubator.jobcubator.company.dto.CompanyVacancyDTO;
 import org.jobcubator.jobcubator.company.service.CompanyService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -52,6 +54,12 @@ public class CompanyController {
         Page<CompanyDTO> filterCompanies= companyService.filterCompanies(filterDTO, pageable);
         return ResponseEntity.ok(filterCompanies);
 
+    }
+
+    @GetMapping("/get-by-most-vacancy")
+    public ResponseEntity<Page<CompanyVacancyDTO>> getCompaniesWithMostVacancies(@RequestParam(required = false) String tagName, Pageable pageable){
+        Page<CompanyVacancyDTO> companies = companyService.getCompaniesByMostVacancies(tagName, pageable);
+        return ResponseEntity.ok(companies);
     }
 
 }

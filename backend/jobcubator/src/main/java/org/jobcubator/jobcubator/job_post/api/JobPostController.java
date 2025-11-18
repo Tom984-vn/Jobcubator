@@ -93,20 +93,20 @@ public class JobPostController {
         return ResponseEntity.ok(jobPosts);
     }
 
-    @GetMapping("/top-company-by-vacancies")
+    @GetMapping("/top-job-post-by-vacancies")
     public ResponseEntity<Page<JobPostDTO>> getTopVacanciesJobPosts(Pageable pageable) {
         Page<JobPostDTO> jobPosts = jobPostService.getTopVacanciesJobPosts(pageable);
         return ResponseEntity.ok(jobPosts);
     }
 
-    @GetMapping("/top-company-by-creation-time")
+    @GetMapping("/top-job-post-by-creation-time")
     public ResponseEntity<Page<JobPostDTO>> getRecentJobPosts(Pageable pageable) {
         Page<JobPostDTO> jobPosts = jobPostService.getRecentJobPosts(pageable);
         return ResponseEntity.ok(jobPosts);
     }
 
     @GetMapping("/by-tag-name")
-    public ResponseEntity<Page<JobPostDTO>> getJobPostsByTagName(Pageable pageable, @RequestParam("tagName") String tagName) {
+    public ResponseEntity<Page<JobPostDTO>> getJobPostsByTagName( @RequestParam String tagName, Pageable pageable) {
         Page<JobPostDTO> jobPosts = jobPostService.getJobPostsByTagName(pageable, tagName);
         return ResponseEntity.ok(jobPosts);
     }

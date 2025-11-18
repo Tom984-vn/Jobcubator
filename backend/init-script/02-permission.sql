@@ -7,3 +7,6 @@ GRANT SELECT, INSERT, UPDATE ON TABLE users TO spring_boot_backend;
 GRANT SELECT, INSERT, UPDATE ON TABLE user_profile TO spring_boot_backend;
 GRANT SELECT, INSERT, UPDATE ON TABLE company TO spring_boot_backend;
 GRANT SELECT, INSERT, UPDATE ON TABLE jobpost TO spring_boot_backend;
+GRANT SELECT, INSERT, UPDATE ON TABLE tag TO spring_boot_backend;
+GRANT SELECT, INSERT, UPDATE ON TABLE course_tags TO spring_boot_backend;
+GRANT SELECT, INSERT, UPDATE ON TABLE post_tags TO spring_boot_backend;
