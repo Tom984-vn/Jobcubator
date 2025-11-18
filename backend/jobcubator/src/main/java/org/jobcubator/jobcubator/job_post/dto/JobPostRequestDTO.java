@@ -12,6 +12,9 @@ public record JobPostRequestDTO(
     @Size(max = 100)
     String title,
 
+    @Size(max = 50)
+    String category,
+
     @Size(max = 150)
     String location,
 

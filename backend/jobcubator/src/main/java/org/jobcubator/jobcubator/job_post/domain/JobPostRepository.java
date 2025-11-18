@@ -27,6 +27,10 @@ public interface JobPostRepository extends JpaRepository<JobPost, UUID>,JpaSpeci
      */
     Page<JobPost> findByCompany_NameContainingIgnoreCase(String companyName, Pageable pageable);
 
+    Page<JobPost>findAllByOrderByNumberOfVacanciesDesc(Pageable pageable);
+
+    Page<JobPost>findAllByOrderByCreatedAtDesc(Pageable pageable);
+
     @Query("SELECT DISTINCT jp FROM JobPost jp JOIN jp.tags t WHERE t.name = :tagNames")
     Page<JobPost> findByTagName(@Param("tagName") String tagNames, Pageable pageable);
 

@@ -6,6 +6,7 @@ import org.jobcubator.jobcubator.job_post.dto.JobPostFilterDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostRequestDTO;
 import org.jobcubator.jobcubator.job_post.service.JobPostService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -89,6 +90,24 @@ public class JobPostController {
             Pageable pageable) {
         
         Page<JobPostDTO> jobPosts = jobPostService.getJobPostsByCompanyName(companyName, pageable);
+        return ResponseEntity.ok(jobPosts);
+    }
+
+    @GetMapping("/top-company-by-vacancies")
+    public ResponseEntity<Page<JobPostDTO>> getTopVacanciesJobPosts(Pageable pageable) {
+        Page<JobPostDTO> jobPosts = jobPostService.getTopVacanciesJobPosts(pageable);
+        return ResponseEntity.ok(jobPosts);
+    }
+
+    @GetMapping("/top-company-by-creation-time")
+    public ResponseEntity<Page<JobPostDTO>> getRecentJobPosts(Pageable pageable) {
+        Page<JobPostDTO> jobPosts = jobPostService.getRecentJobPosts(pageable);
+        return ResponseEntity.ok(jobPosts);
+    }
+
+    @GetMapping("/by-tag-name")
+    public ResponseEntity<Page<JobPostDTO>> getJobPostsByTagName(Pageable pageable, @RequestParam("tagName") String tagName) {
+        Page<JobPostDTO> jobPosts = jobPostService.getJobPostsByTagName(pageable, tagName);
         return ResponseEntity.ok(jobPosts);
     }
 }

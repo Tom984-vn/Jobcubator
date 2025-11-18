@@ -21,6 +21,8 @@ public class Company {
     @Column(name = "name",length = 100, updatable = true, nullable = false, unique = true)
     private String name;
 
+
+
     @Column(name = "description_path",length = 150, updatable = true, nullable = false)
     private String description_path;
 

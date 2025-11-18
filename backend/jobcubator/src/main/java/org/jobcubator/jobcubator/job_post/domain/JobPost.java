@@ -32,7 +32,9 @@ public class JobPost {
     @Column(name = "title", length = 100, nullable = false)
     private String title;
 
-  
+    @Column(name = "category", length = 50)
+    private String category;
+
     @Column(name = "description_path", length = 100, nullable = false)
     private String descriptionPath;
 
@@ -53,6 +55,9 @@ public class JobPost {
 
     @Column(name = "max_salary")
     private Integer maxSalary;
+
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private Instant createdAt;
 
     @ManyToMany
     @JoinTable(

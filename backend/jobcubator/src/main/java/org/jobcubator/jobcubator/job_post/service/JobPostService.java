@@ -75,4 +75,10 @@ public interface JobPostService {
      * @return Một trang (Page) chứa các JobPostDTO.
      */
     Page<JobPostDTO> getJobPostsByCompanyName(String companyName, Pageable pageable);
+
+    Page<JobPostDTO> getTopVacanciesJobPosts(Pageable pageable);
+
+    Page<JobPostDTO> getRecentJobPosts(Pageable pageable);
+
+    Page<JobPostDTO> getJobPostsByTagName(Pageable pageable, String tagName);
 }

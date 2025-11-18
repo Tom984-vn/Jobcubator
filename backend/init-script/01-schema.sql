@@ -46,6 +46,7 @@ CREATE TABLE jobpost (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     company_id UUID NOT NULL,
     title VARCHAR(100) NOT NULL,
+    category VARCHAR(50),
     description_path VARCHAR(100) NOT NULL,
     location VARCHAR(150),
     number_of_vacancies INTEGER,
@@ -53,6 +54,7 @@ CREATE TABLE jobpost (
     application_deadline TIMESTAMP,
     min_salary INTEGER,
     max_salary INTEGER,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_company FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
 );
 

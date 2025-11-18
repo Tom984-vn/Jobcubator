@@ -39,6 +39,7 @@ public class JobPostServiceImpl implements JobPostService {
         
         JobPost newJobPost = new JobPost();
         newJobPost.setTitle(createDTO.title());
+        newJobPost.setCategory(createDTO.category());
         newJobPost.setLocation(createDTO.location());
         newJobPost.setNumberOfVacancies(createDTO.numberOfVacancies());
         newJobPost.setJobType(createDTO.jobType());
@@ -53,6 +54,7 @@ public class JobPostServiceImpl implements JobPostService {
         return new JobPostDTO(
             newJobPost.getId(),
             newJobPost.getTitle(),
+            newJobPost.getCategory(),
             newJobPost.getLocation(),
             newJobPost.getNumberOfVacancies(),
             newJobPost.getJobType(),
@@ -74,6 +76,7 @@ public class JobPostServiceImpl implements JobPostService {
         return new JobPostDTO(
             jobPost.getId(),
             jobPost.getTitle(),
+            jobPost.getCategory(),
             jobPost.getLocation(),
             jobPost.getNumberOfVacancies(),
             jobPost.getJobType(),
@@ -93,6 +96,7 @@ public class JobPostServiceImpl implements JobPostService {
 
         jobPost.setTitle(updateDTO.title());
         jobPost.setLocation(updateDTO.location());
+        jobPost.setCategory(updateDTO.category());
         jobPost.setNumberOfVacancies(updateDTO.numberOfVacancies());
         jobPost.setJobType(updateDTO.jobType());
         jobPost.setApplicationDeadline(updateDTO.applicationDeadline());
@@ -104,6 +108,7 @@ public class JobPostServiceImpl implements JobPostService {
         return new JobPostDTO(
             jobPost.getId(),
             jobPost.getTitle(),
+            jobPost.getCategory(),
             jobPost.getLocation(),
             jobPost.getNumberOfVacancies(),
             jobPost.getJobType(),
@@ -183,6 +188,7 @@ public class JobPostServiceImpl implements JobPostService {
             return new JobPostDTO(
                 c.getId(),
                 c.getTitle(),
+                c.getCategory(),
                 c.getLocation(),
                 c.getNumberOfVacancies(),
                 c.getJobType(),
@@ -209,6 +215,7 @@ public class JobPostServiceImpl implements JobPostService {
             return new JobPostDTO(
                 post.getId(),
                 post.getTitle(),
+                post.getCategory(),
                 post.getLocation(),
                 post.getNumberOfVacancies(),
                 post.getJobType(),
@@ -229,6 +236,7 @@ public class JobPostServiceImpl implements JobPostService {
             return new JobPostDTO(
                 post.getId(),
                 post.getTitle(),
+                post.getCategory(),
                 post.getLocation(),
                 post.getNumberOfVacancies(),
                 post.getJobType(),
@@ -237,6 +245,69 @@ public class JobPostServiceImpl implements JobPostService {
                 post.getMaxSalary(),
                 company.getId(),     
                 post.getDescriptionPath()
+            );
+        });
+    }
+
+    @Override
+    public Page<JobPostDTO> getTopVacanciesJobPosts(Pageable pageable) {
+        Page<JobPost>page = jobPostRepository.findAllByOrderByNumberOfVacanciesDesc(pageable);
+        return page.map(c -> {
+            Company company = c.getCompany();
+            return new JobPostDTO(
+                    c.getId(),
+                    c.getTitle(),
+                    c.getCategory(),
+                    c.getLocation(),
+                    c.getNumberOfVacancies(),
+                    c.getJobType(),
+                    c.getApplicationDeadline(),
+                    c.getMinSalary(),
+                    c.getMaxSalary(),
+                    company.getId(),
+                    c.getDescriptionPath()
+            );
+        });
+    }
+
+    @Override
+    public Page<JobPostDTO> getRecentJobPosts(Pageable pageable) {
+        Page<JobPost>page = jobPostRepository.findAllByOrderByCreatedAtDesc(pageable);
+        return page.map(c -> {
+            Company company = c.getCompany();
+            return new JobPostDTO(
+                    c.getId(),
+                    c.getTitle(),
+                    c.getCategory(),
+                    c.getLocation(),
+                    c.getNumberOfVacancies(),
+                    c.getJobType(),
+                    c.getApplicationDeadline(),
+                    c.getMinSalary(),
+                    c.getMaxSalary(),
+                    company.getId(),
+                    c.getDescriptionPath()
+            );
+        });
+    }
+
+    @Override
+    public Page<JobPostDTO> getJobPostsByTagName(Pageable pageable, String tagName) {
+        Page<JobPost>page = jobPostRepository.findByTagName(tagName, pageable);
+        return page.map(c -> {
+            Company company = c.getCompany();
+            return new JobPostDTO(
+                    c.getId(),
+                    c.getTitle(),
+                    c.getCategory(),
+                    c.getLocation(),
+                    c.getNumberOfVacancies(),
+                    c.getJobType(),
+                    c.getApplicationDeadline(),
+                    c.getMinSalary(),
+                    c.getMaxSalary(),
+                    company.getId(),
+                    c.getDescriptionPath()
             );
         });
     }

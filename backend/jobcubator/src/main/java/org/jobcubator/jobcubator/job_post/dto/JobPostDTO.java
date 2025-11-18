@@ -6,6 +6,7 @@ import java.util.UUID;
 public record JobPostDTO(
     UUID id,
     String title,
+    String category,
     String location,
     Integer numberOfVacancies,
     String jobType,
