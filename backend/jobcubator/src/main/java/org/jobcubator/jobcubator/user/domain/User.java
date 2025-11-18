@@ -2,6 +2,8 @@ package org.jobcubator.jobcubator.user.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.GenericGenerator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +23,11 @@ import java.util.UUID;
 public class User implements UserDetails {
 
     @Id
-    @Column(name = "id", updatable = false, nullable = false, unique = true, insertable = false)
+    @Column(name = "id", updatable = false, nullable = false, unique = true)
     private UUID id;
+
+    @Column(name = "full_name", updatable = true, nullable = false)
+    private String fullName;
 
     @Column(name = "username", updatable = true, nullable = false, unique = true, length = 50)
     private String username;
@@ -38,6 +43,13 @@ public class User implements UserDetails {
 
     @Column(name = "created_at", updatable = false, insertable = false)
     private Instant createdAt;
+
+    @PrePersist
+    private void ensureId() {
+        if (this.id == null) {
+            this.id = UUID.randomUUID();
+        }
+    }
 
     @OneToOne(
             mappedBy = "user",

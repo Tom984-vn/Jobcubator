@@ -37,7 +37,7 @@ class StorageServiceImpl implements StorageService {
         this.webClient = WebClient.builder().build();
     }
 
-    // !!!WARNING!!! I DON'T THINK I SHOULD DO THIS IN PRODUCTION SO, JUST CREATE A BUCKET YOURSELF. HIHI
+    // !!!WARNING!!! I DON'T THINK I SHOULD DO THIS IN PRODUCTION SO, JUST CREATE A BUCKET YOURSELF. HIHI. FOR DEMO CODE ONLY, CREATE THE BUCKET MANUALLY IF IN PRODUCTION CODE.
     @PostConstruct
     public void init() {
         // Creates the bucket on startup if it doesn't already exist
@@ -123,7 +123,7 @@ class StorageServiceImpl implements StorageService {
             }
         }
         catch (Exception e){
-            // TODO: WTF YOU MEAN IGNORE?
+            throw new RuntimeException(e);
         }
 
         String fileExtension = "";
@@ -147,7 +147,7 @@ class StorageServiceImpl implements StorageService {
             s3Client.putObject(putObjectRequest, RequestBody.fromBytes(fileByte));
         }
         catch (Exception e){
-            // IDK WHAT TO CATCH HERE, MAYBE WILL LEARN IN THE FUTURE AND THIS BLOCK ONLY FOR STOPPING THE FILE FROM BEING WRITE INTO THE DATABASE.
+            throw new RuntimeException(e);
         }
         return objectKey;
     }
@@ -219,7 +219,7 @@ class StorageServiceImpl implements StorageService {
             }
         }
         catch (Exception e){
-            // TODO: WTF YOU MEAN IGNORE?
+            throw new RuntimeException(e);
         }
 
         String fileExtension = "";
@@ -243,7 +243,7 @@ class StorageServiceImpl implements StorageService {
             s3Client.putObject(putObjectRequest, RequestBody.fromBytes(fileByte));
         }
         catch (Exception e){
-            // IDK WHAT TO CATCH HERE, MAYBE WILL LEARN IN THE FUTURE AND THIS BLOCK ONLY FOR STOPPING THE FILE FROM BEING WRITE INTO THE DATABASE.
+            throw new RuntimeException(e);
         }
         return objectKey;
     }

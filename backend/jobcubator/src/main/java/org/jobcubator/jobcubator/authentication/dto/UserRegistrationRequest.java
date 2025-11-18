@@ -15,6 +15,13 @@ public record UserRegistrationRequest(
         )
         String username,
 
+        @NotBlank
+        @Pattern(
+                regexp = "^[a-zA-Z]+$",
+                message = "Full name can only contain letters"
+        )
+        String fullName,
+
 
         @NotBlank(message = "Email is required")
         @Email(message = "Please provide a valid email address")

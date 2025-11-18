@@ -1,11 +1,23 @@
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
+    full_name varchar(30) NOT NULL,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone_number VARCHAR(20) UNIQUE,
     password_hash VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+
+CREATE TABLE refresh_token (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    user_id UUID NOT NULL UNIQUE,
+    token VARCHAR(500) NOT NULL UNIQUE,
+    expiry_date TIMESTAMP NOT NULL,
+    CONSTRAINT fk_refresh_token_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_refresh_token_expiry_date ON refresh_token(expiry_date);
+CREATE INDEX idx_refresh_token_user_id ON refresh_token(user_id);
 
 CREATE TABLE user_profile (
     user_id UUID PRIMARY KEY,
