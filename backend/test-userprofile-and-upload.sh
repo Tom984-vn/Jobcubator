@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# filepath: ./test-userprofile-and-upload.sh
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
@@ -8,10 +9,7 @@ PASSWORD="${PASSWORD:-P@ssw0rd123}"
 # create small pseudo files
 AVATAR_FILE="/tmp/avatar.png"
 CV_FILE="/tmp/cv.pdf"
-
-# write PNG magic bytes
 printf '%b' '\x89PNG\r\n\x1a\n' > "$AVATAR_FILE"
-# write PDF header, escape percent with %% or use %s format
 printf '%s\n' '%%PDF-1.4' > "$CV_FILE"
 
 echo "Logging in..."
@@ -62,6 +60,11 @@ curl -s -o /dev/stderr -w "\n" -X PUT "$BASE_URL/api/user/me" \
   -H "Content-Type: application/json" \
   -d "$PROFILE_JSON"
 
+echo "Fetching updated profile..."
+curl -s -X GET "$BASE_URL/api/user/me" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json" | jq .
+
 echo "Uploading avatar..."
 AVATAR_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/upload/avatar/upload" \
   -H "Authorization: Bearer $TOKEN" \
@@ -71,6 +74,22 @@ AVATAR_BODY=$(echo "$AVATAR_RESP" | sed '$d')
 AVATAR_STATUS=$(echo "$AVATAR_RESP" | tail -n1)
 echo "Avatar upload status: $AVATAR_STATUS"
 echo "$AVATAR_BODY" | jq .
+
+# if storage returns an objectKey and your API exposes an endpoint to attach it to profile,
+# call that endpoint (adjust path if different). Example POST/PUT endpoints below are optional:
+AVATAR_KEY=$(echo "$AVATAR_BODY" | jq -r '.objectKey // empty')
+if [ -n "$AVATAR_KEY" ]; then
+  echo "Saving avatar key to profile..."
+  curl -s -X PUT "$BASE_URL/api/user/me/avatar" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: text/plain" \
+    --data "$AVATAR_KEY" -o /dev/stderr -w "\n"
+fi
+
+echo "Fetching profile after avatar..."
+curl -s -X GET "$BASE_URL/api/user/me" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json" | jq .
 
 echo "Uploading CV..."
 CV_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/upload/cv/upload" \
@@ -82,16 +101,18 @@ CV_STATUS=$(echo "$CV_RESP" | tail -n1)
 echo "CV upload status: $CV_STATUS"
 echo "$CV_BODY" | jq .
 
-# extract objectKey/avatarUrl/cvUrl if present
-AVATAR_KEY=$(echo "$AVATAR_BODY" | jq -r '.objectKey // empty')
-AVATAR_URL=$(echo "$AVATAR_BODY" | jq -r '.avatarUrl // empty')
 CV_KEY=$(echo "$CV_BODY" | jq -r '.objectKey // empty')
-CV_URL=$(echo "$CV_BODY" | jq -r '.cvUrl // empty')
+if [ -n "$CV_KEY" ]; then
+  echo "Saving CV key to profile..."
+  curl -s -X PUT "$BASE_URL/api/user/me/cv" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: text/plain" \
+    --data "$CV_KEY" -o /dev/stderr -w "\n"
+fi
 
-echo "Results:"
-echo " avatar.objectKey: ${AVATAR_KEY:-<none>}"
-echo " avatar.avatarUrl: ${AVATAR_URL:-<none>}"
-echo " cv.objectKey: ${CV_KEY:-<none>}"
-echo " cv.cvUrl: ${CV_URL:-<none>}"
+echo "Final profile fetch..."
+curl -s -X GET "$BASE_URL/api/user/me" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Accept: application/json" | jq .
 
 echo "Done."
