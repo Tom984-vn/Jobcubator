@@ -1,0 +1,112 @@
+version : '3.8'
+
+services:
+
+  app:
+    build: ./jobcubator
+    container_name: spring-boot-backend
+    ports:
+      - "8080:8080"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/jobcubator_application_database
+      SPRING_DATASOURCE_USERNAME: spring_boot_backend
+      SPRING_DATASOURCE_PASSWORD_FILE: /run/secrets/db_app_password
+      SPRING_AWS_S3_ENDPOINT: http://minio:9000
+      SPRING_AWS_S3_ACCESS_KEY_FILE: /run/secrets/spring_aws_s3_access_key
+      SPRING_AWS_S3_SECRET_KEY_FILE: /run/secrets/spring_aws_s3_secret_key
+      JWT_SECRET_KEY_FILE: /run/secrets/jwt_secret_key 
+
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+    networks:
+      - backend-network
+
+    secrets:
+        - db_app_password
+        - spring_aws_s3_secret_key
+        - jwt_secret_key
+        - spring_aws_s3_access_key
+
+  db: 
+    image: postgres:18.0-alpine3.22
+    container_name: application-database
+    
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_admin_password
+      POSTGRES_DB: jobcubator_application_database
+
+    volumes: 
+      - ./init-script/:/docker-entrypoint-initdb.d
+      - postgres-data:/var/lib/postgresql/data
+
+    networks:
+      - backend-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d jobcubator_application_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    secrets:
+      - db_admin_password
+
+
+  minio:
+    container_name: minio
+
+    build: ./minio
+
+    ports:
+      - "9000:9000"  # API port
+      - "9001:9001"  # Console (web UI) port
+
+    command: server /data --console-address ":9001"
+
+    volumes:
+      - minio-data:/data
+
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    secrets: 
+      - spring_aws_s3_secret_key
+      - spring_aws_s3_access_key
+
+    networks:
+      - backend-network
+
+volumes:
+  postgres-data:
+    driver: local
+  minio-data:
+    driver: local
+
+networks:
+  backend-network:
+    driver: bridge
+
+secrets:
+  db_app_password:
+    file: ./db_spring_boot_user.txt  # Path to the app user's password file
+    
+  db_admin_password:
+    file: ./db_admin_pass.txt # Path to the admin's password file
+ 
+  jwt_secret_key:
+    file: ./jwt_secret_key.txt
+
+  spring_aws_s3_access_key:
+    file: ./spring_aws_s3_access_key.txt
+
+  spring_aws_s3_secret_key:
+    file: ./spring_aws_s3_secret_key.txt
