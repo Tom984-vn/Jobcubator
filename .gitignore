@@ -1,5 +1,7 @@
 .venv
 .env
+.ipynb_checkpoints
+__pycache__
 
 #Passwords
 db_admin_pass.txt
