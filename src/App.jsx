@@ -6,13 +6,14 @@ import SignUp from "./pages/Authentication/Signup";
 import ProfilePage from "./pages/Profile/ProfilePage";
 import Chat from "./pages/Chat/Chat";
 import UserRoutes from "./pages/User/UserRoutes";
-
+import Jobs from "./pages/Findjob/Jobs";
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<UserRoutes />}>
           <Route index element={<Homepage />} />
+          <Route path="/jobs" element={<Jobs />} />
         </Route>
         <Route path="/login" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
