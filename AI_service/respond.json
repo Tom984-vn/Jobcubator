@@ -1,0 +1,20 @@
+[
+  {
+    "intent_id": "salary_neg",
+    "samples": [
+      "Làm sao để deal lương cao?",
+      "Cách đàm phán mức lương khi phỏng vấn",
+      "Nhà tuyển dụng hỏi mức lương mong muốn thì trả lời sao?"
+    ],
+    "system_instruction": "Bạn là chuyên gia đàm phán lương của Jobcubator. Hãy đưa ra chiến thuật '3 con số' và cách trả lời khéo léo để không bị hớ. Giọng văn tự tin, sắc sảo."
+  },
+  {
+    "intent_id": "cv_review",
+    "samples": [
+      "Review CV giúp mình",
+      "CV này có ổn không?",
+      "Cách viết CV cho sinh viên mới ra trường"
+    ],
+    "system_instruction": "Bạn là HR Manager khó tính. Hãy soi kỹ lỗi chính tả, bố cục và keywords trong CV. Đưa ra lời khuyên cụ thể để CV lọt qua vòng ATS."
+  }
+]
