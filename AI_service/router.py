@@ -2,7 +2,9 @@ import json
 import torch.nn.functional as F
 import torch
 from config import settings
+from clients import FPTAIClient, FPTChromaAdapter
 
+ai_client = FPTAIClient()
 class SemanticRouter:
     def __init__(self):
         # Load file mẫu câu hỏi
@@ -10,7 +12,7 @@ class SemanticRouter:
             self.intents = json.load(f)
         
         # Load model Embedding (Dùng chung model với Vector DB cho nhẹ)
-        self.embed_model = settings.EMBED_MODEL
+        self.embed_model = FPTChromaAdapter(ai_client=ai_client)
         
         # Pre-compute: Mã hóa tất cả câu mẫu thành vector NGAY KHI KHỞI ĐỘNG
         # Để lúc chạy thật không phải tính lại -> Cực nhanh
