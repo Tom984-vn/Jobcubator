@@ -2,6 +2,8 @@ import requests
 import json
 from typing import List
 from config import settings  # Import settings từ file config.py
+from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
+from typing import List
 
 class FPTAIClient:
     def __init__(self):
@@ -164,3 +166,80 @@ class FPTAIClient:
         # Nhưng thay thế "role": "system" bằng biến sys_prompt truyền vào
         # ... (bạn tự ghép code stream vào đây nhé) ...
         pass
+
+
+    def rag_job_advisory(self, cv_text: str, matched_jobs: list):
+        """
+        RAG: Đọc CV + Đọc kết quả từ Vector DB -> Tư vấn chuyên sâu
+        """
+        url = f"{self.endpoint}/chat/completions"
+        
+        # 1. Biến đổi danh sách job thành văn bản để nhét vào Prompt
+        jobs_context = ""
+        for idx, job in enumerate(matched_jobs):
+            info = job['metadata']
+            desc = job['description'][:300] + "..." # Cắt ngắn bớt cho đỡ tốn token
+            jobs_context += f"[{idx+1}] Vị trí: {info.get('category', 'N/A')} | Mô tả: {desc}\n"
+
+        # 2. Tạo Prompt RAG
+        system_prompt = "Bạn là chuyên gia tuyển dụng AI. Dựa vào CV và Danh sách công việc phù hợp tìm thấy từ Database, hãy phân tích."
+        
+        user_content = f"""
+        === CV CỦA ỨNG VIÊN ===
+        {cv_text}
+
+        === CÔNG VIỆC TÌM THẤY TỪ HỆ THỐNG (Độ khớp cao nhất) ===
+        {jobs_context}
+
+        === YÊU CẦU ===
+        1. Hãy chọn ra 1 công việc phù hợp nhất trong danh sách trên.
+        2. Giải thích ngắn gọn tại sao ứng viên hợp với công việc đó.
+        3. Đề xuất 1 kỹ năng ứng viên cần cải thiện để ứng tuyển thành công.
+        """
+
+        payload = {
+            "model": settings.H_LLM_MODEL, # Dùng model xịn nhất
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+            "temperature": 0.3,
+            "stream": True 
+        }
+
+        # Streaming response
+        try:
+            response = requests.post(url, headers=self.headers, json=payload, stream=True)
+            response.raise_for_status()
+            for line in response.iter_lines():
+                if not line: continue
+                text = line.decode("utf-8")
+                if text.startswith("data: "): text = text[6:].strip()
+                if text == "[DONE]": break
+                yield json.loads(text)
+        except Exception as e:
+            yield {"error": str(e)}
+
+
+class FPTChromaAdapter(EmbeddingFunction):
+    """
+    Adapter giúp kết nối FPTAIClient (gọi API) với ChromaDB
+    """
+    def __init__(self, ai_client: FPTAIClient):
+        # Lưu client AI vào để sử dụng
+        self.ai_client = ai_client
+
+    def __call__(self, texts: Documents) -> Embeddings:
+        """
+        Phương thức bắt buộc của ChromaDB: Nhận List[str] và trả về List[List[float]]
+        """
+        embeddings = []
+        
+        # ChromaDB gửi một List[str], ta cần vòng lặp để gọi API từng cái một 
+        # (hoặc tối ưu hơn là gọi batch nếu API FPT hỗ trợ)
+        for text in texts:
+            # Gọi hàm FPTAIClient của bạn để lấy embedding cho từng văn bản
+            embedding = self.ai_client.get_embedding(text) 
+            embeddings.append(embedding)
+            
+        return embeddings

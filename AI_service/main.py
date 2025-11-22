@@ -67,3 +67,14 @@ def endpoint_general_chat(data: TextRequest):
                     yield delta["content"]
 
     return StreamingResponse(output_generator(), media_type="text/plain")
+
+@app.get("/config/suggestions")  #Phải init ngay khi người dùng mở trang web
+def get_chat_suggestions():
+    """
+    API trả về danh sách câu hỏi gợi ý cho người dùng chọn.
+    """
+    suggestions = intent_router.get_all_suggestions()
+    return {
+        "suggestions": suggestions,
+        "count": len(suggestions)
+    }

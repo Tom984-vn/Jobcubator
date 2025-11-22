@@ -30,7 +30,7 @@ class SemanticRouter:
             self.sample_vectors = torch.stack(self.sample_vectors)
         print("✅ Router đã sẵn sàng!")
 
-    def find_best_instruction(self, user_query: str, threshold=0.75):
+    def find_best_instruction(self, user_query: str , threshold=0.75):
         """
         Tìm xem câu hỏi user có khớp với mẫu nào không.
         Trả về: (Instruction, True) nếu khớp.

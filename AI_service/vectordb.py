@@ -1,28 +1,25 @@
 import chromadb
 from chromadb.utils import embedding_functions
+from clients import FPTAIClient, FPTChromaAdapter
 from config import settings # Import biến cấu hình chung
 
+ai_client = FPTAIClient()
 class VectorDBClient:
     def __init__(self):
-        
-        # 1. Khởi tạo Client (Kết nối đến thư mục lưu DB)
-        self.client = chromadb.PersistentClient(path=settings.DB_PATH)
-        
-        # 2. Chọn hàm Embedding (Dùng model local hoặc API)
-        # Ở đây mình giữ nguyên model local như code mẫu của bạn
         print(f"📦 Đang khởi tạo VectorDB với model: {settings.EMBED_MODEL}")
         self.client = chromadb.PersistentClient(path=settings.DB_PATH)
-        self.embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=settings.EMBED_MODEL
+        """
+        self.embedding_func = ExternalAPIEmbeddingFunction(
+            api_url=settings.ENDPOINT,
+            api_key=settings.API_KEY
         )
-
-        # 3. Lấy hoặc Tạo Collection (Bảng dữ liệu)
+        """
+        self.embedding_func = FPTChromaAdapter(ai_client=ai_client)
         self.collection = self.client.get_or_create_collection(
             name=settings.COLLECTION_NAME,
             embedding_function=self.embedding_func
         )
-        print(f"✅ Đã kết nối Vector DB tại: {settings.DB_PATH}")
-
+    
     def add_jobs(self, jobs_data: list):
         """
         Thêm danh sách job vào DB.
@@ -50,16 +47,27 @@ class VectorDBClient:
             return False
 
     def search_similar_jobs(self, query_text: str, n_results=5):
-        """Tìm kiếm Job phù hợp với text"""
+        """Tìm kiếm jobs và trả về kết quả dạng List of Dict"""
         try:
             results = self.collection.query(
                 query_texts=[query_text],
                 n_results=n_results
             )
-            return results
+            
+            # Chroma trả về cấu trúc khá rối, ta cần làm phẳng nó lại
+            clean_results = []
+            if results and results['documents']:
+                for i in range(len(results['documents'][0])):
+                    clean_results.append({
+                        "id": results['ids'][0][i],
+                        "description": results['documents'][0][i],
+                        "metadata": results['metadatas'][0][i] if results['metadatas'] else {}
+                    })
+            return clean_results
         except Exception as e:
-            print(f"❌ Lỗi tìm kiếm: {e}")
-            return None
+            print(f"❌ Lỗi tìm kiếm Vector: {e}")
+            return []
+
 
 # --- Cách sử dụng trong main.py ---
 # from vectordb import VectorDBClient
