@@ -14,3 +14,8 @@ class JobMatcher:
         
         # dim=0 nghĩa là tính dọc theo vector
         return F.cosine_similarity(t1, t2, dim=0).item()
+    
+    def compute_vector_centroid() -> List[float]:
+        # Tính vector đại diện cho mỗi phân ngành
+        pass
+    

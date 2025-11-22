@@ -52,3 +52,14 @@ class SemanticRouter:
             return self.intent_map[idx.item()], True
         
         return None, False
+    def get_all_suggestions(self):
+        """
+        Trả về danh sách tất cả câu hỏi mẫu để hiển thị lên Frontend.
+        Output: List[str] hoặc List[Dict]
+        """
+        suggestion_list = []
+        for category in self.intents:
+            # Lấy ra 1-2 câu mẫu tiêu biểu nhất của mỗi chủ đề để hiển thị thôi
+            # Không cần lấy hết nếu danh sách quá dài
+            suggestion_list.extend(category["samples"][:2]) 
+        return suggestion_list

@@ -13,5 +13,8 @@ class Settings:
     L_LLM_MODEL = "Llama-3.3-Swallow-70B-Instruct-v0.4"
     H_LLM_MODEL = "DeepSeek-R1"
 
+    DB_PATH = "./chroma_data" # Tên thư mục chứa DB
+    COLLECTION_NAME = "job_listings"
+    
 # Tạo một biến settings để dùng chung
 settings = Settings()
