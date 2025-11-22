@@ -3,13 +3,14 @@ import { BsWallet2 } from "react-icons/bs";
 import { IoLocationOutline } from "react-icons/io5";
 import { FaRegHeart } from "react-icons/fa6";
 import { useState } from "react";
+import "./RecentJob.css";
 import { PiCaretLeft } from "react-icons/pi";
 import { PiCaretRight } from "react-icons/pi";
 
 const Job = (props) => {
   const [isFavorite, setIsFavorite] = useState(false);
   return (
-    <div className="h-41 relative bg-white rounded-lg p-4 shadow-lg hover:border-[#E48309] hover:border-2 transition-all duration-100 cursor-pointer group">
+    <div className="h-fit relative bg-white rounded-lg p-4 shadow-lg hover:border-[#E48309] hover:border-2 transition-all duration-100 cursor-pointer group">
       <div
         onClick={() => {
           setIsFavorite(!isFavorite);
@@ -22,7 +23,7 @@ const Job = (props) => {
       >
         <FaRegHeart />
       </div>
-      <div className="flex gap-4 mb-4">
+      <div className="flex flex-wrap gap-4 mb-4">
         <img src={props.logo} alt="company logo" className="h-auto w-[25%]" />
         <div>
           <div className="flex gap-2">
@@ -44,7 +45,7 @@ const Job = (props) => {
           <p className="text-sm text-gray-500">{props.company}</p>
         </div>
       </div>
-      <div className="flex justify-around">
+      <div className="flex flex-col">
         <p className="flex items-center gap-1">
           <CiClock2 color="#E48309" /> {props.type}
         </p>
@@ -73,7 +74,7 @@ export default function RecentJob() {
         <p className="text-[#1C229E] text-right underline hover:font-bold text-lg">
           Xem thêm
         </p>
-        <div className="grid grid-cols-3 gap-6 my-10">
+        <div className="grid fit-to-grid gap-6 my-10">
           <Job
             logo="/images/exampleLogo.png"
             jobname="Chuyên Viên Phát Triển Phần Mềm"

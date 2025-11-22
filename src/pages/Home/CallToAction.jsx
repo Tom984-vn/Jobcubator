@@ -14,7 +14,7 @@ export default function CallToAction() {
     transition-all duration-300 ease-out
     group
     items-center
-    h-50
+    h-fit
   "
           style={{
             background: "linear-gradient(90deg, white 40%, #c9d6ff 120%)",
@@ -47,7 +47,7 @@ export default function CallToAction() {
     transition-all duration-300 ease-out
     group
     items-center
-    h-50
+    h-fit
   "
           style={{
             background: "linear-gradient(90deg, white 40%, #E48309 150%)",

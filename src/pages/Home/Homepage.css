@@ -1,25 +1,31 @@
 .banner {
-  background-image: url("./images/homeBanner.png");
-  background-size: cover;
-  background-position: center;
+    background-image: url("./images/homeBanner.png");
+    background-size: cover;
+    background-position: center;
 }
 .banner .overlay {
-  position: absolute;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 0;
 }
 .raleway-bold {
-  font-family: "Raleway", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: 700;
-  font-style: normal;
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: normal;
 }
 .raleway-normal {
-  font-family: "Raleway", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: 400;
-  font-style: normal;
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+}
+.banner-grid {
+    display: grid;
+    margin-inline: 20px;
+    grid-template-columns: 1fr;
+    grid-template-rows: 40px 40px 40px 40px;
 }

@@ -8,7 +8,7 @@ import { BsBuildings } from "react-icons/bs";
 
 const SearchForm = () => {
   return (
-    <div className="flex justify-center bg-white w-fit rounded-xl mt-6 space-x-3 mx-auto h-15 overflow-x-hidden">
+    <div className="md:flex md:justify-center bg-white md:w-fit rounded-xl mt-6 md:space-x-3 mx-auto md:h-15 overflow-x-hidden banner-grid">
       <input
         placeholder="Mô tả ngắn công việc bạn muốn"
         className="w-100 focus:outline-0 border-r-2 border-gray-300 p-2"
