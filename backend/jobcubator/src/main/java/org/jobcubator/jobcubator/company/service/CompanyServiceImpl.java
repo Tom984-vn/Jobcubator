@@ -46,7 +46,7 @@ public class CompanyServiceImpl implements CompanyService{
             company.getId(),
             company.getName(),
             company.getWebsite(),
-            Integer.valueOf(company.getSize())
+            company.getSize()   
         );
     }
 
@@ -58,7 +58,7 @@ public class CompanyServiceImpl implements CompanyService{
             company.getId(),
             company.getName(),
             company.getWebsite(),
-            Integer.valueOf(company.getSize())
+            company.getSize()
         );
     }
 
@@ -74,7 +74,7 @@ public class CompanyServiceImpl implements CompanyService{
             company.getId(),
             company.getName(),
             company.getWebsite(),
-            Integer.valueOf(company.getSize())
+            company.getSize()
         );    
     }
 
@@ -101,7 +101,7 @@ public class CompanyServiceImpl implements CompanyService{
             c.getId(),
             c.getName(),
             c.getWebsite(),
-            Integer.valueOf(c.getSize())
+            c.getSize()
         ));
     }
 

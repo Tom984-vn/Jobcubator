@@ -12,6 +12,6 @@ public record CompanyDTO(
     UUID id,
     String name,
     String website,
-    Integer size
+    String size
 ) {
 }
