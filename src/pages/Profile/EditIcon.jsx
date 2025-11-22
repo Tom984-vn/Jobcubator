@@ -1,10 +1,12 @@
 export default function EditIcon() {
   return (
     <div
-      className="btn
+      className="
+      cursor-pointer
+      active:outline-offset-1
       active:outline-1
       flex rounded
-      hover:bg-gray-200
+      hover:bg-complement-100
       transition-colors
       duration-300
       ease-in-out

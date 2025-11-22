@@ -2,6 +2,27 @@ import "./Profile.css";
 import EditIcon from "./EditIcon.jsx";
 import NavBar from "../../components/NavBar/NavBar";
 import { Link } from "react-router-dom";
+
+const Skill = (props) => {
+  return (
+    <div
+      className="
+      flex
+      w-fit
+      h-fit
+      cursor-pointer
+      rounded
+      bg-cyan-100
+      px-0.5
+      gap-0.5
+      "
+    >
+      {props.skillIcon}
+      <p className="text-sm">{props.skillName}</p>
+    </div>
+  );
+};
+
 export default function ProfilePage() {
   return (
     <div className="relative bg-gray-300 items-center ">
@@ -148,7 +169,6 @@ export default function ProfilePage() {
               </svg>
               <p
                 className="
-                top-0
                 left-0
                 text-sm
                 flex-1
@@ -245,7 +265,7 @@ export default function ProfilePage() {
             one-field
             "
           >
-            <div className="top-part flex">
+            <div className="top-part ">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -283,7 +303,7 @@ export default function ProfilePage() {
             one-field
             "
           >
-            <div className="top-part flex">
+            <div className="top-part ">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -310,18 +330,108 @@ export default function ProfilePage() {
             </div>
             <div
               className="
+              flex
+              flex-wrap
               flex-1
               border
+              border-slate-200
+              transition-all
+              ease-in-out
+              duration-200
+              hover:border-slate-300
+              hover:shadow
               rounded
-              p-1
+              w-11/12
+              p-2
+              gap-2
+              overflow-scroll
               "
             >
-              <p
-                className="text-sm
-                bg-cyan-100 w-fit"
+              <Skill skillName="KN 1" />
+              <Skill skillName="KN 2" />
+              <Skill skillName="KN 3" />
+              <Skill skillName="KN 4" />
+              <Skill skillName="KN 5" />
+              <Skill skillName="KN 6" />
+              <Skill skillName="KN 7" />
+              <Skill skillName="KN 8" />
+              <Skill skillName="KN 9" />
+              <Skill skillName="KN 10" />
+              <Skill skillName="KN 11" />
+              <Skill skillName="KN 12" />
+              <Skill skillName="KN 13" />
+              <Skill skillName="KN 14" />
+              <Skill skillName="KN 15" />
+              <Skill skillName="KN 16" />
+            </div>
+          </div>
+          <div
+            className="
+            one-field
+            "
+          >
+            <div className="top-part ">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="size-6 self-center"
               >
-                KN 1
+                <path
+                  fillRule="evenodd"
+                  d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <p
+                className="
+                left-0
+                text-sm
+                flex-1
+                self-center
+                "
+              >
+                Loại thời gian
               </p>
+              <EditIcon />
+            </div>
+            <div
+              className="
+              flex
+              flex-wrap
+              flex-1
+              border
+              border-slate-200
+              transition-all
+              ease-in-out
+              duration-200
+              hover:border-slate-300
+              hover:shadow
+              rounded
+              w-11/12
+              p-2
+              gap-2
+              overflow-scroll
+              "
+            >
+              <Skill skillName="Toàn thời gian" />
+              <Skill
+                skillIcon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="size-4 self-center"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 0 1-9.694 6.46c-5.799 0-10.5-4.7-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 0 1 .818.162Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                }
+                skillName="Ca đêm"
+              />
             </div>
           </div>
         </div>

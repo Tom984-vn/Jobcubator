@@ -3,10 +3,10 @@
 
 @layer utilities {
     .one-field {
-        @apply relative flex flex-col place-content-between h-30 w-60 rounded bg-complement-300 p-2;
+        @apply relative flex flex-col place-content-between h-30 w-60 rounded bg-complement-300 gap-y-2 p-2;
     }
     .info-text-box {
-        @apply bottom-0 mt-2 text-sm w-11/12 h-fit border border-slate-200 rounded-sm transition-all ease-in-out duration-200 shadow-sm hover:border-slate-300 hover:shadow;
+        @apply bottom-0 text-sm w-11/12 h-fit border border-slate-200 rounded-sm transition-all ease-in-out duration-200 shadow-sm hover:border-slate-300 hover:shadow;
     }
     .top-part {
         display: flex;
