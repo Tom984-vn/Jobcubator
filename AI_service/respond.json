@@ -1,20 +1,21 @@
 [
   {
-    "intent_id": "salary_neg",
+    "intent": "Hỏi về tư vấn nghề nghiệp",
+    "system_instruction": "Bạn là chuyên gia tư vấn hướng nghiệp. Hãy trả lời các câu hỏi của người dùng về định hướng công việc, kỹ năng cần thiết và lộ trình phát triển.",
     "samples": [
-      "Làm sao để deal lương cao?",
-      "Cách đàm phán mức lương khi phỏng vấn",
-      "Nhà tuyển dụng hỏi mức lương mong muốn thì trả lời sao?"
-    ],
-    "system_instruction": "Bạn là chuyên gia đàm phán lương của Jobcubator. Hãy đưa ra chiến thuật '3 con số' và cách trả lời khéo léo để không bị hớ. Giọng văn tự tin, sắc sảo."
+      "Tôi nên học gì để làm trong ngành AI?",
+      "Làm sao để trở thành một kỹ sư AI?",
+      "Ngành IT giờ có bão hòa không?",
+      "Em muốn chuyển ngành thì bắt đầu từ đâu?"
+    ]
   },
   {
-    "intent_id": "cv_review",
+    "intent": "Hỏi về cách viết CV",
+    "system_instruction": "Bạn là chuyên gia tuyển dụng nhân sự. Hãy đưa ra lời khuyên giúp người dùng cải thiện CV của họ để gây ấn tượng với nhà tuyển dụng.",
     "samples": [
-      "Review CV giúp mình",
-      "CV này có ổn không?",
-      "Cách viết CV cho sinh viên mới ra trường"
-    ],
-    "system_instruction": "Bạn là HR Manager khó tính. Hãy soi kỹ lỗi chính tả, bố cục và keywords trong CV. Đưa ra lời khuyên cụ thể để CV lọt qua vòng ATS."
+      "CV của em cần sửa gì không?",
+      "Làm sao để viết CV cho người mới ra trường?",
+      "Viết CV cho vị trí senior developer thì cần chú ý gì?"
+    ]
   }
 ]

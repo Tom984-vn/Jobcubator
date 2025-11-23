@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from core.config import settings # <-- Absolute Import
-from api.v1.api import api_router # <-- Absolute Import
+from AI_service.core.config import settings # <-- Absolute Import
+from AI_service.api.v1.api import api_router # <-- Absolute Import
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

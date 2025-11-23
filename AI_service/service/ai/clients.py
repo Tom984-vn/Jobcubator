@@ -1,7 +1,7 @@
 import requests
 import json
 from typing import List
-from ...core.config import settings  # Import settings từ file config.py
+from AI_service.core.config import settings  # Import settings từ file config.py
 from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
 from typing import List
 
@@ -11,7 +11,8 @@ class FPTAIClient:
             "Authorization": f"Bearer {settings.API_KEY}",
             "Content-Type": "application/json"
         }
-        self.endpoint = settings.ENDPOINT.rstrip('/')
+        self.endpoint = settings.ENDPOINT
+        # self.endpoint = settings.ENDPOINT.rstrip('/')
 
     def get_embedding(self, text: str) -> List[float]:
         url = f"{self.endpoint}/embeddings"

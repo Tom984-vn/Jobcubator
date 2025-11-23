@@ -1,9 +1,9 @@
 import chromadb
 from chromadb.utils import embedding_functions
 from typing import Optional, List, Dict
-from clients import FPTAIClient, FPTChromaAdapter
-from ...schemas.schemas import JobFilter
-from ...core.config import settings # Import biến cấu hình chung
+from AI_service.service.ai.clients import FPTAIClient, FPTChromaAdapter
+from AI_service.schemas.schemas import JobFilter
+from AI_service.core.config import settings # Import biến cấu hình chung
 
 ai_client = FPTAIClient()
 class VectorDBClient:

@@ -1,15 +1,14 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from ....schemas.schemas import TextRequest, MatchRequest, ConsultRequest
-from ....service.ai.clients import FPTAIClient, FPTChromaAdapter
-from ....service.ai.vectordb import VectorDBClient
+from AI_service.schemas.schemas import TextRequest, MatchRequest, ConsultRequest
+from AI_service.service.ai.clients import FPTAIClient, FPTChromaAdapter
+from AI_service.service.ai.vectordb import VectorDBClient
 
 router = APIRouter()
 
 ai_client = FPTAIClient()
-ADAPTER = FPTChromaAdapter(ai_client)
-db_client = VectorDBClient(ADAPTER)
+db_client = VectorDBClient()
 
 def get_user_context_mock(user_id: str) -> str:
     if user_id == "user_thich_remote":

@@ -9,8 +9,8 @@ import torch
 import torch.nn.functional as F
 
 # <-- Absolute Imports
-from ....schemas.schemas import TextRequest # Cần tạo TextRequest trong schemas/ai.py
-from ....service.ai.clients import FPTAIClient 
+from AI_service.schemas.schemas import TextRequest # Cần tạo TextRequest trong schemas/ai.py
+from AI_service.service.ai.clients import FPTAIClient 
 # Bạn sẽ cần import SemanticRouter nếu bạn định nghĩa nó ở file khác
 # Ví dụ: from AI_service.services.ai.router import SemanticRouter 
 class SemanticRouter:

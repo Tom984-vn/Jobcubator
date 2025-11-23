@@ -1,8 +1,8 @@
 import json
 import torch.nn.functional as F
 import torch
-from config import settings
-from clients import FPTAIClient, FPTChromaAdapter
+from AI_service.core.config import settings
+from AI_service.service.ai.clients import FPTAIClient, FPTChromaAdapter
 
 ai_client = FPTAIClient()
 class SemanticRouter:
