@@ -3,7 +3,7 @@ import json
 from typing import List
 from AI_service.core.config import settings  # Import settings từ file config.py
 from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
-from typing import List
+
 
 class FPTAIClient:
     def __init__(self):
@@ -53,16 +53,18 @@ class FPTAIClient:
         except Exception as e:
             print(f"Lỗi Chat: {e}")
             return "Lỗi xử lý văn bản"
+            
     def generate_report(self, job_id_list: List[int], text: str) -> str:  #cần generate tối thiểu 3 recommend dựa theo các tiêu chí khác nhau
         url = f"{self.endpoint}/chat/completions"
+        job_ids_text = ", ".join(map(str, job_id_list))
         prompt = f"""
         Dưới đây là hồ sơ ứng viên:
 
         {text}
 
-        Dưới đây là mô tả công việc:
+        Dưới đây là danh sách các ID công việc có liên quan:
 
-        {job_id_list.text}
+        {job_ids_text}
 
         Hãy phân tích:
 
@@ -130,33 +132,35 @@ class FPTAIClient:
         try:
             res = requests.post(url, headers=self.headers, json=payload)
             return res.json()["choices"][0]["message"]["content"]
-        except:
+        except Exception:
             return text # Nếu lỗi thì dùng nguyên văn
 
     def smart_chat(self, user_text: str, router_instance):
-        """
-        Hàm chat thông minh kết hợp Router
-        """
-        # BƯỚC 1: Hỏi Router xem có trúng tủ không?
         instruction, is_match = router_instance.find_best_instruction(user_text)
-        
-        final_prompt = user_text
-        system_prompt = "Bạn là trợ lý HR hữu ích." # Mặc định
 
         if is_match:
-            print("🎯 HIT: Trúng câu hỏi mẫu -> Dùng Instruction chuyên gia")
-            system_prompt = instruction
+            print("🎯 HIT: Trúng câu hỏi mẫu -> Dùng Instruction chuyên gia.")
+            # For the HIT case, we combine the expert instruction directly into the user prompt
+            # for maximum effect. This creates a stronger signal for the LLM.
+            system_prompt = "Bạn là một trợ lý AI chuyên nghiệp, luôn trả lời bằng tiếng Việt."
+            final_prompt = f'''Dựa trên vai trò của bạn là một chuyên gia, hãy trả lời câu hỏi sau một cách chi tiết.
+
+**Hướng dẫn vai trò (Instruction):**
+{instruction}
+
+**Câu hỏi của người dùng:**
+{user_text}
+'''
         else:
-            print("⚠️ MISS: Câu hỏi lạ -> Dùng Light LLM chuẩn hóa")
-            # BƯỚC 2: Nếu không trúng, nhờ Light LLM sửa lại câu hỏi
+            print("⚠️ MISS: Câu hỏi lạ -> Dùng Light LLM chuẩn hóa.")
+            # For the MISS case, we stick to the original strategy of refining the question
+            # and using a standard system prompt.
+            system_prompt = "Bạn là trợ lý HR hữu ích, luôn trả lời bằng tiếng Việt."
             refined_text = self.normalize_question(user_text)
-            print(f"   Gốc: {user_text} \n   Sửa: {refined_text}")
+            print(f"   Câu hỏi đã chuẩn hóa: {refined_text}")
             final_prompt = refined_text
 
-        # BƯỚC 3: Gửi cho Heavy LLM (Model xịn) trả lời
-        # (Code gọi API stream giống hệt bài trước, chỉ thay content)
         return self.chat_respond_custom(final_prompt, system_prompt)
-
 
     def rag_job_advisory(self, cv_text: str, matched_jobs: list):
         """
@@ -174,7 +178,7 @@ class FPTAIClient:
         # 2. Tạo Prompt RAG
         system_prompt = "Bạn là chuyên gia tuyển dụng AI. Dựa vào CV và Danh sách công việc phù hợp tìm thấy từ Database, hãy phân tích."
         
-        user_content = f"""
+        user_content = f'''
         === CV CỦA ỨNG VIÊN ===
         {cv_text}
 
@@ -185,7 +189,7 @@ class FPTAIClient:
         1. Hãy chọn ra 1 công việc phù hợp nhất trong danh sách trên.
         2. Giải thích ngắn gọn tại sao ứng viên hợp với công việc đó.
         3. Đề xuất 1 kỹ năng ứng viên cần cải thiện để ứng tuyển thành công.
-        """
+        '''
 
         payload = {
             "model": settings.H_LLM_MODEL, # Dùng model xịn nhất
