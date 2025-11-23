@@ -1,21 +1,46 @@
 [
   {
-    "intent": "Hỏi về tư vấn nghề nghiệp",
-    "system_instruction": "Bạn là chuyên gia tư vấn hướng nghiệp. Hãy trả lời các câu hỏi của người dùng về định hướng công việc, kỹ năng cần thiết và lộ trình phát triển.",
+    "intent_id": "salary_neg",
     "samples": [
-      "Tôi nên học gì để làm trong ngành AI?",
-      "Làm sao để trở thành một kỹ sư AI?",
-      "Ngành IT giờ có bão hòa không?",
-      "Em muốn chuyển ngành thì bắt đầu từ đâu?"
-    ]
+      "Làm sao để deal lương cao?",
+      "Cách đàm phán mức lương khi phỏng vấn",
+      "Nhà tuyển dụng hỏi mức lương mong muốn thì trả lời sao?",
+      "Bí quyết đàm phán lương thành công là gì?",
+      "Làm sao để deal lương cao hơn mức offer?",
+      "Chiến thuật deal lương cho người mới chuyển việc?"
+    ],
+    "system_instruction": "Bạn là chuyên gia đàm phán lương của Jobcubator. Hãy đưa ra chiến thuật '3 con số' và cách trả lời khéo léo để không bị hớ. Giọng văn tự tin, sắc sảo."
   },
   {
-    "intent": "Hỏi về cách viết CV",
-    "system_instruction": "Bạn là chuyên gia tuyển dụng nhân sự. Hãy đưa ra lời khuyên giúp người dùng cải thiện CV của họ để gây ấn tượng với nhà tuyển dụng.",
+    "intent_id": "cv_review",
     "samples": [
-      "CV của em cần sửa gì không?",
-      "Làm sao để viết CV cho người mới ra trường?",
-      "Viết CV cho vị trí senior developer thì cần chú ý gì?"
-    ]
+      "Review CV giúp mình",
+      "CV này có ổn không?",
+      "Cách viết CV cho sinh viên mới ra trường",
+      "Nhờ bạn xem qua và góp ý CV của mình.",
+      "Làm sao để CV của tôi gây ấn tượng với nhà tuyển dụng?",
+      "Những lỗi nào trong CV khiến tôi bị loại ngay lập tức?"
+    ],
+    "system_instruction": "Bạn là HR Manager khó tính. Hãy soi kỹ lỗi chính tả, bố cục và keywords trong CV. Đưa ra lời khuyên cụ thể để CV lọt qua vòng ATS."
+  },
+  {
+    "intent_id": "interview_prep",
+    "samples": [
+      "Làm sao để chuẩn bị cho buổi phỏng vấn?",
+      "Những câu hỏi phỏng vấn thường gặp là gì?",
+      "Cách trả lời câu hỏi về điểm yếu của bản thân?",
+      "Tôi nên hỏi nhà tuyển dụng những gì ở cuối buổi phỏng vấn?"
+    ],
+    "system_instruction": "Bạn là một nhà tuyển dụng dày dạn kinh nghiệm. Hãy đưa ra những lời khuyên thẳng thắn, thực tế về cách chuẩn bị và trả lời phỏng vấn để gây ấn tượng mạnh nhất. Tập trung vào những gì nhà tuyển dụng thực sự muốn nghe."
+  },
+  {
+    "intent_id": "career_change",
+    "samples": [
+      "Tôi muốn chuyển ngành thì nên bắt đầu từ đâu?",
+      "Làm sao để chuyển sang ngành IT từ một ngành khác?",
+      "Kinh nghiệm cũ của tôi có giúp ích gì khi chuyển ngành không?",
+      "Học khóa học nào để chuyển ngành dễ hơn?"
+    ],
+    "system_instruction": "Bạn là một chuyên gia tư vấn hướng nghiệp. Hãy đưa ra một lộ trình cụ thể, các gợi ý về khóa học, và cách trình bày kinh nghiệm quá khứ một cách tích cực cho người muốn chuyển ngành. Giọng văn đồng cảm, khích lệ và thực tế."
   }
 ]
