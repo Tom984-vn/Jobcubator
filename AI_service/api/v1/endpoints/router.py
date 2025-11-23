@@ -3,13 +3,33 @@ import torch.nn.functional as F
 import torch
 from AI_service.core.config import settings
 from AI_service.service.ai.clients import FPTAIClient, FPTChromaAdapter
+from typing import Dict, Any
+from pathlib import Path
+
+CURRENT_FILE = Path(__file__).resolve()
+
+# Hoặc đơn giản hơn, nếu bạn đặt file JSON trong thư mục AI_service/
+AI_SERVICE_DIR = CURRENT_FILE.parents[3] # Nếu client.py ở cấp 3
+
+# Xây dựng đường dẫn tuyệt đối đến respond.json (Giả sử nằm trong thư mục AI_SERVICE)
+JSON_FILE_PATH = AI_SERVICE_DIR / "respond.json"
 
 ai_client = FPTAIClient()
 class SemanticRouter:
     def __init__(self):
+        print(JSON_FILE_PATH)
+        self.intents: Dict[str, Any] = {}
+        try:
         # Load file mẫu câu hỏi
-        with open("respond.json", "r", encoding="utf-8") as f:
-            self.intents = json.load(f)
+            with open(JSON_FILE_PATH, "r", encoding="utf-8") as f:
+                self.intents = json.load(f)
+            print(f"✅ Đã tải file intents từ: {JSON_FILE_PATH}")
+            
+        except FileNotFoundError:
+             # In ra đường dẫn bị lỗi để tiện debug
+             print(f"❌ Lỗi TẢI FILE: Không tìm thấy file tại '{JSON_FILE_PATH}'. Vui lòng kiểm tra lại số cấp .parents[X].") 
+        except json.JSONDecodeError as e:
+             print(f"❌ Lỗi JSON: File '{JSON_FILE_PATH}' không hợp lệ. Chi tiết: {e}")
         
         # Load model Embedding (Dùng chung model với Vector DB cho nhẹ)
         self.embed_model = FPTChromaAdapter(ai_client=ai_client)
@@ -22,15 +42,19 @@ class SemanticRouter:
         print("🔄 Đang khởi tạo Router...")
         for item in self.intents:
             for sample in item["samples"]:
-                vec = self.embed_model.encode(sample, convert_to_tensor=True)
-                self.sample_vectors.append(vec)
-                # Lưu lại instruction tương ứng với vector này
-                self.intent_map.append(item["system_instruction"])
+                vec_list = ai_client.get_embedding(sample)
+                if vec_list:
+                    # Chuyển List thành Tensor để tính toán
+                    vec_tensor = torch.tensor(vec_list, dtype=torch.float32)
+                    self.sample_vectors.append(vec_tensor)
+                    self.intent_map.append(item["system_instruction"])
         
         # Stack lại thành 1 matrix lớn để tính toán song song
         if self.sample_vectors:
             self.sample_vectors = torch.stack(self.sample_vectors)
-        print("✅ Router đã sẵn sàng!")
+            print(f"✅ Router đã sẵn sàng với {len(self.sample_vectors)} mẫu câu!")
+        else:
+            print("⚠️ Cảnh báo: Router rỗng (không có vector).")
 
     def find_best_instruction(self, user_query: str , threshold=0.75):
         """
@@ -38,12 +62,22 @@ class SemanticRouter:
         Trả về: (Instruction, True) nếu khớp.
         Trả về: (None, False) nếu không khớp.
         """
-        # 1. Embed câu hỏi người dùng
-        query_vec = self.embed_model.encode(user_query, convert_to_tensor=True)
+        # Kiểm tra an toàn
+        if not isinstance(self.sample_vectors, torch.Tensor) or self.sample_vectors.numel() == 0:
+            return None, False
         
-        # 2. Tính độ giống nhau với TOÀN BỘ mẫu (Cosine Similarity)
-        scores = F.cosine_similarity(query_vec, self.sample_vectors)
+        # Embed câu hỏi người dùng
+        query_list = ai_client.get_embedding(user_query)
+        if not query_list: return None, False
         
+        query_vec = torch.tensor(query_list, dtype=torch.float32)
+        
+        # Tính Cosine Similarity
+        if self.sample_vectors.dim() == 1:
+             scores = F.cosine_similarity(query_vec.unsqueeze(0), self.sample_vectors.unsqueeze(0))
+        else:
+             scores = F.cosine_similarity(query_vec, self.sample_vectors)
+
         # 3. Lấy điểm cao nhất
         max_score, idx = torch.max(scores, dim=0)
         

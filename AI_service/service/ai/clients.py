@@ -1,9 +1,8 @@
 import requests
 import json
-from typing import List
+from typing import List, Dict
 from AI_service.core.config import settings  # Import settings từ file config.py
 from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
-from typing import List
 
 class FPTAIClient:
     def __init__(self):
@@ -53,31 +52,37 @@ class FPTAIClient:
         except Exception as e:
             print(f"Lỗi Chat: {e}")
             return "Lỗi xử lý văn bản"
-    def generate_report(self, job_id_list: List[int], text: str) -> str:  #cần generate tối thiểu 3 recommend dựa theo các tiêu chí khác nhau
+    def generate_report(self, original_cv: str, refined_cv: str, matched_jobs: List[Dict]) -> Dict:  #cần generate tối thiểu 3 recommend dựa theo các tiêu chí khác nhau
         url = f"{self.endpoint}/chat/completions"
-        prompt = f"""
-        Dưới đây là hồ sơ ứng viên:
 
-        {text}
-
-        Dưới đây là mô tả công việc:
-
-        {job_id_list.text}
-
-        Hãy phân tích:
-
-        Những điểm phù hợp chính.
-        Những điểm còn thiếu và có thể đào tạo nhanh.
-        Tóm tắt mức độ phù hợp dạng phần trăm.
-        Gợi ý công ty nên trao đổi gì khi phỏng vấn.
-        Gợi ý ứng viên nên học thêm gì nếu muốn tăng cơ hội trúng tuyển.
+        jobs_summary = json.dumps(matched_jobs, ensure_ascii=False, indent=2)
+        system_prompt = f"""Bạn là một chuyên gia phân tích dữ liệu và nhân sự. 
+        Nhiệm vụ của bạn là phân tích CV và so sánh với danh sách các công việc phù hợp (matched_jobs).
+        
+        Dữ liệu cung cấp:
+        - CV Đã Chuẩn Hóa: {refined_cv}
+        - Danh sách Job Phù Hợp: {jobs_summary}
+        
+        Hãy tuân thủ nghiêm ngặt và chỉ trả về DƯỚI DẠNG ĐỐI TƯỢNG JSON theo cấu trúc sau:
+        {{
+            "cv_analysis": "Phân tích điểm mạnh, kinh nghiệm nổi bật trong CV, và các kỹ năng còn thiếu sót (Tối đa 200 từ).",
+            "match_summary": "Tóm tắt mức độ phù hợp tổng thể giữa CV và các Job được tìm thấy (Tối đa 100 từ).",
+            "job_recommendations": [
+                {{
+                    "job_title": "[Tiêu đề Job]",
+                    "match_score": "[Mức độ phù hợp, ví dụ: 85%]",
+                    "reasoning": "Giải thích chi tiết tại sao Job này phù hợp với ứng viên (Tối đa 100 từ)."
+                }},
+                // ... (Các job khác)
+            ]
+        }}
         """
         
         payload = {
             "model": settings.H_LLM_MODEL,
             "messages": [
-                {"role": "system", "content": "Bạn là chuyên gia phân tích việc làm của Jobcubator. Nhiệm vụ: đánh giá mức độ phù hợp giữa ứng viên và công việc, dựa trên thông tin đã cho. Chỉ đưa ra câu trả lời dựa trên dữ liệu đầu vào. Không tự bịa thêm thông tin."},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Phân tích CV gốc: {original_cv}"}
             ],
             "temperature": 0.2
         }

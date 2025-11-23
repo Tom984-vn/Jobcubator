@@ -1,5 +1,15 @@
 import os
 from dotenv import load_dotenv
+from pathlib import Path
+# Lấy đường dẫn tuyệt đối của thư mục chứa file config.py
+CONFIG_DIR = Path(__file__).resolve().parent
+
+# Lấy đường dẫn đến file .env: Lùi một cấp từ core/ để đến AI_service/
+DOTENV_PATH = CONFIG_DIR.parent / ".env" 
+
+# Load biến từ file .env vào môi trường, sử dụng đường dẫn tuyệt đối
+# Đây là bước quan trọng để đảm bảo .env được tìm thấy dù bạn chạy lệnh uvicorn ở đâu
+load_dotenv(dotenv_path=DOTENV_PATH)
 
 # Load biến từ file .env vào môi trường
 load_dotenv()
