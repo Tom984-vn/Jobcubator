@@ -1,7 +1,7 @@
 import requests
 import json
 from typing import List
-from config import settings  # Import settings từ file config.py
+from ...core.config import settings  # Import settings từ file config.py
 from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
 from typing import List
 

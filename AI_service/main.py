@@ -1,13 +1,11 @@
 import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse    
-from schemas import TextRequest, MatchRequest  # Import từ schemas.py
-from clients import FPTAIClient                # Import từ clients.py
-from utils import JobMatcher       
+from schemas.schemas import TextRequest, MatchRequest  # Import từ schemas.py
+from service.ai.clients import FPTAIClient     
+# from utils import JobMatcher       
 from router import SemanticRouter          
 import time
-from http.server import HTTPServer
-from server import Server 
 
 # Khởi tạo App
 app = FastAPI()
@@ -16,7 +14,6 @@ intent_router = SemanticRouter()
 
 # Khởi tạo các object xử lý (Dependency Injection cơ bản)
 ai_client = FPTAIClient()
-matcher = JobMatcher()
 
 HOST_NAME = 'localhost'
 PORT = 8000
@@ -35,12 +32,12 @@ def endpoint_embed(data: TextRequest):
     if not vector:
         raise HTTPException(status_code=500, detail="Lỗi tạo embedding từ AI")
     return {"embedding": vector}
-
+"""
 @app.post("/match")
 def endpoint_match(data: MatchRequest):
     score = matcher.compute_similarity(data.user_embedding, data.job_embedding)
     return {"score": score}
-
+"""
 @app.post("/pipeline")
 def endpoint_pipeline(data: TextRequest):
     # 1. Refine text
@@ -85,12 +82,3 @@ def get_chat_suggestions():
         "count": len(suggestions)
     }
 
-if __name__ == "__main__":
-    httpd = HTTPServer((HOST_NAME,PORT),Server)
-    print(time.asctime(), "Start Server - %s:%s"%(HOST_NAME,PORT))
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    httpd.server_close()
-    print(time.asctime(),'Stop Server - %s:%s' %(HOST_NAME,PORT))
