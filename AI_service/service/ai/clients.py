@@ -34,7 +34,7 @@ class FPTAIClient:
 
     def chat_refine(self, text: str) -> str:
         url = f"{self.endpoint}/chat/completions"
-        prompt = f"{text}\n\nHãy tóm tắt lại thông tin/câu hỏi ứng viên ngắn gọn."
+        prompt = f"{text}\n\nHãy tóm tắt lại thông tin ứng viên ngắn gọn."
         
         payload = {
             "model": settings.L_LLM_MODEL,
@@ -88,36 +88,31 @@ class FPTAIClient:
         except Exception as e:
             print(f"Lỗi Chat: {e}")
             return "Lỗi xử lý văn bản"
-    def chat_respond(self, text: str):
-        url = f"{self.endpoint}/chat/completions"
-        prompt = f"{text}\nHãy trả lời câu hỏi này với sự giúp đỡ nhiệt tình và ân cần" #prompt đầu vào của LLM respong
         
+    def chat_respond_custom(self, user_text: str, sys_prompt: str):
+        url = f"{self.endpoint}/chat/completions"
         payload = {
             "model": settings.H_LLM_MODEL,
             "messages": [
-                {"role": "system", "content": "Bạn là trợ lý HR."},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": user_text}
             ],
             "temperature": 0.3,
-            "stream" :True
+            "stream": True
         }
-
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
+            response = requests.post(url, headers=self.headers, json=payload, stream=True)
             response.raise_for_status()
-            for line in response.iter_lines(): 
-                if not line:
-                    continue
+            for line in response.iter_lines():
+                if not line: continue
                 text = line.decode("utf-8")
-                if text.startswith("data: "):
-                    text = text[6:]
-                if text == "[DONE]":
-                    break
-
+                if text.startswith("data: "): text = text[6:].strip()
+                if text == "[DONE]": break
                 yield json.loads(text)
         except Exception as e:
-            print(f"Lỗi Chat: {e}")
-            return "Lỗi xử lý văn bản"
+            print(f"Lỗi Chat Stream: {e}")
+            yield {"error": f"Lỗi xử lý văn bản: {e}"}
+
     def normalize_question(self, text: str) -> str:
         """
         Dùng Light LLM (Model nhỏ/nhanh) để viết lại câu hỏi cho rõ nghĩa.
@@ -160,12 +155,6 @@ class FPTAIClient:
         # BƯỚC 3: Gửi cho Heavy LLM (Model xịn) trả lời
         # (Code gọi API stream giống hệt bài trước, chỉ thay content)
         return self.chat_respond_custom(final_prompt, system_prompt)
-
-    def chat_respond_custom(self, user_text, sys_prompt):
-        # Hàm này copy logic stream từ hàm chat_respond cũ
-        # Nhưng thay thế "role": "system" bằng biến sys_prompt truyền vào
-        # ... (bạn tự ghép code stream vào đây nhé) ...
-        pass
 
 
     def rag_job_advisory(self, cv_text: str, matched_jobs: list):
