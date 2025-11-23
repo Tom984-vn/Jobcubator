@@ -34,12 +34,12 @@ class FPTAIClient:
 
     def chat_refine(self, text: str) -> str:
         url = f"{self.endpoint}/chat/completions"
-        prompt = f"{text}\n\nHãy tóm tắt lại thông tin ứng viên ngắn gọn."
+        prompt = f"{text}\n\nHãy tóm tắt lại thông tin/câu hỏi ứng viên ngắn gọn."
         
         payload = {
             "model": settings.L_LLM_MODEL,
             "messages": [
-                {"role": "system", "content": "Bạn là trợ lý HR."},
+                {"role": "system", "content": "Bạn là trợ lý HR nhiệt tình và trả lời chi tiết đầy đủ và theo prompt có sẵn."},
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0.1
@@ -203,7 +203,7 @@ class FPTAIClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content}
             ],
-            "temperature": 0.3,
+            "temperature": 0.1,
             "stream": True 
         }
 

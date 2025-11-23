@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings:
+    PROJECT_NAME = "Jobcubator"
+
     API_KEY = os.getenv("FPT_API_KEY")
     ENDPOINT = os.getenv("FPT_ENDPOINT")
     
