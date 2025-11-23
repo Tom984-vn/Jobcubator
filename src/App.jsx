@@ -7,13 +7,19 @@ import ProfilePage from "./pages/Profile/ProfilePage";
 import Chat from "./pages/Chat/Chat";
 import UserRoutes from "./pages/User/UserRoutes";
 import Jobs from "./pages/Findjob/Jobs";
+import JobDetail from "./pages/JobDetail/JobDetail";
+import Courses from "./pages/Courses/Courses";
+import ResumeBuilder from "./pages/ResumeBuilder/ResumeBuilder";
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<UserRoutes />}>
           <Route index element={<Homepage />} />
-          <Route path="/jobs" element={<Jobs />} />
+          <Route path="jobs" element={<Jobs />} />
+          <Route path="jobs/:id" element={<JobDetail />} />
+          <Route path="courses" element={<Courses />} />
+          <Route path="resume-builder" element={<ResumeBuilder />} />
         </Route>
         <Route path="/login" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />

@@ -76,6 +76,7 @@ export default function SignIn() {
           username: userData.username,
           email: userData.email,
           password: userData.password,
+          fullName: userData.name,
         });
 
         console.log("Registration successful!");

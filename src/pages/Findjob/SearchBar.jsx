@@ -18,9 +18,10 @@ const testJobGroups = [
   "Tài chính - Kế toán",
   "Nhân sự",
 ];
+
 const JobsDropdown = (props) => {
   return (
-    <div className="absolute top-[100%] left-0 bg-white shadow-lg rounded-md mt-2 p-4 pb-0 w-full z-10 w-200 max-h-120">
+    <div className="absolute top-[100%] left-0 bg-white shadow-lg rounded-md mt-2 p-4 pb-0 w-full z-20 w-200 max-h-120">
       <button
         onClick={() => {
           props.cancel();
@@ -139,7 +140,7 @@ const LocationDropDown = () => {
   );
 
   return (
-    <div className="absolute top-[100%] right-0 bg-white shadow-xl rounded-md mt-2 p-1 pb-0 z-10 w-140 max-h-140 grid grid-cols-2 gap-2">
+    <div className="absolute top-[100%] right-0 bg-white shadow-xl rounded-md mt-2 p-1 pb-0 z-20 w-140 max-h-140 grid grid-cols-2 gap-2">
       {/* LEFT COLUMN — Cities */}
       <div className="relative my-3">
         <input
@@ -223,7 +224,7 @@ export default function SearchBar() {
   const [open, setOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   return (
-    <div className="bg-primary-300 py-5 ">
+    <div className="bg-primary-300 py-5 z-20 sticky top-0 w-full shadow-md">
       <div className="flex justify-center bg-white w-fit rounded-xl space-x-3 mx-auto h-12 relative">
         {open && (
           <JobsDropdown

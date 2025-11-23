@@ -1,19 +1,34 @@
 import { FaFilter } from "react-icons/fa6";
 const RadioOption = (props) => {
+  const uniqueId = props.name + "-" + props.nameFor; // prevents conflict
+
   return (
-    <div className="flex items-center gap-2 group">
+    <div className="flex items-center gap-2 group cursor-pointer">
       <input
-        id={props.name}
+        id={uniqueId}
         type="radio"
+        name={props.nameFor}
         onClick={() => {
-          props.setValue(props.category, props.name);
+          props.setValue && props.setValue(props.category, props.name);
         }}
-        name={props.for}
-        className="group-hover:outline-primary-400 focus:outline-primary-400 group-hover:outline-2 appearance-none w-4 h-4 rounded-full focus:bg-primary-400 border-white border-3 outline-2 outline-gray-500"
+        className="
+          appearance-none w-4 h-4 rounded-full
+          border-3 border-gray-500
+          bg-white
+          checked:border-white
+          checked:bg-primary-400
+          checked:ring-2 checked:ring-primary-400
+          transition-all duration-150
+        "
       />
+
       <label
-        for={props.name}
-        className="group-hover:text-primary-400 group-hover:font-bold group-focus:text-primary-400"
+        htmlFor={uniqueId}
+        className="
+          group-hover:text-primary-400
+          group-hover:font-bold
+          transition-all duration-150
+        "
       >
         {props.name}
       </label>
@@ -29,28 +44,28 @@ export default function AdvancedFilter() {
       </h1>
       <h2 className="raleway-bold py-2 text-md">Kinh nghiệm</h2>
       <div className="grid grid-cols-2 gap-2">
-        <RadioOption name="Tất cả" for="experience" />
-        <RadioOption name="Không yêu cầu" for="experience" />
-        <RadioOption name="Dưới 1 năm" for="experience" />
-        <RadioOption name="1 năm" for="experience" />
-        <RadioOption name="2 năm" for="experience" />
-        <RadioOption name="3 năm" for="experience" />
-        <RadioOption name="4 năm" for="experience" />
-        <RadioOption name="5 năm" for="experience" />
-        <RadioOption name="Trên 5 năm" for="experience" />
+        <RadioOption name="Tất cả" nameFor="experience" />
+        <RadioOption name="Không yêu cầu" nameFor="experience" />
+        <RadioOption name="Dưới 1 năm" nameFor="experience" />
+        <RadioOption name="1 năm" nameFor="experience" />
+        <RadioOption name="2 năm" nameFor="experience" />
+        <RadioOption name="3 năm" nameFor="experience" />
+        <RadioOption name="4 năm" nameFor="experience" />
+        <RadioOption name="5 năm" nameFor="experience" />
+        <RadioOption name="Trên 5 năm" nameFor="experience" />
       </div>
       <h2 className="raleway-bold py-2 text-md">Mức lương</h2>
 
       <div className="grid grid-cols-2 gap-2">
-        <RadioOption name="Tất cả" for="salary" />
-        <RadioOption name="Dưới 10 triệu" for="salary" />
-        <RadioOption name="10-15 triệu" for="salary" />
-        <RadioOption name="15-20 triệu" for="salary" />
-        <RadioOption name="20-25 triệu" for="salary" />
-        <RadioOption name="25-30 triệu" for="salary" />
-        <RadioOption name="30-50 triệu" for="salary" />
-        <RadioOption name="Trên 50 triệu" for="salary" />
-        <RadioOption name="Thỏa thuận" for="salary" />
+        <RadioOption name="Tất cả" nameFor="salary" />
+        <RadioOption name="Dưới 10 triệu" nameFor="salary" />
+        <RadioOption name="10-15 triệu" nameFor="salary" />
+        <RadioOption name="15-20 triệu" nameFor="salary" />
+        <RadioOption name="20-25 triệu" nameFor="salary" />
+        <RadioOption name="25-30 triệu" nameFor="salary" />
+        <RadioOption name="30-50 triệu" nameFor="salary" />
+        <RadioOption name="Trên 50 triệu" nameFor="salary" />
+        <RadioOption name="Thỏa thuận" nameFor="salary" />
       </div>
       <div className="grid grid-cols-8 w-full my-3 gap-2">
         <input
@@ -71,11 +86,11 @@ export default function AdvancedFilter() {
       </button>
       <h2 className="raleway-bold py-2 text-md">Hình thức làm việc</h2>
       <div className="grid grid-cols-2 gap-2">
-        <RadioOption name="Tất cả" for="type" />
-        <RadioOption name="Toàn thời gian" for="type" />
-        <RadioOption name="Bán thời gian" for="type" />
-        <RadioOption name="Thực tập" for="type" />
-        <RadioOption name="Khác" for="type" />
+        <RadioOption name="Tất cả" nameFor="type" />
+        <RadioOption name="Toàn thời gian" nameFor="type" />
+        <RadioOption name="Bán thời gian" nameFor="type" />
+        <RadioOption name="Thực tập" nameFor="type" />
+        <RadioOption name="Khác" nameFor="type" />
       </div>
     </div>
   );

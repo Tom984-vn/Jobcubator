@@ -1,7 +1,8 @@
 import API from "../../api.jsx";
 
-export async function registerUser({ username, email, password }) {
+export async function registerUser({ fullName, username, email, password }) {
   const { data } = await API.post("/auth/register", {
+    fullName,
     username,
     password,
     email,
@@ -26,7 +27,6 @@ export async function loginUser({ username, password }) {
 }
 export async function logoutUser() {
   const refreshToken = localStorage.getItem("refreshToken");
-  await API.post("/auth/logout", { token: refreshToken });
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
 }
