@@ -1,7 +1,7 @@
 # To do
-- [] Make the warnings in index.css go away
-- [] Learn how to combine colors for sensible button design (https://webaim.org/resources/contrastchecker)
-- [] Make clicking Profile go to Profile page
+- [ ] Make the warnings in index.css go away
+- [ ] Learn how to combine colors for sensible button design (https://webaim.org/resources/contrastchecker)
+- [ ] Turn Academics to array that an be added to/deleted from
 
 # React + Vite
 
