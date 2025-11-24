@@ -26,10 +26,11 @@ class FPTAIClient:
             data = response.json()
             
             if "data" in data and len(data["data"]) > 0:
+                print(data["data"][0]["embedding"][1])
                 return data["data"][0]["embedding"]
             return []
         except Exception as e:
-            print(f"Lỗi Embedding: {e}")
+            print(f"DEBUG API: Lỗi khi gọi API: {e}")
             return []
 
     def chat_refine(self, text: str) -> str:

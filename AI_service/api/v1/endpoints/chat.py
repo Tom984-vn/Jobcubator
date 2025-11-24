@@ -15,7 +15,7 @@ from AI_service.service.ai.clients import FPTAIClient
 # Ví dụ: from AI_service.services.ai.router import SemanticRouter
 # --- KHỞI TẠO SERVICES ---
 ai_client = FPTAIClient()
-INTENT_ROUTER = SemanticRouter()
+INTENT_ROUTER = SemanticRouter(ai_client= ai_client)
 
 router = APIRouter()
 

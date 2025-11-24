@@ -2,7 +2,7 @@ import json
 import torch.nn.functional as F
 import torch
 from AI_service.core.config import settings
-from AI_service.service.ai.clients import FPTAIClient, FPTChromaAdapter
+from AI_service.service.ai.clients import FPTAIClient
 from typing import Dict, Any
 from pathlib import Path
 
@@ -13,11 +13,9 @@ AI_SERVICE_DIR = CURRENT_FILE.parents[3] # Nếu client.py ở cấp 3
 
 # Xây dựng đường dẫn tuyệt đối đến respond.json (Giả sử nằm trong thư mục AI_SERVICE)
 JSON_FILE_PATH = AI_SERVICE_DIR / "respond.json"
-
-ai_client = FPTAIClient()
 class SemanticRouter:
-    def __init__(self):
-        print(JSON_FILE_PATH)
+    def __init__(self, ai_client: FPTAIClient):
+        self.ai_client = ai_client
         self.intents: Dict[str, Any] = {}
         try:
         # Load file mẫu câu hỏi
@@ -31,8 +29,6 @@ class SemanticRouter:
         except json.JSONDecodeError as e:
              print(f"❌ Lỗi JSON: File '{JSON_FILE_PATH}' không hợp lệ. Chi tiết: {e}")
         
-        # Load model Embedding (Dùng chung model với Vector DB cho nhẹ)
-        self.embed_model = FPTChromaAdapter(ai_client=ai_client)
         
         # Pre-compute: Mã hóa tất cả câu mẫu thành vector NGAY KHI KHỞI ĐỘNG
         # Để lúc chạy thật không phải tính lại -> Cực nhanh
@@ -42,7 +38,7 @@ class SemanticRouter:
         print("🔄 Đang khởi tạo Router...")
         for item in self.intents:
             for sample in item["samples"]:
-                vec_list = ai_client.get_embedding(sample)
+                vec_list = self.ai_client.get_embedding(sample)
                 if vec_list:
                     # Chuyển List thành Tensor để tính toán
                     vec_tensor = torch.tensor(vec_list, dtype=torch.float32)
@@ -67,7 +63,7 @@ class SemanticRouter:
             return None, False
         
         # Embed câu hỏi người dùng
-        query_list = ai_client.get_embedding(user_query)
+        query_list = self.ai_client.get_embedding(user_query)
         if not query_list: return None, False
         
         query_vec = torch.tensor(query_list, dtype=torch.float32)

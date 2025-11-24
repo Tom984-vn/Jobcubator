@@ -41,13 +41,91 @@ class VectorDBClient:
             name=settings.COLLECTION_NAME,
             embedding_function=self.embedding_func
         )
-    
-    def add_jobs(self, jobs_data: list):
-        # (GIỮ NGUYÊN CODE add_jobs)
-        # ...
-        pass
-    
+        job_count = self.collection.count()
+        print(f"📦 [VectorDB] Đã tải thành công Collection '{settings.COLLECTION_NAME}'. Tổng số job: {job_count}")
+        
+        if job_count == 0:
+            print("⚠️ [VectorDB] Cảnh báo: DB rỗng, cần chạy seed_db.py để nạp dữ liệu mẫu.")
+        else:
+            print(f"Có {job_count} job mẫu ở trong db")
     # ⚠️ THÊM PHƯƠNG THỨC TÌM KIẾM VÀO BÊN TRONG CLASS (thêm self)
+    def update_status(self):
+        job_count = self.collection.count()
+        print(f"📦 [VectorDB] Đã tải thành công Collection '{settings.COLLECTION_NAME}'. Tổng số job: {job_count}")
+        if job_count == 0:
+            print("⚠️ [VectorDB] Cảnh báo: DB rỗng, cần chạy seed_db.py để nạp dữ liệu mẫu.")
+        return job_count
+    def add_jobs(self, jobs: list):
+        """
+        Thêm danh sách các job (dict) vào ChromaDB. 
+        Mỗi job được vector hóa bằng FPTAIClient.
+        """
+        documents = []
+        metadatas = []
+        ids = []
+        embeddings = []
+        jobs_failed_count = 0
+        
+        print(f"\n[ADD_JOBS] Bắt đầu vector hóa và thêm {len(jobs)} job...")
+
+        for job in jobs:
+            job_id = str(job.get("id"))
+            job_title = job.get("title", "Không tiêu đề")
+            job_description = job.get("description", "")
+            
+            # 1. Trích xuất văn bản cần vector hoá
+            text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}"
+
+            # 2. GỌI API ĐỂ TẠO VECTOR và xử lý lỗi
+            try:
+                vector_list = ai_client.get_embedding(text_to_embed)
+            except Exception as api_e:
+                # Bắt lỗi API và bỏ qua job này
+                print(f"❌ LỖI VÉCTOR HÓA (ID {job_id} - {job_title}): Lỗi API: {api_e}")
+                jobs_failed_count += 1
+                continue
+
+            # 3. Kiểm tra kết quả
+            if vector_list and isinstance(vector_list, list) and len(vector_list) > 0: 
+                # Thêm dữ liệu đã vector hóa
+                embeddings.append(vector_list)
+                documents.append(text_to_embed)
+                
+                # Lưu metadata (lưu ý: metadata cần phải là kiểu dữ liệu cơ bản)
+                metadatas.append({
+                    "id": job["id"], 
+                    "title": job["title"], 
+                    "category": job.get("category"), 
+                    "workType": job.get("workType", "N/A") 
+                    # Thêm các trường bạn cần cho việc lọc sau này
+                })
+                ids.append(job_id)
+            else:
+                print(f"⚠️ Cảnh báo: Job ID {job_id} không tạo được vector (API trả về rỗng).")
+                jobs_failed_count += 1
+
+        print(f"[ADD_JOBS] Chuẩn bị thêm {len(ids)}/{len(jobs)} job thành công vào DB...")
+        
+        # 4. Thêm vào ChromaDB
+        if len(ids) > 0:
+            try:
+                self.collection.add(
+                    documents=documents,
+                    embeddings=embeddings,
+                    metadatas=metadatas,
+                    ids=ids
+                )
+                print(f"✅ THÀNH CÔNG: Đã thêm {len(ids)} job vào Collection '{self.collection.name}'.")
+            except Exception as db_e:
+                print(f"❌ LỖI DB: Lỗi khi thêm vào ChromaDB: {db_e}")
+                return # Dừng hàm nếu lỗi DB
+
+        # 5. Báo cáo cuối cùng
+        if jobs_failed_count > 0:
+             print(f"--- BÁO CÁO ---")
+             print(f"Tổng số job: {len(jobs)}")
+             print(f"Job được thêm thành công: {len(ids)}")
+             print(f"Job thất bại/bị bỏ qua: {jobs_failed_count}")
     def search_similar_jobs(self, 
                            query_text: Optional[str] = None, 
                            query_vector: Optional[List[float]] = None, 
