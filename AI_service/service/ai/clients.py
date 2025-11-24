@@ -1,9 +1,10 @@
 import requests
 import json
-from typing import List, Dict
+from typing import List, Dict, Generator, Any
 from AI_service.core.config import settings  # Import settings từ file config.py
 from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
-
+import logging
+logger = logging.getLogger(__name__)
 class FPTAIClient:
     def __init__(self):
         self.headers = {
@@ -162,60 +163,112 @@ class FPTAIClient:
         # BƯỚC 3: Gửi cho Heavy LLM (Model xịn) trả lời
         # (Code gọi API stream giống hệt bài trước, chỉ thay content)
         return self.chat_respond_custom(final_prompt, system_prompt)
+    def _build_rag_prompt(self, cv_text: str, matched_jobs: List[Dict]) -> str:
+            """Xây dựng System Prompt và User Prompt dựa trên CV và các Job phù hợp."""
+            
+            system_instruction = (
+                "Bạn là một chuyên gia tư vấn tuyển dụng cấp cao. Nhiệm vụ của bạn là phân tích CV của ứng viên "
+                "và đánh giá mức độ phù hợp của họ với các công việc được cung cấp. Phản hồi phải chuyên nghiệp, "
+                "chi tiết, và trả lời đầy đủ các phần sau đây:"
+                "\n1. Tóm tắt điểm mạnh, điểm yếu của ứng viên dựa trên CV."
+                "\n2. Đánh giá mức độ phù hợp (từ 1 đến 10) và lý do cho từng công việc."
+                "\n3. Đề xuất 3-5 khóa học hoặc kỹ năng cụ thể cần bổ sung để ứng viên nâng cao cơ hội đậu phỏng vấn "
+                "cho các công việc này. Phản hồi phải được định dạng Markdown rõ ràng."
+            )
+
+            job_context = "\n\n--- DANH SÁCH CÔNG VIỆC TƯƠNG ĐỒNG ---\n"
+            for i, job in enumerate(matched_jobs):
+                # Giả định metadata chứa title, description và các thông tin quan trọng khác
+                title = job.get('metadata', {}).get('title', 'N/A')
+                description = job.get('description', 'Không có mô tả chi tiết.')
+                distance = job.get('distance')
+                
+                job_context += f"## Công việc {i+1}: {title}\n"
+                job_context += f"Mô tả: {description[:300]}...\n" # Giới hạn mô tả để tiết kiệm token
+                job_context += f"Khoảng cách Vector (Distance): {distance:.4f}\n"
+                job_context += "--------------------------------------\n"
+
+            user_prompt = (
+                f"Đây là CV của tôi:\n\n{cv_text}\n\n"
+                f"Và đây là danh sách các công việc được hệ thống tìm kiếm:\n\n{job_context}\n\n"
+                "Hãy thực hiện phân tích và tạo báo cáo tư vấn theo yêu cầu của System Instruction."
+            )
+            
+            return json.dumps({
+                "systemInstruction": system_instruction,
+                "userPrompt": user_prompt
+            })
 
 
-    def rag_job_advisory(self, cv_text: str, matched_jobs: list):
-        """
-        RAG: Đọc CV + Đọc kết quả từ Vector DB -> Tư vấn chuyên sâu
-        """
-        url = f"{self.endpoint}/chat/completions"
-        
-        # 1. Biến đổi danh sách job thành văn bản để nhét vào Prompt
-        jobs_context = ""
-        for idx, job in enumerate(matched_jobs):
-            info = job['metadata']
-            desc = job['description'][:300] + "..." # Cắt ngắn bớt cho đỡ tốn token
-            jobs_context += f"[{idx+1}] Vị trí: {info.get('category', 'N/A')} | Mô tả: {desc}\n"
+    def rag_job_advisory(self, cv_text: str, matched_jobs: List[Dict]) -> Generator[Dict[str, Any], None, None]:
+            """
+            Gửi yêu cầu RAG tới mô hình LLM để tạo báo cáo tư vấn. Trả về Generator (stream).
+            """
+            # 1. Xây dựng Prompt
+            try:
+                prompt_payload_str = self._build_rag_prompt(cv_text, matched_jobs)
+                prompt_payload = json.loads(prompt_payload_str)
+            except Exception as e:
+                logger.error(f"❌ Lỗi khi xây dựng RAG Prompt: {e}")
+                yield {"error": "Lỗi khi chuẩn bị dữ liệu cho AI."}
+                return
+                
+            # 2. Chuẩn bị Request Payload
+            payload = {
+                "contents": [{
+                    "parts": [{"text": prompt_payload["userPrompt"]}]
+                }],
+                "systemInstruction": {
+                    "parts": [{"text": prompt_payload["systemInstruction"]}]
+                },
+                # Cấu hình model và streaming (Giả định FPT Endpoint hỗ trợ streaming)
+                "model": settings.L_LLM_MODEL,
+                "config": {"stream": True} # Yêu cầu streaming
+            }
+            
+            # 3. Gửi Request và Stream
+            url = f"{self.endpoint}/v1/models/{settings.L_LLM_MODEL}:generateContent" 
+            
+            try:
+                # Lưu ý: requests.post() không hỗ trợ stream response
+                # Trong môi trường thực, bạn cần dùng session hoặc thư viện hỗ trợ stream
+                # Tạm thời, ta sẽ giả định dùng requests.post và đọc response.iter_content
+                
+                response = requests.post(
+                    url, 
+                    headers=self.headers, 
+                    json=payload, 
+                    stream=True
+                )
+                response.raise_for_status() # Bắt lỗi HTTP (4xx, 5xx)
 
-        # 2. Tạo Prompt RAG
-        system_prompt = "Bạn là chuyên gia tuyển dụng AI. Dựa vào CV và Danh sách công việc phù hợp tìm thấy từ Database, hãy phân tích."
-        
-        user_content = f"""
-        === CV CỦA ỨNG VIÊN ===
-        {cv_text}
-
-        === CÔNG VIỆC TÌM THẤY TỪ HỆ THỐNG (Độ khớp cao nhất) ===
-        {jobs_context}
-
-        === YÊU CẦU ===
-        1. Hãy chọn ra 1 công việc phù hợp nhất trong danh sách trên.
-        2. Giải thích ngắn gọn tại sao ứng viên hợp với công việc đó.
-        3. Đề xuất 1 kỹ năng ứng viên cần cải thiện để ứng tuyển thành công.
-        """
-
-        payload = {
-            "model": settings.H_LLM_MODEL, # Dùng model xịn nhất
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
-            ],
-            "temperature": 0.1,
-            "stream": True 
-        }
-
-        # Streaming response
-        try:
-            response = requests.post(url, headers=self.headers, json=payload, stream=True)
-            response.raise_for_status()
-            for line in response.iter_lines():
-                if not line: continue
-                text = line.decode("utf-8")
-                if text.startswith("data: "): text = text[6:].strip()
-                if text == "[DONE]": break
-                yield json.loads(text)
-        except Exception as e:
-            yield {"error": str(e)}
-
+                # Xử lý Stream Response (Tùy thuộc vào định dạng của FPT)
+                for line in response.iter_lines():
+                    if line:
+                        # Giả định FPT trả về JSON chunks
+                        try:
+                            chunk_data = json.loads(line.decode('utf-8'))
+                            # Cần xác định cấu trúc JSON mà FPT trả về để trích xuất text
+                            # Tạm thời giả định nó có trường 'text' hoặc tương tự
+                            text_part = chunk_data.get('text', '') # Thay thế 'text' bằng trường thực tế
+                            if text_part:
+                                yield {"text": text_part}
+                        except json.JSONDecodeError:
+                            # Bỏ qua dòng không phải JSON (ví dụ: Keep-alive)
+                            continue
+                        except Exception as e:
+                            logger.warning(f"Lỗi xử lý chunk JSON: {e}")
+                            continue
+                            
+            except requests.exceptions.HTTPError as e:
+                logger.error(f"❌ Lỗi HTTP khi gọi LLM: {e.response.text}")
+                yield {"error": f"Lỗi HTTP từ LLM: {e.response.text[:100]}..."}
+            except requests.exceptions.RequestException as e:
+                logger.error(f"❌ Lỗi kết nối khi gọi LLM: {e}")
+                yield {"error": "Lỗi kết nối mạng hoặc endpoint AI không khả dụng."}
+            except Exception as e:
+                logger.error(f"❌ Lỗi không xác định trong RAG advisory: {e}")
+                yield {"error": "Lỗi không xác định khi tạo báo cáo."}
 
 class FPTChromaAdapter(EmbeddingFunction):
     """

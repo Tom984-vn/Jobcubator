@@ -27,5 +27,6 @@ class Settings:
 
     DB_PATH = "./chroma_data" # Tên thư mục chứa DB
     COLLECTION_NAME = "job_listings"
+    USER_COLLECTION_NAME = "user_cv_storage"
 # Tạo một biến settings để dùng chung
 settings = Settings()

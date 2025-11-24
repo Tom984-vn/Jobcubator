@@ -1,8 +1,8 @@
 from fastapi import APIRouter
-from AI_service.api.v1.endpoints import ai_pipeline 
+from AI_service.api.v1.endpoints import consult
 from AI_service.api.v1.endpoints import chat
 
 api_router = APIRouter()
 # Gắn router con vào đường dẫn /pipeline
-api_router.include_router(ai_pipeline.router, prefix="/pipeline", tags=["AI Pipeline"])
+api_router.include_router(consult.router, prefix="/pipeline")
 api_router.include_router(chat.router, prefix="/chat", tags=["AI Chat"])
