@@ -46,6 +46,9 @@ public class UserProfileServiceImpl implements UserProfileService {
         if(request.fullName() != null){
             user.setFullName(request.fullName());
         }
+        if(request.gender() != null){
+            userProfile.setGender(request.gender());
+        }
         if(request.phoneNumber() != null){
             user.setPhoneNumber(request.phoneNumber());
         }
@@ -101,6 +104,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
         return new UpdateUserProfileResponse(
                 user.getFullName(),
+                savedProfile.getGender(),
                 savedProfile.getBirthDate(),
                 user.getPhoneNumber(),
                 savedProfile.getYearsOfExperience(),

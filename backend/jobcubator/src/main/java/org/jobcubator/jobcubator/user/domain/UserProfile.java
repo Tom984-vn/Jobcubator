@@ -27,6 +27,10 @@ public class UserProfile {
     @JoinColumn(name = "user_id") // This is the FK column
     private User user;
 
+    @Column(name = "gender")
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
+
     @Column(name = "field_of_study", length = 100)
     private String fieldOfStudy;
 
