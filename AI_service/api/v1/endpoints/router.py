@@ -52,7 +52,7 @@ class SemanticRouter:
         else:
             print("⚠️ Cảnh báo: Router rỗng (không có vector).")
 
-    def find_best_instruction(self, user_query: str , threshold=0.75):
+    def find_best_instruction(self, user_query: str , threshold=0.7):
         """
         Tìm xem câu hỏi user có khớp với mẫu nào không.
         Trả về: (Instruction, True) nếu khớp.
