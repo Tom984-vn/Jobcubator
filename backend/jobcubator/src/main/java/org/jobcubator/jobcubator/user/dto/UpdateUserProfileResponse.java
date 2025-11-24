@@ -1,10 +1,16 @@
 package org.jobcubator.jobcubator.user.dto;
 
-public record UpdateUserProfileResponse(String birthDate,
+import java.util.List;
+
+public record UpdateUserProfileResponse(String fullName,
+                                        String birthDate,
+                                        String phoneNumber,
                                         Integer years_of_experience,
                                         String organization,
                                         String position,
                                         String preferredLocation,
                                         Integer minSalary,
-                                        Integer maxSalary){
+                                        Integer maxSalary,
+                                        List<ProfileEntryDTO> history
+){
 }

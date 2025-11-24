@@ -145,4 +145,16 @@ class StorageController {
                             .build());
         }
     }
+
+    @GetMapping("/avatar")
+    public ResponseEntity<String> getUserAvatar(@AuthenticationPrincipal User user) {
+        try{
+            String avatarUrl = storageService.getUserAvatarUrl(user);
+            return ResponseEntity.ok(avatarUrl);
+        }
+        catch (Exception e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body("Error when create an avatar url"); 
+        }
+    }
 }

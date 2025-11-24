@@ -2,7 +2,10 @@ package org.jobcubator.jobcubator.storage.service;
 
 import jakarta.annotation.PostConstruct;
 import org.jobcubator.jobcubator.user.domain.User;
+import org.jobcubator.jobcubator.user.domain.UserProfile;
+import org.jobcubator.jobcubator.user.domain.UserProfileRepository;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,14 +30,16 @@ class StorageServiceImpl implements StorageService {
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
     private final WebClient webClient;
+    private final UserProfileRepository userProfileRepository;
 
     @Value("${app.s3.bucket-name}")
     private String bucketName;
 
-    public StorageServiceImpl(S3Client s3Client, S3Presigner s3Presigner) {
+    StorageServiceImpl(S3Client s3Client, S3Presigner s3Presigner, UserProfileRepository userProfileRepository) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
         this.webClient = WebClient.builder().build();
+        this.userProfileRepository = userProfileRepository;
     }
 
     // !!!WARNING!!! I DON'T THINK I SHOULD DO THIS IN PRODUCTION SO, JUST CREATE A BUCKET YOURSELF. HIHI. FOR DEMO CODE ONLY, CREATE THE BUCKET MANUALLY IF IN PRODUCTION CODE.
@@ -246,6 +251,17 @@ class StorageServiceImpl implements StorageService {
             throw new RuntimeException(e);
         }
         return objectKey;
+    }
+
+    @Override
+    public String getUserAvatarUrl(User user) {
+        UserProfile userProfile = userProfileRepository.findById(user.getId()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String avatarKey = userProfile.getAvatarPath();
+        if (avatarKey == null || avatarKey.isBlank()) {
+            return null;
+        }
+        return getPresignedUrl(userProfile.getAvatarPath());
     }
 
     @Override

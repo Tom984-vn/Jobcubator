@@ -29,13 +29,30 @@ CREATE TABLE user_profile (
     preferred_location VARCHAR(100),
     avatar_path VARCHAR(300),
     cv_path VARCHAR(300),
-    min_salary INTEGER,
-    max_salary INTEGER,
+    min_salary INTEGER DEFAULT 0,
+    max_salary INTEGER DEFAULT 0,
     CONSTRAINT fk_user_profile_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_users_username ON users(username);
 
+CREATE TABLE IF NOT EXISTS profile_entry (
+    id UUID PRIMARY KEY, 
+    user_profile_id UUID NOT NULL,
+    type VARCHAR(50) CHECK (type IN ('EDUCATION', 'EXPERIENCE')),
+    title VARCHAR(255),
+    organization VARCHAR(200),
+    description VARCHAR(1000),
+    start_date VARCHAR(20),
+    end_date VARCHAR(20),
+
+    CONSTRAINT fk_profile_entry_user_profile 
+        FOREIGN KEY (user_profile_id) 
+        REFERENCES user_profile (user_id) 
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_profile_entry_user_id ON profile_entry(user_profile_id);
 
 CREATE TABLE company (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
@@ -48,7 +65,7 @@ CREATE TABLE company (
 CREATE TABLE course (
     id SERIAL PRIMARY KEY,
     title VARCHAR(50) NOT NULL,
-    level VARCHAR(10) NOT NULL,
+    level VARCHAR(30) NOT NULL,
     provider VARCHAR(50) NOT NULL,
     url VARCHAR(100) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -95,3 +112,31 @@ CREATE TABLE course_tags (
     FOREIGN KEY (course_id) REFERENCES course(id),
     FOREIGN KEY (tag_id) REFERENCES tag(id)
 );
+
+CREATE TABLE conversation (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    title VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_conversation_user 
+        FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_conversation_user_id ON conversation(user_id);
+
+CREATE TABLE chat_message (
+    id SERIAL PRIMARY KEY,
+    conversation_id BIGINT,
+    content TEXT,
+    role VARCHAR(20) CHECK (role IN ('USER', 'ASSISTANT', 'SYSTEM')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_chat_message_conversation 
+        FOREIGN KEY (conversation_id) 
+        REFERENCES conversation(id) 
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_chat_message_conversation_id ON chat_message(conversation_id);
+CREATE INDEX idx_chat_message_created_at ON chat_message(created_at);

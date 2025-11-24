@@ -17,7 +17,7 @@ public record UserRegistrationRequest(
 
         @NotBlank
         @Pattern(
-                regexp = "^[a-zA-Z]+$",
+                regexp = "^[a-zA-Z\\s]+$",
                 message = "Full name can only contain letters"
         )
         String fullName,

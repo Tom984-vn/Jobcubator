@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -54,5 +56,13 @@ public class UserProfile {
 
     @Column(name = "max_salary")
     private int maxSalary;
+
+    @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProfileEntry> history = new ArrayList<>();
+
+    public void addEntry(ProfileEntry entry) {
+        history.add(entry);
+        entry.setUserProfile(this);
+    }
 
 }

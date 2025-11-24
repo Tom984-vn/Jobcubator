@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
 
+//TODO: fix duplicate code block
+
 
 @Service
 @Transactional
@@ -53,6 +55,7 @@ public class JobPostServiceImpl implements JobPostService {
         
         return new JobPostDTO(
             newJobPost.getId(),
+            company.getName(),
             newJobPost.getTitle(),
             newJobPost.getCategory(),
             newJobPost.getLocation(),
@@ -75,6 +78,7 @@ public class JobPostServiceImpl implements JobPostService {
         
         return new JobPostDTO(
             jobPost.getId(),
+            company.getName(),
             jobPost.getTitle(),
             jobPost.getCategory(),
             jobPost.getLocation(),
@@ -107,6 +111,7 @@ public class JobPostServiceImpl implements JobPostService {
         jobPost = jobPostRepository.save(jobPost);
         return new JobPostDTO(
             jobPost.getId(),
+            company.getName(),
             jobPost.getTitle(),
             jobPost.getCategory(),
             jobPost.getLocation(),
@@ -187,6 +192,7 @@ public class JobPostServiceImpl implements JobPostService {
             Company company = c.getCompany();
             return new JobPostDTO(
                 c.getId(),
+                company.getName(),
                 c.getTitle(),
                 c.getCategory(),
                 c.getLocation(),
@@ -214,6 +220,7 @@ public class JobPostServiceImpl implements JobPostService {
     
             return new JobPostDTO(
                 post.getId(),
+                company.getName(),
                 post.getTitle(),
                 post.getCategory(),
                 post.getLocation(),
@@ -235,6 +242,7 @@ public class JobPostServiceImpl implements JobPostService {
             Company company = post.getCompany(); 
             return new JobPostDTO(
                 post.getId(),
+                company.getName(),
                 post.getTitle(),
                 post.getCategory(),
                 post.getLocation(),
@@ -256,6 +264,7 @@ public class JobPostServiceImpl implements JobPostService {
             Company company = c.getCompany();
             return new JobPostDTO(
                     c.getId(),
+                    company.getName(),
                     c.getTitle(),
                     c.getCategory(),
                     c.getLocation(),
@@ -277,6 +286,7 @@ public class JobPostServiceImpl implements JobPostService {
             Company company = c.getCompany();
             return new JobPostDTO(
                     c.getId(),
+                    company.getName(),
                     c.getTitle(),
                     c.getCategory(),
                     c.getLocation(),
@@ -298,6 +308,7 @@ public class JobPostServiceImpl implements JobPostService {
             Company company = c.getCompany();
             return new JobPostDTO(
                     c.getId(),
+                    company.getName(),
                     c.getTitle(),
                     c.getCategory(),
                     c.getLocation(),

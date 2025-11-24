@@ -67,6 +67,13 @@ public class SecurityConfig {
                     // Public JobPost endpoints (GET only)
                     .requestMatchers("GET", "/api/job_posts/**").permitAll()
                     .requestMatchers("POST", "/api/job_posts/filter").permitAll()
+
+                    // Allow websocket
+//                    .requestMatchers("/ws/**").permitAll()
+
+
+                    .requestMatchers("POST", "/api/courses/filter").permitAll()
+                    .requestMatchers("GET", "/api/courses/**").permitAll()
                     .anyRequest().authenticated())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
