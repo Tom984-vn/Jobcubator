@@ -1,5 +1,6 @@
 package org.jobcubator.jobcubator.user.dto;
 
+import org.jobcubator.jobcubator.user.domain.Gender;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.jobcubator.jobcubator.user.domain.UserProfile;
 
@@ -13,6 +14,7 @@ public record GetUserProfileResponse(
         String username,
         String email,
         String phoneNumber,
+        Gender gender,
         String birthDate,
         Integer years_of_experience,
         String organization,
@@ -35,6 +37,7 @@ public record GetUserProfileResponse(
                     user.getUsername(),
                     user.getEmail(),
                     user.getPhoneNumber(),
+                    userProfile.getGender(),
                     userProfile.getBirthDate(),
                     userProfile.getYearsOfExperience(),
                     userProfile.getOrganization(),
@@ -51,6 +54,7 @@ public record GetUserProfileResponse(
                 user.getUsername(),
                 user.getEmail(),
                 user.getPhoneNumber(),
+                Gender.NA,
                 null,
                 -1,
                 null,

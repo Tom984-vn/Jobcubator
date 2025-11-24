@@ -55,6 +55,7 @@ echo "--------------------------------------------------"
 read -r -d '' UPDATE_PAYLOAD <<JSON
 {
   "fullName": "Updated Name",
+  "gender" : "MALE",
   "phoneNumber": "1234567890",
   "birthDate": "1995-05-20",
   "yearsOfExperience": 3,

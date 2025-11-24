@@ -21,6 +21,7 @@ CREATE INDEX idx_refresh_token_user_id ON refresh_token(user_id);
 
 CREATE TABLE user_profile (
     user_id UUID PRIMARY KEY,
+    gender VARCHAR(10) CHECK (gender IN ('MALE', 'FEMALE','OTHER', 'NA')),
     field_of_study VARCHAR(100),
     birth_date VARCHAR(255),
     years_of_experience INTEGER DEFAULT 0,
