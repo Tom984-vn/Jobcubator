@@ -11,12 +11,13 @@ import torch.nn.functional as F
 # <-- Absolute Imports
 from AI_service.schemas.schemas import TextRequest # Cần tạo TextRequest trong schemas/ai.py
 from AI_service.service.ai.clients import FPTAIClient 
+from AI_service.service.ai.vectordb import VectorDBClient
 # Bạn sẽ cần import SemanticRouter nếu bạn định nghĩa nó ở file khác
 # Ví dụ: from AI_service.services.ai.router import SemanticRouter
 # --- KHỞI TẠO SERVICES ---
 ai_client = FPTAIClient()
 INTENT_ROUTER = SemanticRouter(ai_client= ai_client)
-
+db_client = VectorDBClient(ai_client=ai_client)
 router = APIRouter()
 
 # ------------------------------------------------------------------------
@@ -32,7 +33,13 @@ def endpoint_general_chat(data: TextRequest):
     # Hàm tạo luồng (Generator)
     def output_generator() -> Generator[str, None, None]:
         # Dùng logic smart_chat mà bạn đã định nghĩa
-        stream = ai_client.smart_chat(data.text, INTENT_ROUTER) 
+                # Truyền đầy đủ các tham số, bao gồm cả `data.context`
+        stream = ai_client.smart_chat(
+            user_text=data.text, 
+            router_instance=INTENT_ROUTER, 
+            db_client=db_client,
+            context=data.context  # Truyền ngữ cảnh người dùng vào
+        )
         
         for chunk in stream:
             # Xử lý các chunk từ hàm chat_respond_custom (streaming)

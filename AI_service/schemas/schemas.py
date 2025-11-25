@@ -1,14 +1,25 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
-class TextRequest(BaseModel):
-    text: str
-    user_id: Optional[str] = None
-
 class MatchRequest(BaseModel):
     user_embedding: List[float]
     job_embedding: List[float]
 
+class UserContext(BaseModel):
+    """
+    Context tạm thời dùng để cá nhân hóa câu trả lời.
+    Dữ liệu này được trích xuất từ VectorDB hoặc Session hiện tại.
+    """
+    cv_industry: Optional[str] = None       # Ngành nghề từ CV (Lấy từ Metadata VectorDB)
+    interested_industry: Optional[str] = None # Ngành quan tâm (Lấy từ Filter request)
+    age_range: Optional[str] = None         # Độ tuổi (Lấy từ Metadata hoặc User Profile)
+    experience_level: Optional[str] = None  # Kinh nghiệm (Junior, Senior...)
+    last_conversation_summary: Optional[str] = None # Tóm tắt câu hỏi cũ (nếu có)
+
+class TextRequest(BaseModel):
+    text: str
+    user_id: Optional[str] = None
+    context: Optional[UserContext] = None
 # --- 1. DTO cho Thêm Job (/add-job) ---
 class JobInput(BaseModel):
     id: str

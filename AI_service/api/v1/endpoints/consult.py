@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 try:
     # Khởi tạo các client và pipeline bên ngoài router để chúng là Singleton
     ai_client = FPTAIClient()
-    db_client = VectorDBClient() 
+    db_client = VectorDBClient(ai_client=ai_client) 
     logger.info("Pipeline dependencies initialized successfully.")
 except Exception as e:
     logger.error(f"FATAL: Failed to initialize AI Pipeline components: {e}")
@@ -60,9 +60,6 @@ def consult_job_rag_logic(user_id: str, cv_text: str, top_k: int = 3, filters: O
         current_cv_vector = user_cv_data.get('vector')
     else:
         current_cv_vector = _create_and_store_cv_vector(user_id, cv_text)
-
-    if not current_cv_vector:
-        return {"error": "Lỗi hệ thống: Không thể xử lý CV hoặc vector CV."}
 
     # --- BƯỚC 2: TRUY VẤN JOB PHÙ HỢP (Retrieval) ---
     logger.info(f"🔍 Đang tìm kiếm {top_k} job tương đồng bằng vector CV...")

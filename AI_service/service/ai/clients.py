@@ -1,8 +1,9 @@
 import requests
 import json
-from typing import List, Dict, Generator, Any
+from typing import List, Dict, Generator, Any, Optional
 from AI_service.core.config import settings  # Import settings từ file config.py
 from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
+from AI_service.schemas.schemas import UserContext  
 import logging
 logger = logging.getLogger(__name__)
 class FPTAIClient:
@@ -97,15 +98,37 @@ class FPTAIClient:
             print(f"Lỗi Chat: {e}")
             return "Lỗi xử lý văn bản"
         
-    def chat_respond_custom(self, user_text: str, sys_prompt: str):
+    def chat_respond_custom(self, user_text: str, sys_prompt: str, context: Optional[UserContext] = None):
+        final_user_text = user_text
+        # --- TẠO QUY TẮC HẬU XỬ LÝ ---
+        if context:
+            rule_post = "\n\n--- QUY TẮC BẮT BUỘC KHI TRẢ LỜI ---\n"
+            rule_post += "Luôn luôn cá nhân hóa câu trả lời dựa trên các thông tin sau về người dùng:\n"
+
+            # Xác định ngành nghề ưu tiên
+            industry = "chưa xác định"
+            if context.interested_industry:
+                industry = context.interested_industry
+            elif context.cv_industry:
+                industry = context.cv_industry
+
+            rule_post += f"- Ngành nghề: {industry}. Hãy ưu tiên đưa ra lời khuyên và ví dụ liên quan đến ngành này.\n"
+
+            if context.age_range:
+                rule_post += f"- Khoảng tuổi: {context.age_range}. Lời khuyên nên phù hợp với giai đoạn sự nghiệp của lứa tuổi này.\n"
+
+            rule_post += "Đây là yêu cầu quan trọng nhất, phải được ưu tiên hàng đầu."
+
+            # Gắn quy tắc vào cuối prompt của người dùng
+            final_user_text += rule_post
         url = f"{self.endpoint}/chat/completions"
         payload = {
             "model": settings.H_LLM_MODEL,
             "messages": [
                 {"role": "system", "content": sys_prompt},
-                {"role": "user", "content": user_text}
+                {"role": "user", "content": final_user_text}
             ],
-            "temperature": 0.3,
+            "temperature": 0.1,
             "stream": True
         }
         try:
@@ -140,7 +163,7 @@ class FPTAIClient:
         except:
             return text # Nếu lỗi thì dùng nguyên văn
 
-    def smart_chat(self, user_text: str, router_instance):
+    def smart_chat(self, user_text: str, router_instance, db_client: 'VectorDBClient', context: Optional[UserContext] = None):
         """
         Hàm chat thông minh kết hợp Router
         """
@@ -151,8 +174,26 @@ class FPTAIClient:
         system_prompt = "Bạn là trợ lý HR hữu ích." # Mặc định
 
         if is_match:
-            print("🎯 HIT: Trúng câu hỏi mẫu -> Dùng Instruction chuyên gia")
-            system_prompt = instruction
+            print("🎯 HIT: Trúng câu hỏi mẫu -> Lấy thêm ngữ cảnh từ VectorDB.")
+            context_jobs = db_client.search_similar_jobs(query_text=user_text)
+            jobs_context_str = ""
+            if context_jobs:
+                jobs_context_str += "Dưới đây là một vài công việc liên quan được tìm thấy trên thị trường:\n"
+                for job in context_jobs:
+                    title = job.get('metadata', {}).get('title', 'Không có tiêu đề')
+                    description_snippet = job.get('description', '')[:150] + "..."
+                    jobs_context_str += f"- {title}: {description_snippet}\n"
+
+            system_prompt = "Bạn là trợ lý HR hữu ích của jobcubator "
+            final_prompt = f'''**Yêu cầu của người dùng:**
+"{user_text}"
+**Hướng dẫn chuyên gia để trả lời (lấy từ câu hỏi tương tự):**
+"{instruction}"
+**Ngữ cảnh thị trường việc làm (tham khảo):**
+{jobs_context_str if jobs_context_str else "Không tìm thấy công việc liên quan."}
+**Nhiệm vụ của bạn:**
+Hãy kết hợp **cả ba** thông tin trên...
+'''
         else:
             print("⚠️ MISS: Câu hỏi lạ -> Dùng Light LLM chuẩn hóa")
             # BƯỚC 2: Nếu không trúng, nhờ Light LLM sửa lại câu hỏi
@@ -162,7 +203,7 @@ class FPTAIClient:
 
         # BƯỚC 3: Gửi cho Heavy LLM (Model xịn) trả lời
         # (Code gọi API stream giống hệt bài trước, chỉ thay content)
-        return self.chat_respond_custom(final_prompt, system_prompt)
+        return self.chat_respond_custom(final_prompt, system_prompt, context)
     def _build_rag_prompt(self, cv_text: str, matched_jobs: List[Dict]) -> str:
             """Xây dựng System Prompt và User Prompt dựa trên CV và các Job phù hợp."""
             
