@@ -159,20 +159,20 @@ def consult_pipeline_endpoint(data: ConsultRequest):
         # 3.2. Ánh xạ dữ liệu Job sang JobInput (Khắc phục lỗi Pydantic)
         job_details_list = []
         for job in matched_jobs:
-            # Job thô từ ChromaDB có cấu trúc: {'id': ..., 'description': ..., 'metadata': {...}}
-            metadata = job.get('metadata', {}) 
+            # Job thô từ ChromaDB có cấu trúc: {'id': ..., 'description': ..., 'metadatas': {...}}
+            metadatas = job.get('metadatas', {}) 
             
             try:
                 # JobInput là schema bạn định nghĩa: id, description, category, location, min_salary, job_type
                 job_detail = JobInput(
                     id=job.get('id', 'N/A'),
                     description=job.get('description', 'Không có mô tả chi tiết.'),
-                    # Ánh xạ các trường bị thiếu từ metadata:
+                    # Ánh xạ các trường bị thiếu từ metadatas:
                     # Dùng 'group' và 'workType' làm dự phòng vì dữ liệu mẫu của bạn dùng các key này
-                    category=metadata.get('category', metadata.get('group', 'N/A')),
-                    location=metadata.get('location', 'N/A'),
-                    min_salary=metadata.get('min_salary', 0),
-                    job_type=metadata.get('job_type', metadata.get('workType', 'N/A')),
+                    category=metadatas.get('category', metadatas.get('group', 'N/A')),
+                    location=metadatas.get('location', 'N/A'),
+                    min_salary=metadatas.get('min_salary', 0),
+                    job_type=metadatas.get('job_type', metadatas.get('workType', 'N/A')),
                 )
                 job_details_list.append(job_detail)
             except Exception as e:
@@ -197,7 +197,7 @@ def consult_pipeline_endpoint(data: ConsultRequest):
 
                 
         # Lấy tiêu đề job đầu tiên (dùng để đặt tiêu đề báo cáo)
-        first_job_metadata = matched_jobs[0].get('metadata', {}) if matched_jobs else {}
+        first_job_metadata = matched_jobs[0].get('metadatas', {}) if matched_jobs else {}
         first_job_title = first_job_metadata.get('title', 'N/A')
 
         # 3.4. Xây dựng và xác thực báo cáo cuối cùng

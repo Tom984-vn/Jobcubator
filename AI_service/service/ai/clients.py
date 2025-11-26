@@ -179,19 +179,20 @@ class FPTAIClient:
 
         if is_match:
             print("🎯 HIT: Trúng câu hỏi mẫu -> Lấy thêm ngữ cảnh từ VectorDB.")
-            context_jobs = db_client.search_similar_jobs(query_text=user_text)   #CRITICAL!
+            context_jobs = db_client.search_similar_jobs(query_text=user_text) 
+            logger.info(context_jobs)
             jobs_context_str = ""
             if context_jobs:
                 jobs_context_str += "Dưới đây là một vài công việc liên quan được tìm thấy trên thị trường:\n"
+                logger.info(jobs_context_str)
                 for job in context_jobs:
                     title = job.get('metadatas', {}).get('title', 'Không có tiêu đề')
-                    description_snippet = job.get('description', '')[:150] + "..."
+                    description_snippet = job.get('description', '')
                     jobs_context_str += f"- {title}: {description_snippet}\n"
 
-            system_prompt = "Bạn là trợ lý HR hữu ích của jobcubator "
+            system_prompt = "Bạn là trợ lý HR hữu ích của jobcubator"
             final_prompt = f'''**Yêu cầu của người dùng:**
 "{user_text}"
-**Hướng dẫn chuyên gia để trả lời (lấy từ câu hỏi tương tự):**
 "{instruction}"
 **Ngữ cảnh thị trường việc làm (tham khảo):**
 {jobs_context_str if jobs_context_str else "Không tìm thấy công việc liên quan."}
@@ -203,7 +204,7 @@ Hãy kết hợp **cả ba** thông tin trên...
             # BƯỚC 2: Nếu không trúng, nhờ Light LLM sửa lại câu hỏi
             refined_text = self.normalize_question(user_text)
             print(f"   Gốc: {user_text} \n   Sửa: {refined_text}")
-            final_prompt = refined_text
+            final_prompt = "   Gốc: {user_text} \n   Sửa: {refined_text}"
 
         # BƯỚC 3: Gửi cho Heavy LLM (Model xịn) trả lời
         # (Code gọi API stream giống hệt bài trước, chỉ thay content)
