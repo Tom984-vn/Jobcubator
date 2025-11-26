@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 # Import các thành phần của Pipeline
-from AI_service.schemas.schemas import ConsultRequest, ConsultReportResponse, JobFilter # Giả định ConsultRequest có user_id, cv_text, filters
+from AI_service.schemas.schemas import ConsultRequest, ConsultReportResponse, JobFilter, JobInput # Giả định ConsultRequest có user_id, cv_text, filters
 from AI_service.service.ai.clients import FPTAIClient
 from AI_service.service.ai.vectordb import VectorDBClient
 
@@ -139,22 +139,79 @@ def consult_pipeline_endpoint(data: ConsultRequest):
         # Trả về lỗi 400 Bad Request nếu là lỗi nghiệp vụ (không tìm thấy job, không tạo được vector)
         raise HTTPException(status_code=400, detail=pipeline_result["error"])
 
-    # 3. Định dạng kết quả về Pydantic Model (ConsultReportResponse)
+# 3. Định dạng kết quả về Pydantic Model (ConsultReportResponse)
     try:
-        full_report = pipeline_result['report_text']
+        full_report_text = pipeline_result['report_text']
         matched_jobs = pipeline_result['matched_jobs']
         
-        # Trích xuất thông tin cần thiết
-        first_job_title = matched_jobs[0].get('metadatas', {}).get('title', 'N/A')
+        # 3.1. Trích xuất và Parse JSON từ LLM Response
+        try:
+            if full_report_text.startswith("```json"):
+                json_str = full_report_text.strip().replace("```json", "").replace("```", "").strip()
+            else:
+                json_str = full_report_text.strip()
+                
+            report_data = json.loads(json_str)
+        except json.JSONDecodeError:
+            logger.error(f"❌ Lỗi JSON Decode từ phản hồi LLM: {json_str[:100]}...")
+            raise HTTPException(status_code=500, detail="Phản hồi LLM không phải JSON hợp lệ.")
         
-        return ConsultReportResponse(
+        # 3.2. Ánh xạ dữ liệu Job sang JobInput (Khắc phục lỗi Pydantic)
+        job_details_list = []
+        for job in matched_jobs:
+            # Job thô từ ChromaDB có cấu trúc: {'id': ..., 'description': ..., 'metadata': {...}}
+            metadata = job.get('metadata', {}) 
+            
+            try:
+                # JobInput là schema bạn định nghĩa: id, description, category, location, min_salary, job_type
+                job_detail = JobInput(
+                    id=job.get('id', 'N/A'),
+                    description=job.get('description', 'Không có mô tả chi tiết.'),
+                    # Ánh xạ các trường bị thiếu từ metadata:
+                    # Dùng 'group' và 'workType' làm dự phòng vì dữ liệu mẫu của bạn dùng các key này
+                    category=metadata.get('category', metadata.get('group', 'N/A')),
+                    location=metadata.get('location', 'N/A'),
+                    min_salary=metadata.get('min_salary', 0),
+                    job_type=metadata.get('job_type', metadata.get('workType', 'N/A')),
+                )
+                job_details_list.append(job_detail)
+            except Exception as e:
+                logger.warning(f"Bỏ qua Job ID {job.get('id', 'N/A')} do lỗi Pydantic JobInput: {e}")
+                continue # Bỏ qua Job bị lỗi và tiếp tục
+
+        # 3.3. Ánh xạ Lời khuyên (recommendations)
+        # Vì Schema của bạn dùng 'recommendations: str', chúng ta sẽ kết hợp tất cả lời khuyên từ LLM 
+        # (thường nằm trong trường 'advice_sections' hoặc 'recommendations' của JSON LLM trả về)
+        recommendations_text = ""
+        advice_sections = report_data.get('advice_sections', []) # Lấy từ JSON LLM (giả định)
+        
+        if advice_sections:
+            # Nếu LLM trả về danh sách sections, nối nội dung lại thành một chuỗi lớn
+            recommendations_text = "\n\n".join([
+                f"**{section.get('title', 'Lời khuyên')}**\n{section.get('content', '')}" 
+                for section in advice_sections
+            ])
+        else:
+            # Nếu LLM trả về chuỗi recommendations trực tiếp
+            recommendations_text = report_data.get('recommendations', 'Không có lời khuyên chi tiết.')
+
+                
+        # Lấy tiêu đề job đầu tiên (dùng để đặt tiêu đề báo cáo)
+        first_job_metadata = matched_jobs[0].get('metadata', {}) if matched_jobs else {}
+        first_job_title = first_job_metadata.get('title', 'N/A')
+
+        # 3.4. Xây dựng và xác thực báo cáo cuối cùng
+        report = ConsultReportResponse(
             title=f"Báo cáo tư vấn CV - Phù hợp nhất với {first_job_title}",
-            # Cần đảm bảo rằng Report Text được phân tích đúng các trường (summary, recommendations)
-            # Tạm thời gán nội dung thô vào các trường:
-            summary=full_report[:300] + "...", 
-            job_details= matched_jobs, 
-            recommendations= full_report # Toàn bộ báo cáo được đặt ở đây
+            summary=report_data.get('summary', 'Báo cáo tóm tắt không có.'),
+            job_details=job_details_list,
+            recommendations=recommendations_text # Gán chuỗi đã được tổng hợp
         )
+        
+        logger.info(f"✅ Báo cáo Pydantic đã được tạo và xác thực thành công. Job Details: {len(job_details_list)}")
+        return report
+
     except Exception as e:
-        logger.error(f"Lỗi khi định dạng báo cáo cuối cùng: {e}")
-        raise HTTPException(status_code=500, detail="Lỗi khi xử lý báo cáo cuối cùng từ AI.")
+        logger.error(f"❌ Lỗi khi định dạng báo cáo cuối cùng: {e}")
+        # Trả về lỗi 500 kèm chi tiết lỗi
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xử lý báo cáo cuối cùng từ AI: {e}")

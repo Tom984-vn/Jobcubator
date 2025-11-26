@@ -86,7 +86,7 @@ class FPTAIClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Phân tích CV gốc: {original_cv}"}
             ],
-            "temperature": 0.2
+            "temperature": 0.1
         }
 
         try:
@@ -209,51 +209,78 @@ Hãy kết hợp **cả ba** thông tin trên...
         # (Code gọi API stream giống hệt bài trước, chỉ thay content)
         return self.chat_respond_custom(final_prompt, system_prompt, context)
     def _build_rag_prompt(self, cv_text: str, matched_jobs: List[Dict]) -> str:
-            """Xây dựng System Prompt và User Prompt dựa trên CV và các Job phù hợp."""
+        """Xây dựng System Prompt và User Prompt dựa trên CV và các Job phù hợp (đã được sửa để yêu cầu JSON)."""
+        
+        # 1. System Instruction MỚI - Yêu cầu JSON (Dựa trên Schema của bạn)
+        jobs_summary = json.dumps(matched_jobs, ensure_ascii=False, indent=2)
+        system_instruction = f"""
+            Bạn là một chuyên gia tư vấn tuyển dụng cấp cao và phân tích dữ liệu chuyên nghiệp.
+            Nhiệm vụ của bạn là phân tích kỹ lưỡng CV của ứng viên và đánh giá mức độ phù hợp của họ
+            với danh sách các công việc được cung cấp.
             
-            system_instruction = (
-                "Bạn là một chuyên gia tư vấn tuyển dụng cấp cao. Nhiệm vụ của bạn là phân tích CV của ứng viên "
-                "và đánh giá mức độ phù hợp của họ với các công việc được cung cấp. Phản hồi phải chuyên nghiệp, "
-                "chi tiết, và trả lời đầy đủ các phần sau đây:"
-                "\n1. Tóm tắt điểm mạnh, điểm yếu của ứng viên dựa trên CV."
-                "\n2. Đánh giá mức độ phù hợp (từ 1 đến 10) và lý do cho từng công việc."
-                "\n3. Đề xuất 3-5 khóa học hoặc kỹ năng cụ thể cần bổ sung để ứng viên nâng cao cơ hội đậu phỏng vấn "
-                "cho các công việc này. Phản hồi phải được định dạng Markdown rõ ràng."
-            )
-
-            job_context = "\n\n--- DANH SÁCH CÔNG VIỆC TƯƠNG ĐỒNG ---\n"
-            for i, job in enumerate(matched_jobs):
-                # Giả định metadatas chứa title, description và các thông tin quan trọng khác
-                title = job.get('metadatas', {}).get('title', 'N/A')
-                description = job.get('description', 'Không có mô tả chi tiết.')
-                distance = job.get('distance')
-                
-                job_context += f"## Công việc {i+1}: {title}\n"
-                job_context += f"Mô tả: {description[:300]}...\n" # Giới hạn mô tả để tiết kiệm token
-                job_context += f"Khoảng cách Vector (Distance): {distance:.4f}\n"
-                job_context += "--------------------------------------\n"
-
-            user_prompt = (
-                f"Đây là CV của tôi:\n\n{cv_text}\n\n"
-                f"Và đây là danh sách các công việc được hệ thống tìm kiếm:\n\n{job_context}\n\n"
-                "Hãy thực hiện phân tích và tạo báo cáo tư vấn theo yêu cầu của System Instruction."
-            )
+            Dữ liệu Ngữ cảnh:
+            - CV: {cv_text[:1000]}... (CV đầy đủ được cung cấp trong User Prompt)
+            - Danh sách Job Phù Hợp: {jobs_summary}
             
-            return json.dumps({
-                "systemInstruction": system_instruction,
-                "userPrompt": user_prompt
-            })
+            QUY TẮC BẮT BUỘC:
+            1. PHẢI tuân thủ nghiêm ngặt và **chỉ trả về một đối tượng JSON DUY NHẤT**.
+            2. KHÔNG được thêm bất kỳ văn bản, giải thích hoặc markdown block (như ```json) nào bên ngoài đối tượng JSON.
+            3. Cấu trúc JSON PHẢI tuân thủ các trường sau:
+
+            {{
+                "summary": "Tóm tắt chung về điểm mạnh, kinh nghiệm nổi bật và mức độ phù hợp tổng thể của ứng viên với các công việc này (Tối đa 150 từ).",
+                "advice_sections": [
+                    {{
+                        "title": "Phân tích Điểm mạnh và Điểm yếu",
+                        "content": "Phân tích chi tiết điểm mạnh, kinh nghiệm và các kỹ năng còn thiếu sót so với các công việc đã tìm thấy."
+                    }},
+                    {{
+                        "title": "Lời khuyên Phát triển Kỹ năng/Khóa học",
+                        "content": "Đề xuất 3-5 khóa học hoặc kỹ năng CỤ THỂ cần bổ sung để ứng viên nâng cao cơ hội đậu phỏng vấn cho nhóm công việc này."
+                    }},
+                    {{
+                        "title": "Chiến lược Ứng tuyển & Phỏng vấn",
+                        "content": "Lời khuyên cá nhân hóa về cách ứng viên nên điều chỉnh CV và phong cách phỏng vấn khi nộp vào các vị trí này."
+                    }}
+                ]
+            }}
+        """
+
+        job_context = "\n\n--- DANH SÁCH CÔNG VIỆC TƯƠNG ĐỒNG (Tham khảo) ---\n"
+        for i, job in enumerate(matched_jobs):
+            title = job.get('metadatas', {}).get('title', 'N/A')
+            description = job.get('document', 'Không có mô tả chi tiết.') # Đã sửa key từ 'description' sang 'document' nếu bạn dùng ChromaDB
+            distance = job.get('distance')
+            
+            job_context += f"## Công việc {i+1}: {title}\n"
+            job_context += f"Mô tả: {description[:300]}...\n"
+            job_context += f"Khoảng cách Vector (Distance): {distance:.4f}\n"
+            job_context += "--------------------------------------\n"
+
+        user_prompt = (
+            f"CV đầy đủ của tôi là:\n\n{cv_text}\n\n"
+            f"{job_context}\n\n"
+            "Hãy thực hiện phân tích và **chỉ** tạo đối tượng JSON theo yêu cầu của System Instruction. "
+            "Đảm bảo JSON là hợp lệ tuyệt đối."
+        )
+        
+        return json.dumps({
+            "systemInstruction": system_instruction,
+            "userPrompt": user_prompt
+        })
+
 
 
     def rag_job_advisory(self, cv_text: str, matched_jobs: List[Dict]) -> Generator[Dict[str, Any], None, None]:
         """
         Gửi yêu cầu RAG tới mô hình LLM để tạo báo cáo tư vấn (non-streaming). Trả về kết quả hoàn chỉnh.
-        FIX: Tắt streaming và xử lý response non-streaming.
         """
         # 1. Xây dựng Prompt (Lấy System và User content)
         try:
             prompt_payload_str = self._build_rag_prompt(cv_text, matched_jobs)
             prompt_payload = json.loads(prompt_payload_str)
+            system_instruction = prompt_payload.get('systemInstruction')
+            user_prompt = prompt_payload.get('userPrompt')
         except Exception as e:
             logger.error(f"❌ Lỗi khi xây dựng RAG Prompt: {e}")
             # Do non-streaming, ta trả về lỗi ngay
@@ -262,18 +289,18 @@ Hãy kết hợp **cả ba** thông tin trên...
             
         # 2. Chuẩn bị Request Payload (Chat Completion API)
         payload = {
-            "model": settings.L_LLM_MODEL, 
+            "model": settings.L_LLM_MODEL,  #CRITICAL, ưu tiên dùng mô hình H_LLM hơn tuy nhiên lỗi json do mô hình H trả về <think> </think> nữa
             "messages": [
                 {
                     "role": "system", 
-                    "content": "Bạn là chuyên gia tư vấn tuyển dụng HR của Jobcubator."
+                    "content": system_instruction
                 },
                 {
                     "role": "user", 
-                    "content": "Hãy phân tích CV sau."  #Thay đổi sau CRITICAL
+                    "content": user_prompt
                 }
             ],
-            "temperature": 0.2,
+            "temperature": 0.1,
             "stream": False # ĐÃ TẮT STREAMING
         }
         
@@ -286,7 +313,6 @@ Hãy kết hợp **cả ba** thông tin trên...
                 url, 
                 headers=self.headers, 
                 json=payload, 
-                # Không cần stream=True nữa
             )
             response.raise_for_status() # Bắt lỗi HTTP (4xx, 5xx)
 

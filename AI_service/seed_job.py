@@ -194,7 +194,8 @@ def add_sample_user_cvs(ai_client: FPTAIClient):
             # --- KIỂM TRA ĐỘ CHÍNH XÁC ---
             test_query = "Tìm kiếm việc làm cho tôi"
             # ⚠️ Giả định hàm search_similar_jobs của bạn có thể nhận vector hoặc text
-            results = db_client_for_db.search_similar_jobs(query_text=test_query, n_results=1) 
+            results = db_client_for_db.search_similar_jobs(query_vector=vector_list, n_results=1) 
+            print(results)
             # Dòng này chỉ để kiểm tra API, không phải logic tư vấn cuối cùng
             
         except Exception as e:

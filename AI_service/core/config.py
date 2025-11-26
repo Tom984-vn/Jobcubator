@@ -23,7 +23,8 @@ class Settings:
     # Các cấu hình mặc định khác
     EMBED_MODEL = "Vietnamese_Embedding"
     L_LLM_MODEL = "Llama-3.3-70B-Instruct"
-    H_LLM_MODEL = "DeepSeek-R1"
+    #H_LLM_MODEL = "DeepSeek-R1"
+    H_LLM_MODEL = "GLM-4.5"
 
     DB_PATH = "./chroma_data" # Tên thư mục chứa DB
     COLLECTION_NAME = "job_listings"

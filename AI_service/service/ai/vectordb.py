@@ -16,7 +16,8 @@ def build_chroma_filters(filter_obj: Optional[JobFilter]) -> Dict[str, Any]:
     SỬA LỖI: Tự động gỡ bỏ $or nếu chỉ có 1 điều kiện.
     """
     if not filter_obj:
-        return {}
+        logger.info("Không có bộ lọc metadata nào được áp dụng.")
+        return None
 
     filter_conditions = []
     
@@ -56,7 +57,7 @@ def build_chroma_filters(filter_obj: Optional[JobFilter]) -> Dict[str, Any]:
 
     # --- KẾT HỢP TẤT CẢ ---
     if not filter_conditions:
-        return {}
+        return None
         
     # Nếu chỉ có 1 điều kiện tổng, trả về trực tiếp (không bọc $and)
     if len(filter_conditions) == 1:
