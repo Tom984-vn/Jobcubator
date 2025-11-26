@@ -265,8 +265,18 @@ class StorageServiceImpl implements StorageService {
     }
 
     @Override
-    public void deleteFile(String objectKey)
-    {
+    public String getUserCvUrl(User user) {
+        UserProfile userProfile =  userProfileRepository.findById(user.getId()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        String avatarKey = userProfile.getAvatarPath();
+        if (avatarKey == null || avatarKey.isBlank()) {
+            return null;
+        }
+        return getPresignedUrl(userProfile.getCvPath());
+    }
+
+    @Override
+    public void deleteFile(String objectKey) {
         if(objectKey == null || objectKey.isBlank())
         {
             throw new IllegalArgumentException("Object key cannot be null or blank");

@@ -18,7 +18,6 @@ class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<GetUserProfileResponse> getCurrentUser(@AuthenticationPrincipal User user) {
-
         GetUserProfileResponse response = userProfileService.getUserProfile(user);
         return ResponseEntity.ok(response);
     }
@@ -31,8 +30,7 @@ class UserController {
 
 
     @PutMapping("/me/avatar")
-    public ResponseEntity<String> saveUserAvatar(@AuthenticationPrincipal User user, @RequestBody String objectKey)
-    {
+    public ResponseEntity<String> saveUserAvatar(@AuthenticationPrincipal User user, @RequestBody String objectKey) {
         try
         {
             userProfileService.saveUserProfileAvatar(user, objectKey);
@@ -44,8 +42,7 @@ class UserController {
     }
 
     @PutMapping("/me/cv")
-    public ResponseEntity<String> saveUserCV(@AuthenticationPrincipal User user, @RequestBody String objectKey)
-    {
+    public ResponseEntity<String> saveUserCV(@AuthenticationPrincipal User user, @RequestBody String objectKey) {
         try
         {
             userProfileService.saveUserProfileCV(user, objectKey);

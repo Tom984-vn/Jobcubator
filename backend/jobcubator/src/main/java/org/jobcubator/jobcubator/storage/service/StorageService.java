@@ -12,5 +12,6 @@ public interface StorageService {
     String updateUserCVFromFile(User user, MultipartFile file, String pathPrefix)throws IOException;
     String updateUserCVFromUrl(User user, String url, String pathPrefix);
     String getUserAvatarUrl(User user);
+    String getUserCvUrl(User user);
     void deleteFile(String objectKey);
 }
