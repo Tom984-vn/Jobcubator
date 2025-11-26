@@ -3,7 +3,6 @@
 .ipynb_checkpoints
 __pycache__
 chroma_data/
-seed_job.py
 
 # Logs
 logs

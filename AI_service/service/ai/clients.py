@@ -13,7 +13,6 @@ class FPTAIClient:
             "Content-Type": "application/json"
         }
         self.endpoint = settings.ENDPOINT
-        # self.endpoint = settings.ENDPOINT.rstrip('/')
 
     def get_embedding(self, text: str) -> List[float]:
         url = f"{self.endpoint}/embeddings"
@@ -76,7 +75,7 @@ class FPTAIClient:
                     "match_score": "[Mức độ phù hợp, ví dụ: 85%]",
                     "reasoning": "Giải thích chi tiết tại sao Job này phù hợp với ứng viên (Tối đa 100 từ)."
                 }},
-                // ... (Các job khác)
+                // ... (tương tự với các job khác, default sẽ có 3 jobs)
             ]
         }}
         """
@@ -99,11 +98,12 @@ class FPTAIClient:
             return "Lỗi xử lý văn bản"
         
     def chat_respond_custom(self, user_text: str, sys_prompt: str, context: Optional[UserContext] = None):
-        final_user_text = user_text
+        final_sys_text = sys_prompt
         # --- TẠO QUY TẮC HẬU XỬ LÝ ---
         if context:
             rule_post = "\n\n--- QUY TẮC BẮT BUỘC KHI TRẢ LỜI ---\n"
-            rule_post += "Luôn luôn cá nhân hóa câu trả lời dựa trên các thông tin sau về người dùng:\n"
+            rule_post += "Luôn luôn cá nhân hóa câu trả lời dựa trên các thông tin sau về người dùng.\n"
+            rule_post += "Phải Luôn luôn trả lời bằng tiếng việt/vietnamese always please, ngoại trừ những tên riêng (giả sử tên riêng phần mềm Excel)"
 
             # Xác định ngành nghề ưu tiên
             industry = "chưa xác định"
@@ -117,16 +117,20 @@ class FPTAIClient:
             if context.age_range:
                 rule_post += f"- Khoảng tuổi: {context.age_range}. Lời khuyên nên phù hợp với giai đoạn sự nghiệp của lứa tuổi này.\n"
 
+            rule_post += "Phải luôn dựa vào user_cv và những thông tin được cung cấp trước khi trả lời và trả lời bằng tiếng việt dễ hiểu, mọi hướng dẫn đều được tính toán kĩ lưỡng với các đối tượng trường hợp đó."
             rule_post += "Đây là yêu cầu quan trọng nhất, phải được ưu tiên hàng đầu."
+            rule_post += "Nếu thực sự bế tắc hoặc cần hỏi câu hỏi thì hãy tóm tắt và xác nhận lại những thông tin biết về người dùng trước khi đặt câu hỏi."
 
             # Gắn quy tắc vào cuối prompt của người dùng
-            final_user_text += rule_post
+            final_sys_text += rule_post
+        print(final_sys_text)
+        print(user_text)
         url = f"{self.endpoint}/chat/completions"
         payload = {
             "model": settings.H_LLM_MODEL,
             "messages": [
-                {"role": "system", "content": sys_prompt},
-                {"role": "user", "content": final_user_text}
+                {"role": "system", "content": final_sys_text},
+                {"role": "user", "content": user_text}
             ],
             "temperature": 0.1,
             "stream": True
@@ -163,7 +167,7 @@ class FPTAIClient:
         except:
             return text # Nếu lỗi thì dùng nguyên văn
 
-    def smart_chat(self, user_text: str, router_instance, db_client: 'VectorDBClient', context: Optional[UserContext] = None):
+    def smart_chat(self, user_text: str, router_instance, db_client, context: Optional[UserContext] = None):
         """
         Hàm chat thông minh kết hợp Router
         """
@@ -175,12 +179,12 @@ class FPTAIClient:
 
         if is_match:
             print("🎯 HIT: Trúng câu hỏi mẫu -> Lấy thêm ngữ cảnh từ VectorDB.")
-            context_jobs = db_client.search_similar_jobs(query_text=user_text)
+            context_jobs = db_client.search_similar_jobs(query_text=user_text)   #CRITICAL!
             jobs_context_str = ""
             if context_jobs:
                 jobs_context_str += "Dưới đây là một vài công việc liên quan được tìm thấy trên thị trường:\n"
                 for job in context_jobs:
-                    title = job.get('metadata', {}).get('title', 'Không có tiêu đề')
+                    title = job.get('metadatas', {}).get('title', 'Không có tiêu đề')
                     description_snippet = job.get('description', '')[:150] + "..."
                     jobs_context_str += f"- {title}: {description_snippet}\n"
 
@@ -219,8 +223,8 @@ Hãy kết hợp **cả ba** thông tin trên...
 
             job_context = "\n\n--- DANH SÁCH CÔNG VIỆC TƯƠNG ĐỒNG ---\n"
             for i, job in enumerate(matched_jobs):
-                # Giả định metadata chứa title, description và các thông tin quan trọng khác
-                title = job.get('metadata', {}).get('title', 'N/A')
+                # Giả định metadatas chứa title, description và các thông tin quan trọng khác
+                title = job.get('metadatas', {}).get('title', 'N/A')
                 description = job.get('description', 'Không có mô tả chi tiết.')
                 distance = job.get('distance')
                 
@@ -242,74 +246,82 @@ Hãy kết hợp **cả ba** thông tin trên...
 
 
     def rag_job_advisory(self, cv_text: str, matched_jobs: List[Dict]) -> Generator[Dict[str, Any], None, None]:
-            """
-            Gửi yêu cầu RAG tới mô hình LLM để tạo báo cáo tư vấn. Trả về Generator (stream).
-            """
-            # 1. Xây dựng Prompt
-            try:
-                prompt_payload_str = self._build_rag_prompt(cv_text, matched_jobs)
-                prompt_payload = json.loads(prompt_payload_str)
-            except Exception as e:
-                logger.error(f"❌ Lỗi khi xây dựng RAG Prompt: {e}")
-                yield {"error": "Lỗi khi chuẩn bị dữ liệu cho AI."}
-                return
-                
-            # 2. Chuẩn bị Request Payload
-            payload = {
-                "contents": [{
-                    "parts": [{"text": prompt_payload["userPrompt"]}]
-                }],
-                "systemInstruction": {
-                    "parts": [{"text": prompt_payload["systemInstruction"]}]
+        """
+        Gửi yêu cầu RAG tới mô hình LLM để tạo báo cáo tư vấn (non-streaming). Trả về kết quả hoàn chỉnh.
+        FIX: Tắt streaming và xử lý response non-streaming.
+        """
+        # 1. Xây dựng Prompt (Lấy System và User content)
+        try:
+            prompt_payload_str = self._build_rag_prompt(cv_text, matched_jobs)
+            prompt_payload = json.loads(prompt_payload_str)
+        except Exception as e:
+            logger.error(f"❌ Lỗi khi xây dựng RAG Prompt: {e}")
+            # Do non-streaming, ta trả về lỗi ngay
+            yield {"error": "Lỗi khi chuẩn bị dữ liệu cho AI."}
+            return
+            
+        # 2. Chuẩn bị Request Payload (Chat Completion API)
+        payload = {
+            "model": settings.L_LLM_MODEL, 
+            "messages": [
+                {
+                    "role": "system", 
+                    "content": "Bạn là chuyên gia tư vấn tuyển dụng HR của Jobcubator."
                 },
-                # Cấu hình model và streaming (Giả định FPT Endpoint hỗ trợ streaming)
-                "model": settings.L_LLM_MODEL,
-                "config": {"stream": True} # Yêu cầu streaming
-            }
-            
-            # 3. Gửi Request và Stream
-            url = f"{self.endpoint}/v1/models/{settings.L_LLM_MODEL}:generateContent" 
-            
-            try:
-                # Lưu ý: requests.post() không hỗ trợ stream response
-                # Trong môi trường thực, bạn cần dùng session hoặc thư viện hỗ trợ stream
-                # Tạm thời, ta sẽ giả định dùng requests.post và đọc response.iter_content
-                
-                response = requests.post(
-                    url, 
-                    headers=self.headers, 
-                    json=payload, 
-                    stream=True
-                )
-                response.raise_for_status() # Bắt lỗi HTTP (4xx, 5xx)
+                {
+                    "role": "user", 
+                    "content": "Hãy phân tích CV sau."  #Thay đổi sau CRITICAL
+                }
+            ],
+            "temperature": 0.2,
+            "stream": False # ĐÃ TẮT STREAMING
+        }
+        
+        # 3. Gửi Request (Non-streaming)
+        url = f"{self.endpoint}/chat/completions" 
+        logger.info(f"🤖 Đang gọi LLM và chờ phản hồi hoàn chỉnh...")
+        
+        try:
+            response = requests.post(
+                url, 
+                headers=self.headers, 
+                json=payload, 
+                # Không cần stream=True nữa
+            )
+            response.raise_for_status() # Bắt lỗi HTTP (4xx, 5xx)
 
-                # Xử lý Stream Response (Tùy thuộc vào định dạng của FPT)
-                for line in response.iter_lines():
-                    if line:
-                        # Giả định FPT trả về JSON chunks
-                        try:
-                            chunk_data = json.loads(line.decode('utf-8'))
-                            # Cần xác định cấu trúc JSON mà FPT trả về để trích xuất text
-                            # Tạm thời giả định nó có trường 'text' hoặc tương tự
-                            text_part = chunk_data.get('text', '') # Thay thế 'text' bằng trường thực tế
-                            if text_part:
-                                yield {"text": text_part}
-                        except json.JSONDecodeError:
-                            # Bỏ qua dòng không phải JSON (ví dụ: Keep-alive)
-                            continue
-                        except Exception as e:
-                            logger.warning(f"Lỗi xử lý chunk JSON: {e}")
-                            continue
-                            
-            except requests.exceptions.HTTPError as e:
-                logger.error(f"❌ Lỗi HTTP khi gọi LLM: {e.response.text}")
-                yield {"error": f"Lỗi HTTP từ LLM: {e.response.text[:100]}..."}
-            except requests.exceptions.RequestException as e:
-                logger.error(f"❌ Lỗi kết nối khi gọi LLM: {e}")
-                yield {"error": "Lỗi kết nối mạng hoặc endpoint AI không khả dụng."}
-            except Exception as e:
-                logger.error(f"❌ Lỗi không xác định trong RAG advisory: {e}")
-                yield {"error": "Lỗi không xác định khi tạo báo cáo."}
+            # 4. Xử lý response non-streaming (Lấy toàn bộ JSON)
+            full_response_json = response.json()
+            
+            # Cấu trúc non-streaming: choices[0].message.content
+            content_text = full_response_json.get('choices', [{}])[0].get('message', {}).get('content')
+            
+            if content_text:
+                # Trả về kết quả hoàn chỉnh dưới dạng một chunk duy nhất
+                yield {"text": content_text}
+            else:
+                logger.error("⚠️ Phản hồi từ LLM không chứa nội dung (content).")
+                yield {"error": "LLM không tạo ra phản hồi hợp lệ."}
+                
+        except requests.exceptions.HTTPError as e:
+            # Xử lý lỗi HTTP và trích xuất thông báo lỗi từ server
+            error_response = {}
+            try:
+                error_response = e.response.json()
+            except:
+                pass
+
+            logger.error(f"❌ Lỗi HTTP khi gọi LLM: {e.response.text}")
+            error_message = error_response.get('error', {}).get('message', f"Lỗi không xác định ({e.response.status_code})")
+            yield {"error": f"Lỗi HTTP từ LLM: {error_message}"}
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Lỗi kết nối khi gọi LLM: {e}")
+            yield {"error": "Lỗi kết nối mạng hoặc endpoint AI không khả dụng."}
+            
+        except Exception as e:
+            logger.error(f"❌ Lỗi không xác định trong RAG advisory: {e}")
+            yield {"error": "Lỗi không xác định khi tạo báo cáo."}
 
 class FPTChromaAdapter(EmbeddingFunction):
     """

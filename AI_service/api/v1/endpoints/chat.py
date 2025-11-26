@@ -1,7 +1,6 @@
 # AI_service/api/v1/endpoints/chat.py
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-import json # Cần cho việc xử lý stream
 from typing import Generator, Dict, Any
 import os
 from .router import SemanticRouter

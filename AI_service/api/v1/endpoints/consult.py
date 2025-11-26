@@ -38,7 +38,7 @@ def _create_and_store_cv_vector(user_id: str, cv_text: str) -> Optional[List[flo
         
         if vector_list and len(vector_list) > 0:
             # Lưu trữ CV mới bằng VectorDBClient
-            db_client.add_user_cv(user_id, cv_text, vector_list, metadata={"source": "api_upload"})
+            db_client.add_user_cv(user_id, cv_text, vector_list, metadatas={"source": "api_upload"})
             return vector_list
     except Exception as e:
         logger.error(f"❌ Lỗi: Không thể tạo vector cho CV của {user_id}. {e}")
@@ -59,11 +59,17 @@ def consult_job_rag_logic(user_id: str, cv_text: str, top_k: int = 3, filters: O
         logger.info(f"✅ Dùng vector CV đã lưu trữ cho user: {user_id}.")
         current_cv_vector = user_cv_data.get('vector')
     else:
+        logger.info(f"Tạo vector mới cho CV đầu vào {user_id}")
         current_cv_vector = _create_and_store_cv_vector(user_id, cv_text)
 
     # --- BƯỚC 2: TRUY VẤN JOB PHÙ HỢP (Retrieval) ---
     logger.info(f"🔍 Đang tìm kiếm {top_k} job tương đồng bằng vector CV...")
     
+    if current_cv_vector is None:
+        logger.error(f"Không thể tạo vector cho CV của user: {user_id}.")
+        return {"error": "Không thể xử lý CV của bạn. Vui lòng kiểm tra lại nội dung CV và thử lại."}
+    else:
+        print(current_cv_vector)
     matching_jobs = db_client.search_similar_jobs(
         query_vector=current_cv_vector, 
         n_results=top_k, 
@@ -76,22 +82,34 @@ def consult_job_rag_logic(user_id: str, cv_text: str, top_k: int = 3, filters: O
     # --- BƯỚC 3: GỌI LLM VÀ NỐI CHUỖI (Generation & Aggregation) ---
     logger.info("🤖 Đang gọi LLM và chờ phản hồi hoàn chỉnh...")
     
-    stream_generator = ai_client.rag_job_advisory(
+    generator = ai_client.rag_job_advisory(
         cv_text=cv_text, 
         matched_jobs=matching_jobs
     )
     
-    full_report_text = ""
+# Lấy kết quả duy nhất từ generator
     try:
-        for chunk in stream_generator:
-            if 'text' in chunk:
-                full_report_text += chunk['text']
-            elif 'error' in chunk:
-                # Bắt lỗi nếu LLM báo lỗi trong khi stream
-                raise Exception(f"LLM Stream Error: {chunk['error']}")
+        # Sử dụng next() để lấy dictionary kết quả đầu tiên và duy nhất
+        llm_result = next(generator) 
+    except StopIteration:
+        # Trường hợp generator trống (rất hiếm nếu code rag_job_advisory đúng)
+        logger.error("❌ Generator LLM không trả về kết quả nào.")
+        return {"error": "Lỗi nội bộ: AI không trả về dữ liệu."}
     except Exception as e:
-        logger.error(f"❌ Lỗi khi đọc stream từ LLM: {e}")
+        logger.error(f"❌ Lỗi khi lấy kết quả từ generator LLM: {e}")
         return {"error": "Lỗi khi tạo báo cáo từ mô hình AI."}
+    
+    # Xử lý kết quả (kiểm tra lỗi hoặc nội dung)
+    if 'error' in llm_result:
+        # Bắt lỗi nếu LLM báo lỗi
+        logger.error(f"❌ Lỗi từ LLM: {llm_result['error']}")
+        return {"error": f"Lỗi từ mô hình AI: {llm_result['error']}"}
+        
+    full_report_text = llm_result.get('text', '')
+    
+    if not full_report_text:
+        logger.error("⚠️ LLM đã trả về kết quả nhưng nội dung báo cáo trống.")
+        return {"error": "Mô hình AI không tạo ra nội dung báo cáo."}
 
     logger.info("✅ Báo cáo hoàn chỉnh đã được tạo.")
     
@@ -115,7 +133,8 @@ def consult_pipeline_endpoint(data: ConsultRequest):
         filters=data.filters
     )
     
-    # 2. Xử lý lỗi
+    # 2. Xử lý lỗi  
+    # CRITICAL HERE
     if "error" in pipeline_result:
         # Trả về lỗi 400 Bad Request nếu là lỗi nghiệp vụ (không tìm thấy job, không tạo được vector)
         raise HTTPException(status_code=400, detail=pipeline_result["error"])
@@ -126,15 +145,15 @@ def consult_pipeline_endpoint(data: ConsultRequest):
         matched_jobs = pipeline_result['matched_jobs']
         
         # Trích xuất thông tin cần thiết
-        first_job_title = matched_jobs[0].get('metadata', {}).get('title', 'N/A')
+        first_job_title = matched_jobs[0].get('metadatas', {}).get('title', 'N/A')
         
         return ConsultReportResponse(
             title=f"Báo cáo tư vấn CV - Phù hợp nhất với {first_job_title}",
             # Cần đảm bảo rằng Report Text được phân tích đúng các trường (summary, recommendations)
             # Tạm thời gán nội dung thô vào các trường:
             summary=full_report[:300] + "...", 
-            job_details=matched_jobs, 
-            recommendations=full_report # Toàn bộ báo cáo được đặt ở đây
+            job_details= matched_jobs, 
+            recommendations= full_report # Toàn bộ báo cáo được đặt ở đây
         )
     except Exception as e:
         logger.error(f"Lỗi khi định dạng báo cáo cuối cùng: {e}")

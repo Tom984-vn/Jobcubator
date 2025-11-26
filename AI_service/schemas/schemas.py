@@ -53,3 +53,12 @@ class ConsultReportResponse(BaseModel):
     summary: str # Tóm tắt chung về sự phù hợp CV
     job_details: List[JobInput] # Chi tiết từng job
     recommendations: str # Lời khuyên cá nhân hóa dựa trên hành vi (Context)
+
+class DBStatusResponse(BaseModel):
+    """
+    Đầu ra cho endpoint kiểm tra trạng thái VectorDB (/debug/db-status).
+    """
+    collection_name: str
+    total_count: int
+    ids: List[str]
+    message: str = "Thành công. Đã trả về các ID được giới hạn."

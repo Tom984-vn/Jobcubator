@@ -22,7 +22,7 @@ class Settings:
     API_V1_STR: str = "/api/v1"
     # Các cấu hình mặc định khác
     EMBED_MODEL = "Vietnamese_Embedding"
-    L_LLM_MODEL = "Llama-3.3-Swallow-70B-Instruct-v0.4"
+    L_LLM_MODEL = "Llama-3.3-70B-Instruct"
     H_LLM_MODEL = "DeepSeek-R1"
 
     DB_PATH = "./chroma_data" # Tên thư mục chứa DB
