@@ -61,7 +61,7 @@ CREATE TABLE companies (
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     website VARCHAR(150) NOT NULL UNIQUE,
-    size VARCHAR(50) NOT NULL.,
+    size VARCHAR(50) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL 
 );
 
