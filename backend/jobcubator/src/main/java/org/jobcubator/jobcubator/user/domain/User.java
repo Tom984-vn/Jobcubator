@@ -40,19 +40,28 @@ public class User implements UserDetails {
     @Column(name = "password_hash", updatable = true, nullable = false, length = 100)
     private String passwordHash;
 
-    @Column(name = "created_at", updatable = false, insertable = false)
+    @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private Role role = Role.CANDIDATE;
 
-    // @PrePersist
-    // private void ensureId() {
-    //     if (this.id == null) {
-    //         this.id = UUID.randomUUID();
-    //     }
-    // }
+// @PrePersist
+// private void ensureId() {
+//     if (this.id == null) {
+//         this.id = UUID.randomUUID();
+//     }
+// }
+
+    @PrePersist
+    private void ensureCreatedAt()
+    {
+        if(createdAt == null)
+        {
+            createdAt = Instant.now();
+        }
+    }
 
     @OneToOne(
             mappedBy = "user",

@@ -35,8 +35,15 @@ public class CompanySecurityServiceImpl implements CompanySecurityService {
                 .orElse(false);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public boolean canManageApplications(UUID companyId, User user) {
         return hasPermission(companyId, user, CompanyRole.OWNER, CompanyRole.HR);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canManageCompany(UUID companyId, User user) {
+        return hasPermission(companyId, user, CompanyRole.OWNER);
     }
 }

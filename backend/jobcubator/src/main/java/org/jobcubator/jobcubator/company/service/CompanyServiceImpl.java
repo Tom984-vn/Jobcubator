@@ -3,17 +3,16 @@ package org.jobcubator.jobcubator.company.service;
 
 import org.jobcubator.jobcubator.company.domain.Company;
 import org.jobcubator.jobcubator.company.domain.CompanyRepository;
-import org.jobcubator.jobcubator.company.dto.CompanyDTO;
-import org.jobcubator.jobcubator.company.dto.CompanyFilterDTO;
-import org.jobcubator.jobcubator.company.dto.CompanyRequestDTO;
-import org.jobcubator.jobcubator.company.dto.CompanyVacancyDTO;
+import org.jobcubator.jobcubator.company.domain.CompanyRole;
+import org.jobcubator.jobcubator.company.dto.*;
+import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,22 +24,51 @@ import java.util.UUID;
 public class CompanyServiceImpl implements CompanyService{
 
     private final CompanyRepository companyRepository;
+    private final CompanySecurityServiceImpl companySecurityService;
 
-    public CompanyServiceImpl(CompanyRepository companyRepository) {
+    public CompanyServiceImpl(CompanyRepository companyRepository, CompanySecurityServiceImpl companySecurityService) {
         this.companyRepository = companyRepository;
+        this.companySecurityService = companySecurityService;
     }
 
     @Override
-    public void deleteCompany(UUID id) {
+    public void deleteCompany(User user, UUID id) {
+        Company company = companyRepository.findById(id).orElseThrow(() -> new RuntimeException("Company not found"));
+        if(!companySecurityService.canManageCompany(company.getId(), user)) {
+            throw new AccessDeniedException("Access denied");
+        }
         companyRepository.deleteById(id);
     }
 
     @Override
-    public CompanyDTO createCompany(CompanyRequestDTO createDTO) {
+    @Transactional(readOnly = true)
+    public List<CompanyDTO> getMyCompanies(User currentUser) {
+        // Use the custom query we wrote in the Repository
+        List<Company> companies = companyRepository.findAllByUserId(currentUser.getId());
+
+        return companies.stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+    private CompanyDTO mapToDTO(Company company) {
+        return new CompanyDTO(
+                company.getId(),
+                company.getName(),
+                company.getWebsite(),
+                company.getSize()
+        );
+    }
+
+    @Override
+    @Transactional
+    public CompanyDTO createCompany(User currentUser, CompanyRequestDTO createDTO) {
         Company company = new Company();
         company.setName(createDTO.name());
         company.setWebsite(createDTO.website());
         company.setSize(String.valueOf(createDTO.size()));
+        company.setDescription(createDTO.description());
+        company.addMember(currentUser, CompanyRole.OWNER);
         company = companyRepository.save(company);
         return new CompanyDTO(
             company.getId(),
@@ -51,6 +79,7 @@ public class CompanyServiceImpl implements CompanyService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CompanyDTO getCompanyById(UUID id) {
         Company company = companyRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Company not found"));
@@ -63,12 +92,17 @@ public class CompanyServiceImpl implements CompanyService{
     }
 
     @Override
-    public CompanyDTO updateCompany(UUID id, CompanyRequestDTO updateDTO) {
+    @Transactional
+    public CompanyDTO updateCompany(User currentUser, UUID id, CompanyRequestDTO updateDTO){
         Company company = companyRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Company not found"));
+        if(!companySecurityService.canManageCompany(company.getId(), currentUser)) {
+            throw new AccessDeniedException("Access denied");
+        }
         company.setName(updateDTO.name());
         company.setWebsite(updateDTO.website());
         company.setSize(String.valueOf(updateDTO.size()));
+        company.setDescription(updateDTO.description());
         company = companyRepository.save(company);
         return new CompanyDTO(
             company.getId(),
@@ -78,7 +112,10 @@ public class CompanyServiceImpl implements CompanyService{
         );    
     }
 
+
+
     @Override
+    @Transactional(readOnly = true)
     public Page<CompanyDTO> filterCompanies(CompanyFilterDTO filterDTO, Pageable pageable) {
         Specification<Company> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -106,6 +143,7 @@ public class CompanyServiceImpl implements CompanyService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<CompanyVacancyDTO> getCompaniesByMostVacancies(String tagName, Pageable pageable) {
         Page<Object[]> results = companyRepository.findCompaniesWithVacanciesByTag(tagName, pageable);
 

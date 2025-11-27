@@ -3,6 +3,8 @@ package org.jobcubator.jobcubator.application.service;
 import org.jobcubator.jobcubator.application.dto.ApplicationRequest;
 import org.jobcubator.jobcubator.application.dto.ApplicationResponse;
 import org.jobcubator.jobcubator.application.dto.UpdateApplicationStatusRequest;
+import org.jobcubator.jobcubator.company.dto.CompanyDTO;
+import org.jobcubator.jobcubator.company.dto.CompanyRequestDTO;
 import org.jobcubator.jobcubator.user.domain.User;
 
 import java.util.List;

@@ -13,6 +13,8 @@ public record CompanyRequestDTO(
     @Size(max = 255, message = "Website must be at most 255 characters")
     String website,
 
+    String description,
+
     @NotNull(message = "Size is required")
     @Min(value = 1, message = "Size must be at least 1")
     Integer size) {

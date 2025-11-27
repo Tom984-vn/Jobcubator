@@ -5,6 +5,7 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     phone_number VARCHAR(20) UNIQUE,
     password_hash VARCHAR(100) NOT NULL,
+    role VARCHAR(10) CHECK CHECK (role IN ('CANDIDATE', 'COMPANY' )),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -55,14 +56,23 @@ CREATE TABLE IF NOT EXISTS profile_entry (
 
 CREATE INDEX idx_profile_entry_user_id ON profile_entry(user_profile_id);
 
-CREATE TABLE company (
+CREATE TABLE companies (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     name VARCHAR(100) NOT NULL UNIQUE,
-    description_path VARCHAR(150) NOT NULL,
+    description TEXT,
     website VARCHAR(150) NOT NULL UNIQUE,
-    size VARCHAR(50) NOT NULL
+    size VARCHAR(50) NOT NULL.,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL 
 );
 
+CREATE TABLE company_members (
+    id BIGSERIAL PRIMARY KEY,
+    company_id UUID NOT NULL REFERENCES companies(id),
+    user_id UUID NOT NULL REFERENCES users(id),
+    role VARCHAR(50) NOT NULL,
+    CONSTRAINT uk_company_member UNIQUE (company_id, user_id)
+);
+ 
 CREATE TABLE course (
     id SERIAL PRIMARY KEY,
     title VARCHAR(50) NOT NULL,
