@@ -137,6 +137,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
+    @Transactional
     public void saveUserProfileCV(User user, String objectKey) {
         UserProfile userProfile = userProfileRepository.findById(user.getId()).orElseThrow(() -> new RuntimeException("UserProfile not found for user: " + user.getUsername()));
 
