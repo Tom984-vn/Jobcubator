@@ -29,7 +29,7 @@ public class ApplicationController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/my-applicatons")
+    @GetMapping("/my-applications")
     public ResponseEntity<List<ApplicationResponse>> getMyApplications(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(applicationService.getMyApplications(user));
     }
