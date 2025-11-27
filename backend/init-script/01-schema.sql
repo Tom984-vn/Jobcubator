@@ -5,7 +5,7 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     phone_number VARCHAR(20) UNIQUE,
     password_hash VARCHAR(100) NOT NULL,
-    role VARCHAR(10) CHECK CHECK (role IN ('CANDIDATE', 'COMPANY' )),
+    role VARCHAR(10) CHECK (role IN ('CANDIDATE', 'COMPANY' )),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
