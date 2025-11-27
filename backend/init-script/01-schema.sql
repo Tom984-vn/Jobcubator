@@ -106,8 +106,8 @@ CREATE INDEX idx_jobpost_job_type ON jobpost(job_type);
 
 CREATE TABLE applications (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id),
-    job_post_id BIGINT NOT NULL REFERENCES job_posts(id),
+    user_id UUID NOT NULL REFERENCES users(id),
+    job_post_id UUID NOT NULL REFERENCES job_posts(id),
     status VARCHAR(50) NOT NULL,
     cover_letter TEXT,
     applied_at TIMESTAMP NOT NULL,
