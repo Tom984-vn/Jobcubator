@@ -34,10 +34,10 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.getMyApplications(user));
     }
 
-    @GetMapping("/my-applications")
-    public ResponseEntity<List<ApplicationResponse>> getMyApplicationsForJob(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(applicationService.getMyApplications(user));
-    }
+//    @GetMapping("/my-applications")
+//    public ResponseEntity<List<ApplicationResponse>> getMyApplicationsForJob(@AuthenticationPrincipal User user) {
+//        return ResponseEntity.ok(applicationService.getMyApplications(user));
+//    }
 
     // Company Endpoints
 
