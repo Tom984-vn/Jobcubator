@@ -253,16 +253,18 @@ class StorageServiceImpl implements StorageService {
         return objectKey;
     }
 
-    @Override
-    public String getUserAvatarUrl(User user) {
-        UserProfile userProfile = userProfileRepository.findById(user.getId()).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+@Override
+public String getUserAvatarUrl(User user) {
+    UserProfile userProfile = userProfileRepository.findById(user.getId())
+        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        String avatarKey = userProfile.getAvatarPath();
-        if (avatarKey == null || avatarKey.isBlank()) {
-            return null;
-        }
-        return getPresignedUrl(userProfile.getAvatarPath());
+    String avatarKey = userProfile.getAvatarPath();
+    if (avatarKey == null || avatarKey.isBlank()) {
+        return null;
     }
+
+    return getPresignedUrl(avatarKey); // only use the object key
+}
 
     @Override
     public String getUserCvUrl(User user) {

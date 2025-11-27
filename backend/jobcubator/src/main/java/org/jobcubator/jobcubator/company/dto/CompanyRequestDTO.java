@@ -14,7 +14,8 @@ public record CompanyRequestDTO(
     String website,
 
     @NotNull(message = "Size is required")
-    String size) {
+    @Min(value = 1, message = "Size must be at least 1")
+    Integer size) {
 }
 
 

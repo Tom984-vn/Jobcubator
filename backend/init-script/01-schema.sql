@@ -28,7 +28,7 @@ CREATE TABLE user_profile (
     organization VARCHAR(100),
     position VARCHAR(100),
     preferred_location VARCHAR(100),
-    avatar_path VARCHAR(300),
+    avatar_path VARCHAR(1000),
     cv_path VARCHAR(300),
     min_salary INTEGER DEFAULT 0,
     max_salary INTEGER DEFAULT 0,

@@ -29,17 +29,17 @@ class UserController {
     }
 
 
-    @PutMapping("/me/avatar")
-    public ResponseEntity<String> saveUserAvatar(@AuthenticationPrincipal User user, @RequestBody String objectKey) {
-        try
-        {
-            userProfileService.saveUserProfileAvatar(user, objectKey);
-            return ResponseEntity.ok("User's avatar updated successfully");
-        }catch(Exception e) {
-            return ResponseEntity.badRequest().body("Unexpected error while updating user avatar");
-        }
-
+@PutMapping("/me/avatar")
+public ResponseEntity<String> saveUserAvatar(@AuthenticationPrincipal User user,
+                                             @RequestBody String objectKey) {
+    try {
+        // Save only the object key
+        userProfileService.saveUserProfileAvatar(user, objectKey);
+        return ResponseEntity.ok("User's avatar updated successfully");
+    } catch(Exception e) {
+        return ResponseEntity.badRequest().body("Unexpected error while updating user avatar");
     }
+}
 
     @PutMapping("/me/cv")
     public ResponseEntity<String> saveUserCV(@AuthenticationPrincipal User user, @RequestBody String objectKey) {

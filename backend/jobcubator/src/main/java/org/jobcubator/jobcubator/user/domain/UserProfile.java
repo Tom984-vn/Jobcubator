@@ -49,7 +49,7 @@ public class UserProfile {
     @Column(name = "preferred_location", length = 100)
     private String preferredLocation;
 
-    @Column(name = "avatar_path", length = 300)
+    @Column(name = "avatar_path", length = 1000)
     private String avatarPath;
 
     @Column(name = "cv_path", length = 300)
