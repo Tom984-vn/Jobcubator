@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS course_tags (
 
 CREATE TABLE chat_messages (
     id BIGSERIAL PRIMARY KEY,
-    application_id UUID NOT NULL,
+    application_id BIGINT NOT NULL,
     sender_id UUID NOT NULL,
     content TEXT NOT NULL,
     sent_at TIMESTAMP NOT NULL,
