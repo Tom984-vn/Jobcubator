@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     full_name varchar(30) NOT NULL,
     username VARCHAR(50) NOT NULL UNIQUE,
@@ -9,7 +9,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE TABLE refresh_token (
+CREATE TABLE IF NOT EXISTS refresh_token (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     user_id UUID NOT NULL UNIQUE,
     token VARCHAR(500) NOT NULL UNIQUE,
@@ -20,7 +20,7 @@ CREATE TABLE refresh_token (
 CREATE INDEX idx_refresh_token_expiry_date ON refresh_token(expiry_date);
 CREATE INDEX idx_refresh_token_user_id ON refresh_token(user_id);
 
-CREATE TABLE user_profile (
+CREATE TABLE IF NOT EXISTS user_profile (
     user_id UUID PRIMARY KEY,
     gender VARCHAR(10) CHECK (gender IN ('MALE', 'FEMALE','OTHER', 'NA')),
     field_of_study VARCHAR(100),
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS profile_entry (
 
 CREATE INDEX idx_profile_entry_user_id ON profile_entry(user_profile_id);
 
-CREATE TABLE companies (
+CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
@@ -65,7 +65,7 @@ CREATE TABLE companies (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL 
 );
 
-CREATE TABLE company_members (
+CREATE TABLE IF NOT EXISTS company_members (
     id BIGSERIAL PRIMARY KEY,
     company_id UUID NOT NULL REFERENCES companies(id),
     user_id UUID NOT NULL REFERENCES users(id),
@@ -73,7 +73,7 @@ CREATE TABLE company_members (
     CONSTRAINT uk_company_member UNIQUE (company_id, user_id)
 );
  
-CREATE TABLE course (
+CREATE TABLE IF NOT EXISTS course (
     id SERIAL PRIMARY KEY,
     title VARCHAR(50) NOT NULL,
     level VARCHAR(30) NOT NULL,
@@ -82,12 +82,12 @@ CREATE TABLE course (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE jobpost (
+CREATE TABLE IF NOT EXISTS job_posts (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     company_id UUID NOT NULL,
     title VARCHAR(100) NOT NULL,
     category VARCHAR(50),
-    description_path VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
     location VARCHAR(150),
     number_of_vacancies INTEGER,
     job_type VARCHAR(100) NOT NULL,
@@ -99,12 +99,12 @@ CREATE TABLE jobpost (
 );
 
 
-CREATE INDEX idx_jobpost_company_id ON jobpost(company_id);
-CREATE INDEX idx_jobpost_application_deadline ON jobpost(application_deadline);
-CREATE INDEX idx_jobpost_job_type ON jobpost(job_type);
+CREATE INDEX idx_jobpost_company_id ON job_posts(company_id);
+CREATE INDEX idx_jobpost_application_deadline ON job_posts(application_deadline);
+CREATE INDEX idx_jobpost_job_type ON job_posts(job_type);
 
 
-CREATE TABLE applications (
+CREATE TABLE IF NOT EXISTS applications (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     job_post_id UUID NOT NULL REFERENCES job_posts(id),
@@ -114,20 +114,20 @@ CREATE TABLE applications (
     CONSTRAINT uk_application_user_job UNIQUE (user_id, job_post_id)
 );
 
-CREATE TABLE tag (
+CREATE TABLE IF NOT EXISTS tag (
     id SERIAL PRIMARY KEY,
     name VARCHAR(20) NOT NULL
 );
 
-CREATE TABLE post_tags (
+CREATE TABLE IF NOT EXISTS post_tags (
     post_id UUID NOT NULL,
     tag_id INTEGER NOT NULL,
     PRIMARY KEY (post_id, tag_id),
-    FOREIGN KEY (post_id) REFERENCES jobpost(id),
+    FOREIGN KEY (post_id) REFERENCES job_posts(id),
     FOREIGN KEY (tag_id) REFERENCES tag(id)
 );
 
-CREATE TABLE course_tags (
+CREATE TABLE IF NOT EXISTS course_tags (
     course_id INTEGER NOT NULL,
     tag_id INTEGER NOT NULL,
     PRIMARY KEY (course_id, tag_id),
@@ -135,7 +135,7 @@ CREATE TABLE course_tags (
     FOREIGN KEY (tag_id) REFERENCES tag(id)
 );
 
-CREATE TABLE conversation (
+CREATE TABLE IF NOT EXISTS conversation (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL,
     title VARCHAR(255),
@@ -148,7 +148,7 @@ CREATE TABLE conversation (
 
 CREATE INDEX idx_conversation_user_id ON conversation(user_id);
 
-CREATE TABLE chat_message (
+CREATE TABLE IF NOT EXISTS chat_message (
     id SERIAL PRIMARY KEY,
     conversation_id BIGINT,
     content TEXT,

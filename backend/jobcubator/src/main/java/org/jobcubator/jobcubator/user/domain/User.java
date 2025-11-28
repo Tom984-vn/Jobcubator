@@ -81,6 +81,8 @@ public class User implements UserDetails {
         this.userProfile = userProfile;
     }
 
+    // TODO: Change this so this can return roles in the role col.
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_USER")); // I don't have any intended to create role for user because im very suck at handle security things so yeah.

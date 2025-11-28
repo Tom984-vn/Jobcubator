@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.jobcubator.jobcubator.job_post.dto.JobPostDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostFilterDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostRequestDTO;
+import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -18,7 +19,7 @@ public interface JobPostService {
      * @return JobPostDTO của tin vừa được tạo.
      * @throws ResourceNotFoundException nếu companyId không tồn tại.
      */
-    JobPostDTO createJobPost(UUID companyId, JobPostRequestDTO createDTO);
+    JobPostDTO createJobPost(User user, UUID companyId, JobPostRequestDTO createDTO);
 
     /**
      * Lấy thông tin chi tiết của một tin tuyển dụng bằng ID.
@@ -37,7 +38,7 @@ public interface JobPostService {
      * @return JobPostDTO sau khi đã cập nhật.
      * @throws ResourceNotFoundException nếu không tìm thấy.
      */
-    JobPostDTO updateJobPost(UUID id, JobPostRequestDTO updateDTO);
+    JobPostDTO updateJobPost(User user,UUID id, JobPostRequestDTO updateDTO);
 
     /**
      * Xóa một tin tuyển dụng bằng ID.
@@ -45,7 +46,7 @@ public interface JobPostService {
      * @param id UUID của tin tuyển dụng cần xóa.
      * @throws ResourceNotFoundException nếu không tìm thấy.
      */
-    void deleteJobPost(UUID id);
+    void deleteJobPost(User user, UUID id);
 
     /**
      * Lọc và tìm kiếm động các tin tuyển dụng (từ thanh search chính).

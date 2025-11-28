@@ -1,5 +1,6 @@
 package org.jobcubator.jobcubator.application.api;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jobcubator.jobcubator.application.dto.ApplicationRequest;
 import org.jobcubator.jobcubator.application.dto.ApplicationResponse;
@@ -22,7 +23,7 @@ public class ApplicationController {
 
     @PostMapping
     public ResponseEntity<Void> applyForJob(
-            @RequestBody ApplicationRequest request,
+            @Valid @RequestBody ApplicationRequest request,
             @AuthenticationPrincipal User user
             ){
         applicationService.applyForJob(user, request);
@@ -51,7 +52,7 @@ public class ApplicationController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApplicationResponse> updateStatus(
             @PathVariable Long id,
-            @RequestBody UpdateApplicationStatusRequest request,
+            @Valid @RequestBody UpdateApplicationStatusRequest request,
             @AuthenticationPrincipal User user
             ){
         return ResponseEntity.ok(applicationService.updateStatus(id, request, user));

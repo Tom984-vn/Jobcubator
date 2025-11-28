@@ -61,7 +61,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         JobPost jobPost = jobPostRepository.findById(jobPostId)
                 .orElseThrow(() -> new  ResourceNotFoundException("Job post not found"));
 
-        validateCompanyOwnership(jobPost, companyUser);
+        validatePermission(jobPost, companyUser);
 
         return applicationRepository.findByJobPostId(jobPostId).stream()
                 .map(this::mapToCompanyView)
@@ -69,12 +69,12 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public ApplicationResponse updateStatus(Long applicationId, UpdateApplicationStatusRequest request, User companyUser) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new  ResourceNotFoundException("Application not found"));
 
-        validateCompanyOwnership(application.getJobPost(), companyUser);
+        validatePermission(application.getJobPost(), companyUser);
 
         application.setStatus(request.status());
         Application saved = applicationRepository.save(application);
@@ -84,7 +84,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     // Helper Methods
 
-    private void validateCompanyOwnership(JobPost jobPost, User user) {
+    private void validatePermission(JobPost jobPost, User user) {
         boolean isAuthorized = companySecurityService.hasPermission(
                 jobPost.getCompany().getId(),
                 user,

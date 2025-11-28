@@ -33,7 +33,7 @@ public class CompanyServiceImpl implements CompanyService{
     @Override
     public void deleteCompany(User user, UUID id) {
         Company company = companyRepository.findById(id).orElseThrow(() -> new RuntimeException("Company not found"));
-        if(!companySecurityService.canManageCompany(company.getId(), user)) {
+        if(companySecurityService.canManageCompany(company.getId(), user)) {
             throw new AccessDeniedException("Access denied");
         }
         companyRepository.deleteById(id);
@@ -113,7 +113,7 @@ public class CompanyServiceImpl implements CompanyService{
     public CompanyDTO updateCompany(User currentUser, UUID id, CompanyRequestDTO updateDTO){
         Company company = companyRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Company not found"));
-        if(!companySecurityService.canManageCompany(company.getId(), currentUser)) {
+        if(companySecurityService.canManageCompany(company.getId(), currentUser)) {
             throw new AccessDeniedException("Access denied");
         }
         company.setName(updateDTO.name());

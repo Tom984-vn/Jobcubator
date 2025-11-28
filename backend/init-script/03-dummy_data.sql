@@ -1,4 +1,4 @@
-INSERT INTO company (id, name, description_path, website, size) VALUES
+INSERT INTO companies (id, name, description, website, size) VALUES
 ('01a1d94f-4e0e-7c5b-8d0f-4e0e7c5b8d0f', 'TechInnovate Solutions', 'desc/techinnovate.txt', 'https://techinnovate.com', '501-1000'),
 ('01a1d94f-4e0e-7c5b-8d0f-4e0e7c5b8d10', 'Global Marketing Pro', 'desc/globalmkt.txt', 'https://globalmktpro.net', '101-500'),
 ('01a1d94f-4e0e-7c5b-8d0f-4e0e7c5b8d11', 'Future Finance Group', 'desc/futurefin.txt', 'https://futurefinancegrp.org', '5000+'),
@@ -42,7 +42,7 @@ INSERT INTO course (title, level, provider, url) VALUES
 ('SEO and Content Strategy', 'Intermediate', 'Coursera', 'https://course-url-19.com/seo-content'),
 ('C++ Programming Basics', 'Beginner', 'edX', 'https://course-url-20.com/cpp-basics');
 
-INSERT INTO jobpost (company_id, title, category, description_path, location, number_of_vacancies, job_type, application_deadline, min_salary, max_salary) VALUES
+INSERT INTO job_posts (company_id, title, category, description, location, number_of_vacancies, job_type, application_deadline, min_salary, max_salary) VALUES
 /* Batch 1: Engineering/IT - High Salary/Remote */
 ('01a1d94f-4e0e-7c5b-8d0f-4e0e7c5b8d0f', 'Senior Full-Stack Developer (React/Node)', 'Software Development', 'desc/fsd-senior.txt', 'Remote', 5, 'Full-time', '2026-03-30 23:59:00', 18000000, 35000000),
 ('01a1d94f-4e0e-7c5b-8d0f-4e0e7c5b8d0f', 'Cloud Infrastructure Engineer (AWS/GCP)', 'Cloud Engineering', 'desc/cloud-infra.txt', 'Hanoi', 3, 'Full-time', '2026-04-15 23:59:00', 25000000, 40000000),

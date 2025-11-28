@@ -34,9 +34,7 @@ public record JobPostRequestDTO(
     @PositiveOrZero
     Integer maxSalary,
 
-    // vì thực thể ghi là ko đc null phần descriptionPath 
-    @NotBlank
-    @Size(max = 100)
-    String descriptionPath
+    // vì thực thể ghi là ko đc null phần descriptionPath
+    String description
 ) {
 }

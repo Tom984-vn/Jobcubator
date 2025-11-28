@@ -17,7 +17,7 @@ import org.jobcubator.jobcubator.tag.domain.Tag;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "jobpost")
+@Table(name = "job_posts")
 public class JobPost {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID) // Chạy thay cho hàm prepersist để tạo ra id tự động 
@@ -35,8 +35,8 @@ public class JobPost {
     @Column(name = "category", length = 50)
     private String category;
 
-    @Column(name = "description_path", length = 100, nullable = false)
-    private String descriptionPath;
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "location", length = 150)
     private String location;

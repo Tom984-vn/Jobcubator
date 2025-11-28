@@ -5,10 +5,12 @@ import org.jobcubator.jobcubator.job_post.dto.JobPostDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostFilterDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostRequestDTO;
 import org.jobcubator.jobcubator.job_post.service.JobPostService;
+import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -29,10 +31,11 @@ public class JobPostController {
     
     @PostMapping("/{companyId}")
     public ResponseEntity<JobPostDTO> createJobPost(
+            @AuthenticationPrincipal User user,
             @PathVariable UUID companyId,
             @Valid @RequestBody JobPostRequestDTO create) {
 
-        JobPostDTO createdJobPost = jobPostService.createJobPost(companyId, create);
+        JobPostDTO createdJobPost = jobPostService.createJobPost(user, companyId, create);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(createdJobPost);
     }
@@ -47,17 +50,20 @@ public class JobPostController {
    
     @PutMapping("/{id}")
     public ResponseEntity<JobPostDTO> updateJobPost(
+            @AuthenticationPrincipal User user,
             @PathVariable UUID id,
             @Valid @RequestBody JobPostRequestDTO update) {
         
-        JobPostDTO updatedJobPost = jobPostService.updateJobPost(id, update);
+        JobPostDTO updatedJobPost = jobPostService.updateJobPost(user, id, update);
         return ResponseEntity.ok(updatedJobPost);
     }
 
    
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteJobPost(@PathVariable UUID id) {
-        jobPostService.deleteJobPost(id);
+    public ResponseEntity<Void> deleteJobPost(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID id) {
+        jobPostService.deleteJobPost(user, id);
         return ResponseEntity.noContent().build();
     }
     

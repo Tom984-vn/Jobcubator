@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+// TODO: Add tag system to this.
+
 @Entity
 @Getter
 @Setter
