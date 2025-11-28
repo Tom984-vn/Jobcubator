@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -30,6 +32,9 @@ public class Company {
 
     @Column(name = "size", length = 50, updatable = true, nullable = false)
     private String size;
+
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CompanyMember> members = new ArrayList<>();
 
     // @PrePersist
     // public void generateId(){

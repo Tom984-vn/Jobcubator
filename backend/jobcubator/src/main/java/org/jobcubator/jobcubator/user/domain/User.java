@@ -43,6 +43,10 @@ public class User implements UserDetails {
     @Column(name = "created_at", updatable = false, insertable = false)
     private Instant createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role = Role.CANDIDATE;
+
     // @PrePersist
     // private void ensureId() {
     //     if (this.id == null) {

@@ -88,10 +88,21 @@ CREATE TABLE jobpost (
     CONSTRAINT fk_company FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
 );
 
+
 CREATE INDEX idx_jobpost_company_id ON jobpost(company_id);
 CREATE INDEX idx_jobpost_application_deadline ON jobpost(application_deadline);
 CREATE INDEX idx_jobpost_job_type ON jobpost(job_type);
 
+
+CREATE TABLE applications (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id),
+    job_post_id BIGINT NOT NULL REFERENCES job_posts(id),
+    status VARCHAR(50) NOT NULL,
+    cover_letter TEXT,
+    applied_at TIMESTAMP NOT NULL,
+    CONSTRAINT uk_application_user_job UNIQUE (user_id, job_post_id)
+);
 
 CREATE TABLE tag (
     id SERIAL PRIMARY KEY,

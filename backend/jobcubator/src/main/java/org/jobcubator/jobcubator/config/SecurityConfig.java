@@ -20,7 +20,6 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
-import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -60,22 +59,30 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-        .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
+                    // Public Company endpoints (GET only)
+                    .requestMatchers("GET", "/api/company/get-by-id/**").permitAll()
+                    .requestMatchers("GET", "/api/company/get-by-most-vacancy").permitAll()
+                    .requestMatchers("POST", "/api/company/filter").permitAll()
 
-        .requestMatchers(HttpMethod.GET, "/api/company/get-by-id/**").permitAll()
-        .requestMatchers(HttpMethod.GET, "/api/company/get-by-most-vacancy").permitAll()
-        .requestMatchers(HttpMethod.POST, "/api/company/filter").permitAll()
+                    // Public JobPost endpoints (GET only)
+                    .requestMatchers("GET", "/api/job_posts/**").permitAll()
+                    .requestMatchers("POST", "/api/job_posts/filter").permitAll()
 
-        .requestMatchers(HttpMethod.GET, "/api/job_posts/**").permitAll()
-        .requestMatchers(HttpMethod.POST, "/api/job_posts/filter").permitAll()
+                    // Allow websocket
+//                    .requestMatchers("/ws/**").permitAll()
 
-        .requestMatchers(HttpMethod.POST, "/api/courses/filter").permitAll()
-        .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
+                    // Candidate Actions
+                    .requestMatchers("POST", "/api/applications").hasAnyRole("CANDIDATE", "USER")
+                    .requestMatchers("GET", "/api/applications/my-applications").authenticated()
 
-        // Everything else requires authentication
-        .anyRequest().authenticated()
-)
+                    // Company Actions
+                    .requestMatchers("GET", "/api/applications/job/**").hasRole("COMPANY")
+                    .requestMatchers("PATCH", "/api/applications/*/status").hasRole("COMPANY")
 
+                    .requestMatchers("POST", "/api/courses/filter").permitAll()
+                    .requestMatchers("GET", "/api/courses/**").permitAll()
+                    .anyRequest().authenticated())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
