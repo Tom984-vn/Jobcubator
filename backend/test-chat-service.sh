@@ -26,11 +26,23 @@ RESP_M=$(curl -s -X POST "$BASE_URL/api/auth/register" \
   -d "{
     \"username\": \"$MANAGER_USER\",
     \"email\": \"$MANAGER_EMAIL\",
-    \"password\": \"password123\",
+    \"password\": \"P@ssw0rd123\",
     \"fullName\": \"Alice Manager\"
   }")
 
-TOKEN_M=$(echo "$RESP_M" | $JQ_CMD '.accessToken // .token')
+TOKEN_M=$(echo "$RESP_M" | $JQ_CMD '.accessToken // .token // .access_token')
+
+if [ "$TOKEN_M" == "null" ] || [ -z "$TOKEN_M" ]; then
+  echo "Registration failed or user exists. Attempting login..."
+  RESP_M=$(curl -s -X POST "$BASE_URL/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"username\": \"$MANAGER_USER\",
+      \"password\": \"P@ssw0rd123\"
+    }")
+  TOKEN_M=$(echo "$RESP_M" | $JQ_CMD '.accessToken // .token // .access_token')
+fi
+
 echo "Manager Token: ${TOKEN_M:0:10}..."
 
 # ==========================================
@@ -42,11 +54,23 @@ RESP_C=$(curl -s -X POST "$BASE_URL/api/auth/register" \
   -d "{
     \"username\": \"$CANDIDATE_USER\",
     \"email\": \"$CANDIDATE_EMAIL\",
-    \"password\": \"password123\",
+    \"password\": \"P@ssw0rd123\",
     \"fullName\": \"Bob Candidate\"
   }")
 
-TOKEN_C=$(echo "$RESP_C" | $JQ_CMD '.accessToken // .token')
+TOKEN_C=$(echo "$RESP_C" | $JQ_CMD '.accessToken // .token // .access_token')
+
+if [ "$TOKEN_C" == "null" ] || [ -z "$TOKEN_C" ]; then
+  echo "Registration failed or user exists. Attempting login..."
+  RESP_C=$(curl -s -X POST "$BASE_URL/api/auth/login" \
+    -H "Content-Type: application/json" \
+    -d "{
+      \"username\": \"$CANDIDATE_USER\",
+      \"password\": \"P@ssw0rd123\"
+    }")
+  TOKEN_C=$(echo "$RESP_C" | $JQ_CMD '.accessToken // .token // .access_token')
+fi
+
 echo "Candidate Token: ${TOKEN_C:0:10}..."
 
 # ==========================================

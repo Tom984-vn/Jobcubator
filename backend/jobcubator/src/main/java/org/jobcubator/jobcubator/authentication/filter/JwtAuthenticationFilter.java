@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.jobcubator.jobcubator.authentication.service.JwtTokenService;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.jobcubator.jobcubator.user.domain.UserRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,8 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException{
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException{
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
@@ -46,6 +47,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
 
         try{
+            if(jwt.isBlank()) {
+                throw new ServletException("JWT token is empty");
+            }
+
             username = jwtTokenService.getUsernameFromToken(jwt);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -71,14 +76,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             logger.error("Error while authenticating user", e);
 
-            //HANDLE THE EXCEPTION MORE RESPONSIBLE, THIS IS FOR TESTING.
         }
 
         filterChain.doFilter(request, response);
     }
 }
-//@Override // you don't need this, already defined in config.
-//protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-//    String path = request.getServletPath();
-//    return path.startsWith("/api/auth/");
-//}

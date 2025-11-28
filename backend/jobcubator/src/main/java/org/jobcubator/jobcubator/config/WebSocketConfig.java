@@ -1,6 +1,5 @@
 package org.jobcubator.jobcubator.config;
 
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jobcubator.jobcubator.authentication.service.JwtTokenServiceImpl;
@@ -8,6 +7,7 @@ import org.jobcubator.jobcubator.user.domain.User;
 import org.jobcubator.jobcubator.user.service.UserServiceImpl;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
+import org.springframework.lang.NonNull;
 import org.springframework.core.annotation.Order;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
