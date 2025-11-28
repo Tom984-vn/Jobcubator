@@ -10,6 +10,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ChatService {
-    List<ChatMessageResponse> getChatHistory(Long ApplicationId, Pageable pageable);
+    List<ChatMessageResponse> getChatHistory(User viewer, Long ApplicationId, Pageable pageable);
     ChatMessageResponse saveMessage(Long applicationId, User sender, String content);
 }

@@ -27,8 +27,11 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ChatMessageResponse> getChatHistory(Long applicationID, Pageable pageable) {
-        return chatMessageRepository.findByApplicationIdOrderBySendAtAsc(applicationID, pageable).stream()
+    public List<ChatMessageResponse> getChatHistory(User viewer, Long applicationId, Pageable pageable) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+        validateViewer(viewer, application);
+        return chatMessageRepository.findByApplicationIdOrderBySendAtAsc(applicationId, pageable).stream()
                 .map(this::mapToDTO)
                 .toList();
     }
@@ -75,5 +78,22 @@ public class ChatServiceImpl implements ChatService {
         }
 
         throw new AccessDeniedException("You are not authorized to participate in this chat.");
+    }
+
+    private void validateViewer(User sender, Application application) throws AccessDeniedException {
+        // 1. Check if the sender is the candidate who applied
+        if (application.getCandidate().getId().equals(sender.getId())) {
+            return; // Authorized as Candidate
+        }
+
+        // 2. Check if the sender is a member of the company that owns the job post
+        Company jobCompany = application.getJobPost().getCompany();
+        boolean isCompanyMember = companyMemberRepository.existsByCompanyIdAndUserId(jobCompany.getId(), sender.getId());
+
+        if (isCompanyMember) {
+            return; // Authorized as Company Member
+        }
+
+        throw new AccessDeniedException("You are not authorized to view this chat.");
     }
 }
