@@ -70,7 +70,7 @@ public class SecurityConfig {
                     .requestMatchers("POST", "/api/job_posts/filter").permitAll()
 
                     // Allow websocket
-//                    .requestMatchers("/ws/**").permitAll()
+                    //.requestMatchers("/ws/**").permitAll()
 
                     // Candidate Actions
                     .requestMatchers("POST", "/api/applications").hasAnyRole("CANDIDATE", "USER")
