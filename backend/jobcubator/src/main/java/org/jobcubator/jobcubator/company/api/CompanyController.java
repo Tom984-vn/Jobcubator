@@ -60,7 +60,7 @@ public class CompanyController {
         return ResponseEntity.ok(companyService.getMyCompanies(user));
     }
 
-    @GetMapping("/filter")
+    @PostMapping("/filter")
     public ResponseEntity<Page<CompanyDTO>> filterCompanies(@RequestBody(required = false) CompanyFilterDTO filterDTO, Pageable pageable){
         Page<CompanyDTO> filterCompanies= companyService.filterCompanies(filterDTO, pageable);
         return ResponseEntity.ok(filterCompanies);

@@ -13,7 +13,7 @@ import jakarta.validation.Valid;
 
 
 @RestController
-@RequestMapping("/api/courses") 
+@RequestMapping("/api/courses/")
 public class CourseController {
 
     private final CourseService courseService;

@@ -29,10 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
 
-// TODO: fix duplicate code block by add function mapTo...DTO.
-// TODO: change permission verification so ONLY user with COMPANY role can create job posts.
-// TODO: add tag system to this.
-
 @Service
 @RequiredArgsConstructor
 public class JobPostServiceImpl implements JobPostService {
