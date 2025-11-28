@@ -17,8 +17,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE job_posts TO spring_boot_backend;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE tag TO spring_boot_backend;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE course_tags TO spring_boot_backend;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE post_tags TO spring_boot_backend;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chat_message TO spring_boot_backend;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE conversation TO spring_boot_backend;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE profile_entry TO spring_boot_backend;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE applications TO spring_boot_backend;
-
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE chat_messages TO spring_boot_backend;

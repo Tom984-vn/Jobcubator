@@ -135,30 +135,20 @@ CREATE TABLE IF NOT EXISTS course_tags (
     FOREIGN KEY (tag_id) REFERENCES tag(id)
 );
 
-CREATE TABLE IF NOT EXISTS conversation (
+CREATE TABLE chat_messages (
     id BIGSERIAL PRIMARY KEY,
-    user_id UUID NOT NULL,
-    title VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_conversation_user 
-        FOREIGN KEY (user_id) 
-        REFERENCES users(id) 
+    application_id UUID NOT NULL,
+    sender_id UUID NOT NULL,
+    content TEXT NOT NULL,
+    sent_at TIMESTAMP NOT NULL,
+    
+    CONSTRAINT fk_chat_application 
+        FOREIGN KEY (application_id) 
+        REFERENCES applications (id) 
+        ON DELETE CASCADE,
+        
+    CONSTRAINT fk_chat_sender 
+        FOREIGN KEY (sender_id) 
+        REFERENCES users (id) 
         ON DELETE CASCADE
 );
-
-CREATE INDEX idx_conversation_user_id ON conversation(user_id);
-
-CREATE TABLE IF NOT EXISTS chat_message (
-    id SERIAL PRIMARY KEY,
-    conversation_id BIGINT,
-    content TEXT,
-    role VARCHAR(20) CHECK (role IN ('USER', 'ASSISTANT', 'SYSTEM')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_chat_message_conversation 
-        FOREIGN KEY (conversation_id) 
-        REFERENCES conversation(id) 
-        ON DELETE CASCADE
-);
-
-CREATE INDEX idx_chat_message_conversation_id ON chat_message(conversation_id);
-CREATE INDEX idx_chat_message_created_at ON chat_message(created_at);
