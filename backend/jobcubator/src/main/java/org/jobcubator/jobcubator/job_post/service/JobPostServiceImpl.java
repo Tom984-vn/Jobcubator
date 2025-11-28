@@ -2,8 +2,12 @@ package org.jobcubator.jobcubator.job_post.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
 import org.jobcubator.jobcubator.company.domain.Company;
 import org.jobcubator.jobcubator.company.domain.CompanyRepository;
@@ -13,6 +17,8 @@ import org.jobcubator.jobcubator.job_post.domain.JobPostRepository;
 import org.jobcubator.jobcubator.job_post.dto.JobPostDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostFilterDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostRequestDTO;
+import org.jobcubator.jobcubator.tag.domain.Tag;
+import org.jobcubator.jobcubator.tag.service.TagServiceImpl;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +40,7 @@ public class JobPostServiceImpl implements JobPostService {
     private final JobPostRepository jobPostRepository;
     private final CompanyRepository companyRepository;
     private final CompanySecurityService companySecurityService;
+    private final TagServiceImpl tagService;
 
     @Override
     @Transactional
@@ -56,6 +63,11 @@ public class JobPostServiceImpl implements JobPostService {
         newJobPost.setMaxSalary(createDTO.maxSalary());
         newJobPost.setDescription(createDTO.description());
         newJobPost.setCompany(company);
+
+        if (createDTO.tags() != null && !createDTO.tags().isEmpty()) {
+            Set<Tag> tags = tagService.findOrCreateTags(createDTO.tags());
+            newJobPost.setTags(tags);
+        }
 
         newJobPost = jobPostRepository.save(newJobPost);
         
@@ -160,6 +172,22 @@ public class JobPostServiceImpl implements JobPostService {
                 if (filter.deadlineTo() != null) {
                     predicates.add(cb.lessThanOrEqualTo(root.get("applicationDeadline"), filter.deadlineTo()));
                 }
+
+                // 10. LỌC THEO TAGS (Mới thêm)
+                if (filter.tags() != null && !filter.tags().isEmpty()) {
+                    // a. Join bảng JobPost với bảng Tags
+                    // "tags" là tên biến Set<Tag> tags trong entity JobPost
+                    Join<JobPost, Tag> tagsJoin = root.join("tags", JoinType.INNER);
+
+                    // b. Tạo điều kiện: Tag name nằm trong danh sách user gửi lên
+                    // (Dùng IN để tìm job chứa ít nhất 1 trong các tag đó)
+                    predicates.add(tagsJoin.get("name").in(filter.tags()));
+
+                    // c. QUAN TRỌNG: Khi join 1-nhiều, kết quả có thể bị trùng lặp JobPost
+                    // Ví dụ: 1 Job có 2 tag khớp -> trả về 2 dòng. Cần distinct để gộp lại.
+                    assert query != null;
+                    query.distinct(true);
+                }
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
@@ -209,40 +237,27 @@ public class JobPostServiceImpl implements JobPostService {
     }
 
     private JobPostDTO mapToJobPostDTO(JobPost jobPost, Company company) {
-        return new JobPostDTO(
-                jobPost.getId(),
-                company.getName(),
-                jobPost.getTitle(),
-                jobPost.getCategory(),
-                jobPost.getLocation(),
-                jobPost.getNumberOfVacancies(),
-                jobPost.getJobType(),
-                jobPost.getApplicationDeadline(),
-                jobPost.getMinSalary(),
-                jobPost.getMaxSalary(),
-                company.getId(),
-                jobPost.getDescription()
-        );
+        return JobPostDTO.builder()
+                .id(jobPost.getId())
+                .companyName(company.getName())
+                .title(jobPost.getTitle())
+                .category(jobPost.getCategory())
+                .location(jobPost.getLocation())
+                .numberOfVacancies(jobPost.getNumberOfVacancies())
+                .jobType(jobPost.getJobType())
+                .applicationDeadline(jobPost.getApplicationDeadline())
+                .minSalary(jobPost.getMinSalary())
+                .maxSalary(jobPost.getMaxSalary())
+                .companyId(company.getId())
+                .description(jobPost.getDescription())
+                .tags(jobPost.getTags().stream().map(Tag::getName).collect(Collectors.toSet()))
+                .build();
     }
 
     private Page<JobPostDTO> mapToJobPostDTO(Page<JobPost> jobPostPage) {
-        return jobPostPage.map(post -> {
-            Company company = post.getCompany();
-
-            return new JobPostDTO(
-                    post.getId(),
-                    company.getName(),
-                    post.getTitle(),
-                    post.getCategory(),
-                    post.getLocation(),
-                    post.getNumberOfVacancies(),
-                    post.getJobType(),
-                    post.getApplicationDeadline(),
-                    post.getMinSalary(),
-                    post.getMaxSalary(),
-                    company.getId(),
-                    post.getDescription()
-            );
+        return jobPostPage.map(jobPost -> {
+            Company company = jobPost.getCompany();
+            return mapToJobPostDTO(jobPost, company);
         });
     }
 }

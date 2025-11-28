@@ -1,7 +1,6 @@
 package org.jobcubator.jobcubator.course.dto;
 
 import java.time.Instant;
-import java.util.Optional;
 
 public record CourseFilterDTO(
     

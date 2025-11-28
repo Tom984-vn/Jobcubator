@@ -59,8 +59,8 @@ public class JobPost {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    @ManyToMany
-    @JoinTable(
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+        @JoinTable(
             name = "post_tags",           // Junction table name
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")

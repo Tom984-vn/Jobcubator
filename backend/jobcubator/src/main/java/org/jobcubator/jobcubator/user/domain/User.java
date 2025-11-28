@@ -45,14 +45,8 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
+    @Builder.Default
     private Role role = Role.CANDIDATE;
-
-// @PrePersist
-// private void ensureId() {
-//     if (this.id == null) {
-//         this.id = UUID.randomUUID();
-//     }
-// }
 
     @PrePersist
     private void ensureCreatedAt()
@@ -85,7 +79,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER")); // I don't have any intended to create role for user because im very suck at handle security things so yeah.
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.name())); 
     }
 
     @Override

@@ -4,9 +4,12 @@ import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 
 import java.time.Instant;
+import java.util.Set;
 
+@Builder
 public record JobPostRequestDTO(
     @NotBlank
     @Size(max = 100)
@@ -35,6 +38,7 @@ public record JobPostRequestDTO(
     Integer maxSalary,
 
     // vì thực thể ghi là ko đc null phần descriptionPath
-    String description
+    String description,
+    Set<String> tags
 ) {
 }
