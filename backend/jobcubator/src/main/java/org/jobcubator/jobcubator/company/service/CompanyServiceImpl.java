@@ -1,4 +1,3 @@
-
 package org.jobcubator.jobcubator.company.service;
 
 import org.jobcubator.jobcubator.company.domain.Company;
@@ -45,19 +44,19 @@ public class CompanyServiceImpl implements CompanyService{
     public List<CompanyDTO> getMyCompanies(User currentUser) {
         // Use the custom query we wrote in the Repository
         List<Company> companies = companyRepository.findAllByUserId(currentUser.getId());
-
         return companies.stream()
-                .map(this::mapToDTO)
+                .map(company -> mapToDTO(company, currentUser))
                 .toList();
     }
 
-    private CompanyDTO mapToDTO(Company company) {
-        return new CompanyDTO(
-                company.getId(),
-                company.getName(),
-                company.getWebsite(),
-                company.getSize()
-        );
+    private CompanyDTO mapToDTO(Company company, User currentUser) {
+        return CompanyDTO.builder()
+                .id(company.getId())
+                .name(company.getName())
+                .website(company.getWebsite())
+                .size(company.getSize())
+                .role(company.getRoleForUser(currentUser.getId()))
+                .build();
     }
 
     @Override
@@ -70,12 +69,21 @@ public class CompanyServiceImpl implements CompanyService{
         company.setDescription(createDTO.description());
         company.addMember(currentUser, CompanyRole.OWNER);
         company = companyRepository.save(company);
+<<<<<<< HEAD
         return new CompanyDTO(
             company.getId(),
             company.getName(),
             company.getWebsite(),
             Integer.valueOf(company.getSize())
         );
+=======
+        return CompanyDTO.builder()
+                .id(company.getId())
+                .name(company.getName())
+                .website(company.getWebsite())
+                .size(company.getSize())
+                .build();
+>>>>>>> b5acf33 (Add GET /api/company/my-company endpoint)
     }
 
     @Override
@@ -83,12 +91,21 @@ public class CompanyServiceImpl implements CompanyService{
     public CompanyDTO getCompanyById(UUID id) {
         Company company = companyRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Company not found"));
+<<<<<<< HEAD
         return new CompanyDTO(
             company.getId(),
             company.getName(),
             company.getWebsite(),
             Integer.valueOf(company.getSize())
         );
+=======
+        return CompanyDTO.builder()
+                .id(company.getId())
+                .name(company.getName())
+                .website(company.getWebsite())
+                .size(company.getSize())
+                .build();
+>>>>>>> b5acf33 (Add GET /api/company/my-company endpoint)
     }
 
     @Override
@@ -104,15 +121,22 @@ public class CompanyServiceImpl implements CompanyService{
         company.setSize(String.valueOf(updateDTO.size()));
         company.setDescription(updateDTO.description());
         company = companyRepository.save(company);
+<<<<<<< HEAD
         return new CompanyDTO(
             company.getId(),
             company.getName(),
             company.getWebsite(),
             Integer.valueOf(company.getSize())
         );    
+=======
+        return CompanyDTO.builder()
+                .id(company.getId())
+                .name(company.getName())
+                .website(company.getWebsite())
+                .size(company.getSize())
+                .build();
+>>>>>>> b5acf33 (Add GET /api/company/my-company endpoint)
     }
-
-
 
     @Override
     @Transactional(readOnly = true)
@@ -134,12 +158,21 @@ public class CompanyServiceImpl implements CompanyService{
         };
     
         Page<Company> page = companyRepository.findAll(spec, pageable);
+<<<<<<< HEAD
         return page.map(c -> new CompanyDTO(
             c.getId(),
             c.getName(),
             c.getWebsite(),
             Integer.valueOf(c.getSize())
         ));
+=======
+        return page.map(c -> CompanyDTO.builder()
+                .id(c.getId())
+                .name(c.getName())
+                .website(c.getWebsite())
+                .size(c.getSize())
+                .build());
+>>>>>>> b5acf33 (Add GET /api/company/my-company endpoint)
     }
 
     @Override

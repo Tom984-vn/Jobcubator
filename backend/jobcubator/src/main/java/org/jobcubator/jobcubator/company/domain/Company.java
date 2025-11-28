@@ -55,6 +55,14 @@ public class Company {
         }
     }
 
+    public CompanyRole getRoleForUser(UUID userId) {
+        return this.members.stream()
+                .filter(member -> member.getUser().getId().equals(userId))
+                .findFirst()
+                .map(CompanyMember::getRole)
+                .orElse(null);
+    }
+
     public void addMember(User user, CompanyRole role) {
         CompanyMember member = CompanyMember.builder()
                 .company(this)

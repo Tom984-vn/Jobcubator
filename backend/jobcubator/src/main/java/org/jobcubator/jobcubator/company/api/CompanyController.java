@@ -2,6 +2,7 @@ package org.jobcubator.jobcubator.company.api;
 
 import jakarta.validation.Valid;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.jobcubator.jobcubator.company.dto.CompanyDTO;
@@ -47,10 +48,16 @@ public class CompanyController {
         companyService.deleteCompany(user, id);
         return ResponseEntity.noContent().build();
     }
+
     @GetMapping("/get-by-id/{id}")
     public ResponseEntity<CompanyDTO> getCompanyById(@PathVariable("id") UUID id){
         CompanyDTO company = companyService.getCompanyById(id);
         return ResponseEntity.ok(company);
+    }
+
+    @GetMapping("/my-company")
+    public ResponseEntity<List<CompanyDTO>> getAllCompanies(@AuthenticationPrincipal User user){
+        return ResponseEntity.ok(companyService.getMyCompanies(user));
     }
 
     @GetMapping("/filter")
