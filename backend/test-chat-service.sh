@@ -1,124 +1,166 @@
 #!/usr/bin/env bash
 
-# Configuration
+# ==========================================
+# CONFIGURATION
+# ==========================================
 BASE_URL="http://localhost:8080"
-WS_URL="ws://localhost:8080/ws/websocket" # Standard Spring SockJS fallback path
-USERNAME="aitester123"
-PASSWORD="P@ssw0rd123"
-EMAIL="ai_tester@example.com"
+JQ_CMD="jq -r" # Requires 'jq' installed
 
-# Check dependencies
-if ! command -v websocat &> /dev/null; then
-    echo "Error: websocat is not installed. Please install it (e.g., cargo install websocat or download binary)."
-    exit 1
-fi
+# Random suffix to ensure uniqueness
+RAND=$RANDOM
+MANAGER_USER="manager_$RAND"
+MANAGER_EMAIL="manager_$RAND@jobcubator.com"
+CANDIDATE_USER="candidate_$RAND"
+CANDIDATE_EMAIL="candidate_$RAND@jobcubator.com"
 
-echo "--- Step 1: Authentication ---"
+echo "=================================================="
+echo "JOBCUBATOR END-TO-END TEST FLOW"
+echo "=================================================="
 
-# 1. Try to Login
-echo "Attempting Login..."
-LOGIN_PAYLOAD=$(jq -n \
-                  --arg u "$USERNAME" \
-                  --arg p "$PASSWORD" \
-                  '{username: $u, password: $p}')
-
-LOGIN_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/login" \
+# ==========================================
+# 1. REGISTER MANAGER (User A)
+# ==========================================
+echo -e "\n[1] Registering Manager ($MANAGER_USER)..."
+RESP_M=$(curl -s -X POST "$BASE_URL/api/auth/register" \
   -H "Content-Type: application/json" \
-  -d "$LOGIN_PAYLOAD")
+  -d "{
+    \"username\": \"$MANAGER_USER\",
+    \"email\": \"$MANAGER_EMAIL\",
+    \"password\": \"password123\",
+    \"fullName\": \"Alice Manager\"
+  }")
 
-HTTP_BODY=$(echo "$LOGIN_RESP" | sed '$d')
-HTTP_STATUS=$(echo "$LOGIN_RESP" | tail -n1)
-TOKEN=""
+TOKEN_M=$(echo "$RESP_M" | $JQ_CMD '.accessToken // .token')
+echo "Manager Token: ${TOKEN_M:0:10}..."
 
-if [ "$HTTP_STATUS" -eq 200 ]; then
-    echo "Login successful."
-    TOKEN=$(echo "$HTTP_BODY" | jq -r '.accessToken // .token // .access_token // empty')
-else
-    echo "Login failed (Status: $HTTP_STATUS). Attempting Registration..."
-    
-    # 2. Fallback to Register
-    REGISTER_PAYLOAD=$(jq -n \
-                      --arg u "$USERNAME" \
-                      --arg p "$PASSWORD" \
-                      --arg e "$EMAIL" \
-                      '{username: $u, password: $p, email: $e, fullName: "AITester"}')
+# ==========================================
+# 2. REGISTER CANDIDATE (User B)
+# ==========================================
+echo -e "\n[2] Registering Candidate ($CANDIDATE_USER)..."
+RESP_C=$(curl -s -X POST "$BASE_URL/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"username\": \"$CANDIDATE_USER\",
+    \"email\": \"$CANDIDATE_EMAIL\",
+    \"password\": \"password123\",
+    \"fullName\": \"Bob Candidate\"
+  }")
 
-    REG_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/api/auth/register" \
-      -H "Content-Type: application/json" \
-      -d "$REGISTER_PAYLOAD")
-    
-    REG_BODY=$(echo "$REG_RESP" | sed '$d')
-    REG_STATUS=$(echo "$REG_RESP" | tail -n1)
+TOKEN_C=$(echo "$RESP_C" | $JQ_CMD '.accessToken // .token')
+echo "Candidate Token: ${TOKEN_C:0:10}..."
 
-    if [ "$REG_STATUS" -ge 300 ]; then
-        echo "Registration failed. Response: $REG_BODY"
-        exit 1
-    fi
-    
-    echo "Registration successful."
-    TOKEN=$(echo "$REG_BODY" | jq -r '.accessToken // .token // .access_token // empty')
-fi
+# ==========================================
+# 3. MANAGER CREATES COMPANY
+# ==========================================
+echo -e "\n[3] Manager creating Company..."
+RESP_COMP=$(curl -s -X POST "$BASE_URL/api/companies" \
+  -H "Authorization: Bearer $TOKEN_M" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"name\": \"Tech Corp $RAND\",
+    \"description\": \"The best place to work\",
+    \"website\": \"https://techcorp$RAND.com\",
+    \"location\": \"Silicon Valley\"
+  }")
 
-if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
-    echo "Error: Could not extract token."
-    exit 1
-fi
+COMPANY_ID=$(echo "$RESP_COMP" | $JQ_CMD '.id')
+echo "Company Created: $COMPANY_ID"
 
-echo "Token obtained."
+# ==========================================
+# 4. MANAGER CREATES JOB POST
+# ==========================================
+echo -e "\n[4] Manager creating Job Post..."
+RESP_JOB=$(curl -s -X POST "$BASE_URL/api/job-posts" \
+  -H "Authorization: Bearer $TOKEN_M" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"companyId\": \"$COMPANY_ID\",
+    \"title\": \"Senior Java Developer\",
+    \"description\": \"We need a rockstar dev.\",
+    \"requirements\": \"Java, Spring Boot, Docker\",
+    \"location\": \"Remote\",
+    \"salaryRange\": \"100k-150k\",
+    \"type\": \"FULL_TIME\"
+  }")
 
-echo "--- Step 2: WebSocket AI Chat ---"
+JOB_ID=$(echo "$RESP_JOB" | $JQ_CMD '.id')
+echo "Job Post Created: $JOB_ID"
 
-# Prepare STOMP Frames
-# Note: STOMP requires a NULL byte (\0) at the end of every frame.
+# ==========================================
+# 5. CANDIDATE UPDATES PROFILE
+# ==========================================
+echo -e "\n[5] Candidate updating Profile..."
+curl -s -o /dev/null -X PUT "$BASE_URL/api/user/me" \
+  -H "Authorization: Bearer $TOKEN_C" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"fullName\": \"Bob Candidate\",
+    \"yearsOfExperience\": 5,
+    \"position\": \"Java Developer\",
+    \"history\": [
+      {
+        \"type\": \"EXPERIENCE\",
+        \"organization\": \"Old Corp\",
+        \"title\": \"Junior Dev\",
+        \"startDate\": \"2020-01-01\",
+        \"endDate\": \"2022-01-01\"
+      }
+    ]
+  }"
+echo "Profile Updated."
 
-# 1. CONNECT Frame
-# We must send the Authorization header here as per your WebSocketConfig.java
-generate_connect_frame() {
-    printf "CONNECT\n"
-    printf "accept-version:1.1,1.0\n"
-    printf "heart-beat:10000,10000\n"
-    printf "Authorization:Bearer %s\n" "$TOKEN"
-    printf "\n"
-    printf "\0"
-}
+# ==========================================
+# 6. CANDIDATE APPLIES FOR JOB
+# ==========================================
+echo -e "\n[6] Candidate applying for Job ($JOB_ID)..."
+RESP_APP=$(curl -s -X POST "$BASE_URL/api/applications" \
+  -H "Authorization: Bearer $TOKEN_C" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"jobPostId\": \"$JOB_ID\",
+    \"coverLetter\": \"I am the perfect fit for this role.\"
+  }")
 
-# 2. SUBSCRIBE Frame
-# Subscribing to /user/queue/stream to receive the AI chunks
-generate_subscribe_frame() {
-    printf "SUBSCRIBE\n"
-    printf "id:sub-0\n"
-    printf "destination:/user/queue/stream\n"
-    printf "\n"
-    printf "\0"
-}
+APP_ID=$(echo "$RESP_APP" | $JQ_CMD '.id')
+echo "Application Submitted. ID: $APP_ID"
 
-# 3. SEND Frame
-# Sending to /api/chat/send (Prefix /api + @MessageMapping /chat/send)
-generate_send_frame() {
-    local content="Hello AI, please tell me a very short joke."
-    # JSON Payload for ChatRequest
-    local payload="{\"content\":\"$content\",\"conversationId\":null}"
-    
-    printf "SEND\n"
-    printf "destination:/api/chat/send\n"
-    printf "content-type:application/json\n"
-    printf "\n"
-    printf "%s" "$payload"
-    printf "\0"
-}
+# ==========================================
+# 7. CHAT SIMULATION (VIA WEBSOCAT)
+# ==========================================
+echo -e "\n[7] Candidate sending message via WebSocket..."
 
-# Execute websocat
-# We use a subshell to pipe commands with delays to ensure the server processes the connection before we send data.
-echo "Connecting to $WS_URL..."
+# We use printf to generate the STOMP frames because we need the NULL byte (\0)
+# Frame 1: CONNECT with JWT Authorization header
+# Frame 2: SEND to the specific application destination
+# Note: The URL ends in /websocket because you are using SockJS
 
-(
-    generate_connect_frame
-    sleep 1
-    generate_subscribe_frame
-    sleep 1
-    generate_send_frame
-    # Keep the pipe open long enough to receive the response
-    sleep 200
-) | websocat -v "$WS_URL"
+# Construct the STOMP payload
+# 1. CONNECT frame
+# 2. SEND frame
+# 3. Pipe into websocat
+# 4. Use 'timeout' because websocat stays open by default
 
-echo -e "\n--- Test Finished ---"
+printf "CONNECT\naccept-version:1.1,1.0\nheart-beat:0,0\nAuthorization:Bearer %s\n\n\0SEND\ndestination:/app/chat/%s\n\nHello Manager, I am using raw WebSockets!\0" \
+  "$TOKEN_C" "$APP_ID" \
+  | timeout 1s websocat -n --binary "ws://localhost:8080/ws/websocket"
+
+echo "Candidate message sent."
+
+echo -e "\n[8] Manager replying via WebSocket..."
+
+printf "CONNECT\naccept-version:1.1,1.0\nheart-beat:0,0\nAuthorization:Bearer %s\n\n\0SEND\ndestination:/app/chat/%s\n\nHi Candidate, I received your STOMP message!\0" \
+  "$TOKEN_M" "$APP_ID" \
+  | timeout 1s websocat -n --binary "ws://localhost:8080/ws/websocket"
+
+echo "Manager reply sent."
+
+# ==========================================
+# 9. VERIFY CHAT HISTORY (VIA REST)
+# ==========================================
+echo -e "\n[9] Fetching Chat History to verify persistence..."
+HISTORY=$(curl -s -X GET "$BASE_URL/api/applications/$APP_ID/chat" \
+  -H "Authorization: Bearer $TOKEN_C")
+
+echo "$HISTORY" | jq .
+
+echo -e "\nDone."

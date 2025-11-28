@@ -31,7 +31,7 @@ public class ChatServiceImpl implements ChatService {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
         validateViewer(viewer, application);
-        return chatMessageRepository.findByApplicationIdOrderBySendAtAsc(applicationId, pageable).stream()
+        return chatMessageRepository.findByApplicationIdOrderBySentAtAsc(applicationId, pageable).stream()
                 .map(this::mapToDTO)
                 .toList();
     }

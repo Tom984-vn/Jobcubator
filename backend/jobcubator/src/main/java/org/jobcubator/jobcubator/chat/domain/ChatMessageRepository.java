@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
-    Page<ChatMessage> findByApplicationIdOrderBySendAtAsc(Long applicationId, Pageable pageable);
+    Page<ChatMessage> findByApplicationIdOrderBySentAtAsc(Long applicationId, Pageable pageable);
 }
