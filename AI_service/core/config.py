@@ -27,7 +27,10 @@ class Settings:
     H_LLM_MODEL = "GLM-4.5"
 
     DB_PATH = "./chroma_data" # Tên thư mục chứa DB
+    Respond_vector_PATH = DB_PATH+"/respond_vector"
     COLLECTION_NAME = "job_listings"
     USER_COLLECTION_NAME = "user_cv_storage"
+
+    BACKEND_API_URL = "http://localhost:8080/api/job_posts" #Tạm thời để là vậy
 # Tạo một biến settings để dùng chung
 settings = Settings()

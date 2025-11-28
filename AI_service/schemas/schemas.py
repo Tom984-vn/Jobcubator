@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, TypedDict
 
 class MatchRequest(BaseModel):
     user_embedding: List[float]
@@ -10,9 +10,9 @@ class UserContext(BaseModel):
     Context tạm thời dùng để cá nhân hóa câu trả lời.
     Dữ liệu này được trích xuất từ VectorDB hoặc Session hiện tại.
     """
-    cv_industry: Optional[str] = None       # Ngành nghề từ CV (Lấy từ Metadata VectorDB)
+    cv_industry: Optional[str] = None       # Ngành nghề từ CV (Lấy từ metadatas VectorDB)
     interested_industry: Optional[str] = None # Ngành quan tâm (Lấy từ Filter request)
-    age_range: Optional[str] = None         # Độ tuổi (Lấy từ Metadata hoặc User Profile)
+    age_range: Optional[str] = None         # Độ tuổi (Lấy từ metadatas hoặc User Profile)
     experience_level: Optional[str] = None  # Kinh nghiệm (Junior, Senior...)
     last_conversation_summary: Optional[str] = None # Tóm tắt câu hỏi cũ (nếu có)
 
@@ -23,6 +23,7 @@ class TextRequest(BaseModel):
 # --- 1. DTO cho Thêm Job (/add-job) ---
 class JobInput(BaseModel):
     id: str
+    title: str
     description: str
     category: str
     location: str
@@ -49,7 +50,7 @@ class ConsultRequest(BaseModel):
     filters: Optional[JobFilter] = None
 
 class ConsultReportResponse(BaseModel):
-    title: str = "Báo cáo Phân tích Sự nghiệp Cá nhân"
+    title: str = "Báo cáo Phân tích Sự nghiệp Cá nhân" #PROMPT
     summary: str # Tóm tắt chung về sự phù hợp CV
     job_details: List[JobInput] # Chi tiết từng job
     recommendations: str # Lời khuyên cá nhân hóa dựa trên hành vi (Context)
@@ -62,3 +63,19 @@ class DBStatusResponse(BaseModel):
     total_count: int
     ids: List[str]
     message: str = "Thành công. Đã trả về các ID được giới hạn."
+
+# 4. class for DTO backend -------------------------------------------------------------------
+class JobPostData(TypedDict):
+    """Định nghĩa cấu trúc dữ liệu JobPost dựa trên JobPostDTO của backend."""
+    id: str
+    companyName: str
+    title: str
+    category: str
+    location: str
+    numberOfVacancies: int
+    jobType: str  #FULL TIME OR PART TIME
+    applicationDeadline: str
+    minSalary: int
+    maxSalary: int
+    companyId: str
+    descriptionPath: str

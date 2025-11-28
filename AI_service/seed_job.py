@@ -1,7 +1,6 @@
-
 import sys
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Type
 
 # Thêm thư mục gốc vào Python Path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..')) 

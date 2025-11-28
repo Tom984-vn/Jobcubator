@@ -9,14 +9,14 @@ import logging
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- HÀM UTILITY (Giữ nguyên logic của bạn) ---
+# --- HÀM lọc các thông tin yêu cầu cứng ---
 def build_chroma_filters(filter_obj: Optional[JobFilter]) -> Dict[str, Any]:
     """
-    Xây dựng bộ lọc metadata cho ChromaDB.
+    Xây dựng bộ lọc metadatas cho ChromaDB.
     SỬA LỖI: Tự động gỡ bỏ $or nếu chỉ có 1 điều kiện.
     """
     if not filter_obj:
-        logger.info("Không có bộ lọc metadata nào được áp dụng.")
+        logger.info("Không có bộ lọc metadatas nào được áp dụng.")
         return None
 
     filter_conditions = []
@@ -88,16 +88,18 @@ class VectorDBClient:
             logger.warning("⚠️ [VectorDB] Cảnh báo: DB rỗng, cần chạy seed_db.py để nạp dữ liệu mẫu.")
         else:
             sample_results = self.job_collection.peek(limit=1)
-                
+            logger.info(sample_results)
             # Trích xuất dữ liệu mẫu
             sample_id = sample_results.get('ids', ['N/A'])[0]
+
             sample_doc = sample_results.get('documents', ['N/A'])[0]
             sample_metadata = sample_results.get('metadatas', [{}])[0]
-            
+            sample_title = sample_metadata.get('title', ['N/A'])
             logger.info("==================================================")
             logger.info("👀 DEBUG: Kiểm tra Job mẫu đầu tiên từ ChromaDB:")
             logger.info(f"   - ID: {sample_id}")
-            logger.info(f"   - Document (Tiêu đề + Mô tả): {sample_doc}")
+            logger.info(f"   - Title : {sample_title}")
+            logger.info(f"   - Document (Mô tả): {sample_doc}")
             logger.info(f"   - metadatas Dùng để Lọc: {sample_metadata}")
             logger.info("==================================================")
         # 2. Khởi tạo Collection User CV
@@ -152,12 +154,12 @@ class VectorDBClient:
             # Kiểm tra kết quả
             if vector_list and isinstance(vector_list, list) and len(vector_list) > 0: 
                 embeddings.append(vector_list)
-                documents.append(text_to_embed)
+                documents.append(job_description)
                 
                 # --- FIX 2 & 3: CHUẨN BỊ metadatas ĐÚNG CẤU TRÚC VÀ KIỂU DỮ LIỆU ---
                 metadatas.append({
                     "id": job["id"], 
-                    "title": job["title"], 
+                    "title": job_metadata.get("title", "N/A"), 
                     
                     # FIX 2: SỬ DỤNG KEY CHUẨN TỪ SAMPLE_JOBS
                     # 'group' thay cho 'category'
@@ -294,7 +296,7 @@ class VectorDBClient:
                 "user_id": ids[0],
                 "cv_text": documents[0] if documents else "",
                 "vector": current_vector,
-                "metadata": metadatas[0] if metadatas else {}
+                "metadatas": metadatas[0] if metadatas else {}
             }
             
         except Exception as e:

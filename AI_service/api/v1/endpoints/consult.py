@@ -9,6 +9,7 @@ import logging
 from AI_service.schemas.schemas import ConsultRequest, ConsultReportResponse, JobFilter, JobInput # Giả định ConsultRequest có user_id, cv_text, filters
 from AI_service.service.ai.clients import FPTAIClient
 from AI_service.service.ai.vectordb import VectorDBClient
+from AI_service.core.dependencies import get_vector_db_client, get_ai_client
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 # Để giữ cho các client chỉ được khởi tạo 1 lần (Singleton pattern)
 try:
-    # Khởi tạo các client và pipeline bên ngoài router để chúng là Singleton
     ai_client = FPTAIClient()
     db_client = VectorDBClient(ai_client=ai_client) 
     logger.info("Pipeline dependencies initialized successfully.")
@@ -134,7 +134,6 @@ def consult_pipeline_endpoint(data: ConsultRequest):
     )
     
     # 2. Xử lý lỗi  
-    # CRITICAL HERE
     if "error" in pipeline_result:
         # Trả về lỗi 400 Bad Request nếu là lỗi nghiệp vụ (không tìm thấy job, không tạo được vector)
         raise HTTPException(status_code=400, detail=pipeline_result["error"])
@@ -166,6 +165,7 @@ def consult_pipeline_endpoint(data: ConsultRequest):
                 # JobInput là schema bạn định nghĩa: id, description, category, location, min_salary, job_type
                 job_detail = JobInput(
                     id=job.get('id', 'N/A'),
+                    title=metadatas.get('title', 'Không có tiêu đề'),
                     description=job.get('description', 'Không có mô tả chi tiết.'),
                     # Ánh xạ các trường bị thiếu từ metadatas:
                     # Dùng 'group' và 'workType' làm dự phòng vì dữ liệu mẫu của bạn dùng các key này

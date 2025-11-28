@@ -4,7 +4,12 @@ import torch
 from AI_service.core.config import settings
 from AI_service.service.ai.clients import FPTAIClient
 from typing import Dict, Any
+import chromadb
+import logging
+import os
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 CURRENT_FILE = Path(__file__).resolve()
 
@@ -17,6 +22,8 @@ class SemanticRouter:
     def __init__(self, ai_client: FPTAIClient):
         self.ai_client = ai_client
         self.intents: Dict[str, Any] = {}
+        self.sample_vectors = []
+        self.intent_map = []
         try:
         # Load file mẫu câu hỏi
             with open(JSON_FILE_PATH, "r", encoding="utf-8") as f:
@@ -29,28 +36,111 @@ class SemanticRouter:
         except json.JSONDecodeError as e:
              print(f"❌ Lỗi JSON: File '{JSON_FILE_PATH}' không hợp lệ. Chi tiết: {e}")
         
+                # --- Cấu hình Persistence cho Router ---
+        router_db_path = settings.Respond_vector_PATH
+        router_col_name = "ai_intent_router"
         
-        # Pre-compute: Mã hóa tất cả câu mẫu thành vector NGAY KHI KHỞI ĐỘNG
-        # Để lúc chạy thật không phải tính lại -> Cực nhanh
-        self.sample_vectors = []
-        self.intent_map = []
+        # Khởi tạo Client và Collection riêng cho Router
+        # Đảm bảo thư mục tồn tại nếu là PersistentClient
+        os.makedirs(router_db_path, exist_ok=True)
+        self.router_db_client = chromadb.PersistentClient(path=router_db_path)  
+        self.router_collection = self.router_db_client.get_or_create_collection(
+            name=router_col_name,
+        )
+        # --- Logic Tải hoặc Vector hóa/Lưu ---
+        router_count = self.router_collection.count()
+        
+        if router_count > 0:
+            # 1. TẢI TỪ VECTORDB (Khởi động nhanh)
+            logger.info(f"🔄 Đang tải Router từ VectorDB ({router_count} mẫu)...")
+            
+            try:
+                # Lấy toàn bộ vector và metadata
+                results = self.router_collection.get(
+                    include=['embeddings', 'metadatas']
+                )
+                
+                # Chuyển đổi sang PyTorch Tensor để tính toán
+                self.sample_vectors = torch.tensor(results['embeddings'], dtype=torch.float32)
+                
+                # Ánh xạ từ metadatas (giả định metadatas chứa key 'system_instruction')
+                self.intent_map = [m.get('system_instruction', 'UNKNOWN_INTENT') for m in results['metadatas']] 
+                
+                logger.info(f"✅ Router đã sẵn sàng (Tải từ DB). Tổng số mẫu: {len(self.sample_vectors)}.")
 
-        print("🔄 Đang khởi tạo Router...")
-        for item in self.intents:
-            for sample in item["samples"]:
-                vec_list = self.ai_client.get_embedding(sample)
-                if vec_list:
-                    # Chuyển List thành Tensor để tính toán
-                    vec_tensor = torch.tensor(vec_list, dtype=torch.float32)
-                    self.sample_vectors.append(vec_tensor)
-                    self.intent_map.append(item["system_instruction"])
-        
-        # Stack lại thành 1 matrix lớn để tính toán song song
-        if self.sample_vectors:
-            self.sample_vectors = torch.stack(self.sample_vectors)
-            print(f"✅ Router đã sẵn sàng với {len(self.sample_vectors)} mẫu câu!")
+            except Exception as e:
+                logger.error(f"❌ LỖI khi tải Router từ ChromaDB: {e}. Thử vector hóa lại.")
+                self.router_collection.delete(where={}) # Xóa để vector hóa lại
+                self._vectorize_and_store() # Thực hiện vector hóa và lưu mới
+            
         else:
-            print("⚠️ Cảnh báo: Router rỗng (không có vector).")
+            # 2. VECTOR HÓA VÀ LƯU (Lần chạy đầu tiên)
+            logger.info("🔄 Router rỗng. Đang vector hóa, khởi tạo và lưu trữ...")
+            self._vectorize_and_store()
+
+
+    def _vectorize_and_store(self):
+        """
+        Thực hiện vector hóa các mẫu câu và lưu trữ vào ChromaDB và PyTorch Tensor.
+        """
+        # --- Cần phải khởi tạo các biến này để lưu vào ChromaDB ---
+        vectors_to_add = []      # List of lists (dữ liệu thô cho ChromaDB)
+        metadatas_to_add = []    # List of dicts (metadata cho ChromaDB)
+        in_memory_tensors = []   # List of Tensors (dữ liệu tạm thời cho PyTorch)
+
+        ids_to_add = []
+        current_id = 0
+        
+        self.intent_map = [] # Đảm bảo reset intent_map vì nó sẽ được xây dựng lại
+
+        for item in self.intents:
+            if isinstance(item, dict) and "samples" in item:
+                for sample in item["samples"]:
+                    try:
+                        vec_list = self.ai_client.get_embedding(sample)
+                        
+                        if vec_list:
+                            # 1. Chuẩn bị cho ChromaDB
+                            vectors_to_add.append(vec_list) # Vector thô
+                            metadatas_to_add.append({"system_instruction": item["system_instruction"]}) # Metadata Dict
+                            ids_to_add.append(str(current_id))
+                            
+                            # 2. Chuẩn bị cho PyTorch (Tính toán nhanh trong bộ nhớ)
+                            vec_tensor = torch.tensor(vec_list, dtype=torch.float32)
+                            in_memory_tensors.append(vec_tensor) # Lưu Tensor vào list tạm
+                            
+                            # 3. Chuẩn bị cho Logic Router (String Lookup)
+                            self.intent_map.append(item["system_instruction"]) # Lưu chuỗi instruction
+                            
+                            current_id += 1
+                            
+                    except Exception as e:
+                        logger.error(f"❌ LỖI Vector hóa mẫu '{sample[:20]}...': {e}")
+                        continue
+            else:
+                logger.warning(f"Cấu trúc Intent không hợp lệ: {item}")
+        
+        # 4. Lưu vào ChromaDB (Persistence)
+        if vectors_to_add:
+            try:
+                # SỬ DỤNG vectors_to_add và metadatas_to_add đã được định dạng đúng
+                self.router_collection.add(
+                    embeddings=vectors_to_add,
+                    metadatas=metadatas_to_add,
+                    ids=ids_to_add
+                )
+                logger.info(f"✅ Đã lưu {len(vectors_to_add)} mẫu vào Router VectorDB.")
+            except Exception as e:
+                logger.error(f"❌ LỖI DB khi lưu Router vectors: {e}")
+                
+        # 5. Stack lại thành 1 matrix lớn cho PyTorch (Tính toán nhanh)
+        if in_memory_tensors:
+            self.sample_vectors = torch.stack(in_memory_tensors)
+            # Dùng logger thay vì print để nhất quán
+            logger.info(f"✅ Router đã sẵn sàng với {len(self.sample_vectors)} mẫu câu!") 
+        else:
+            self.sample_vectors = torch.empty(0, 0)
+            logger.warning("⚠️ Cảnh báo: Router rỗng (không có vector).")
 
     def find_best_instruction(self, user_query: str , threshold=0.7):
         """
