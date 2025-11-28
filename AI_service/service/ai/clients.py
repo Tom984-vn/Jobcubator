@@ -1,6 +1,7 @@
-import requests
+import httpx
+import asyncio
 import json
-from typing import List, Dict, Generator, Any, Optional
+from typing import List, Dict, Generator, Any, Optional, AsyncGenerator
 from AI_service.core.config import settings  # Import settings từ file config.py
 from chromadb.api.types import Documents, Embeddings, EmbeddingFunction
 from AI_service.schemas.schemas import UserContext  
@@ -14,7 +15,7 @@ class FPTAIClient:
         }
         self.endpoint = settings.ENDPOINT
 
-    def get_embedding(self, text: str) -> List[float]:
+    async def get_embedding(self, text: str) -> List[float]:
         url = f"{self.endpoint}/embeddings"
         payload = {
             "input": [text],
@@ -22,19 +23,23 @@ class FPTAIClient:
         }
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.post(url, headers=self.headers, json=payload) # <--- ASYNC CHANGE: Thêm await
+                response.raise_for_status()
+                data = response.json()
             
             if "data" in data and len(data["data"]) > 0:
-                print(data["data"][0]["embedding"][1])
+                print(data["data"][0]["embedding"][1])    #Bỏ
                 return data["data"][0]["embedding"]
             return []
         except Exception as e:
             print(f"DEBUG API: Lỗi khi gọi API: {e}")
             return []
+        except httpx.RequestError as e:
+            logger.error("Request Error on embedding: {e}")
+            return []
 
-    def chat_refine(self, text: str) -> str:
+    async def chat_refine(self, text: str) -> str:
         url = f"{self.endpoint}/chat/completions"
         prompt = f"{text}\n\nHãy tóm tắt lại thông tin ứng viên ngắn gọn."
         
@@ -48,13 +53,14 @@ class FPTAIClient:
         }
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.post(url, headers=self.headers, json=payload)
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
         except Exception as e:
-            print(f"Lỗi Chat: {e}")
+            logger.error(f"Lỗi Chat: {e}")
             return "Lỗi xử lý văn bản"
-    def generate_report(self, original_cv: str, refined_cv: str, matched_jobs: List[Dict]) -> Dict:  #cần generate tối thiểu 3 recommend dựa theo các tiêu chí khác nhau
+    async def generate_report(self, original_cv: str, refined_cv: str, matched_jobs: List[Dict]) -> str:  #cần generate tối thiểu 3 recommend dựa theo các tiêu chí khác nhau
         url = f"{self.endpoint}/chat/completions"
 
         jobs_summary = json.dumps(matched_jobs, ensure_ascii=False, indent=2)
@@ -90,14 +96,15 @@ class FPTAIClient:
         }
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"]
+            async with httpx.AsyncClient(timeout=60) as client:
+                response = await client.post(url, headers=self.headers, json=payload)
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
         except Exception as e:
             print(f"Lỗi Chat: {e}")
             return "Lỗi xử lý văn bản"
         
-    def chat_respond_custom(self, user_text: str, sys_prompt: str, context: Optional[UserContext] = None):
+    async def chat_respond_custom(self, user_text: str, sys_prompt: str, context: Optional[UserContext] = None) -> AsyncGenerator[Dict[str, Any], None]:
         final_sys_text = sys_prompt
         # --- TẠO QUY TẮC HẬU XỬ LÝ ---
         if context:
@@ -123,8 +130,8 @@ class FPTAIClient:
 
             # Gắn quy tắc vào cuối prompt của người dùng
             final_sys_text += rule_post
-        print(final_sys_text)
-        print(user_text)
+        logger.info(final_sys_text)  #Bỏ
+        logger.info(user_text) #Bỏ
         url = f"{self.endpoint}/chat/completions"
         payload = {
             "model": settings.H_LLM_MODEL,
@@ -136,19 +143,20 @@ class FPTAIClient:
             "stream": True
         }
         try:
-            response = requests.post(url, headers=self.headers, json=payload, stream=True)
-            response.raise_for_status()
-            for line in response.iter_lines():
-                if not line: continue
-                text = line.decode("utf-8")
-                if text.startswith("data: "): text = text[6:].strip()
-                if text == "[DONE]": break
-                yield json.loads(text)
+            async with httpx.AsyncClient(timeout=None) as client:
+                async with client.stream("POST", url, headers=self.headers, json=payload) as response:
+                    response.raise_for_status()
+                    for line in response.iter_lines():
+                        if not line: continue
+                        text = line.decode("utf-8")
+                        if text.startswith("data: "): text = text[6:].strip()
+                        if text == "[DONE]": break
+                        yield json.loads(text)
         except Exception as e:
-            print(f"Lỗi Chat Stream: {e}")
+            logger.error(f"Lỗi Chat Stream: {e}")
             yield {"error": f"Lỗi xử lý văn bản: {e}"}
 
-    def normalize_question(self, text: str) -> str:
+    async def normalize_question(self, text: str) -> str:
         """
         Dùng Light LLM (Model nhỏ/nhanh) để viết lại câu hỏi cho rõ nghĩa.
         """
@@ -162,24 +170,27 @@ class FPTAIClient:
             "temperature": 0.1
         }
         try:
-            res = requests.post(url, headers=self.headers, json=payload)
-            return res.json()["choices"][0]["message"]["content"]
-        except:
+            async with httpx.AsyncClient(timeout=10) as client:
+                res = await client.post(url, headers=self.headers, json=payload)
+                res.raise_for_status()
+                return res.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            logger.error("Lỗi normalize question: {e}")
             return text # Nếu lỗi thì dùng nguyên văn
 
-    def smart_chat(self, user_text: str, router_instance, db_client, context: Optional[UserContext] = None):
+    async def smart_chat(self, user_text: str, router_instance, db_client, context: Optional[UserContext] = None):
         """
         Hàm chat thông minh kết hợp Router
         """
         # BƯỚC 1: Hỏi Router xem có trúng tủ không?
-        instruction, is_match = router_instance.find_best_instruction(user_text)
+        instruction, is_match = await router_instance.find_best_instruction(user_text)
         
         final_prompt = user_text
         system_prompt = "Bạn là trợ lý HR hữu ích." # Mặc định
 
         if is_match:
             print("🎯 HIT: Trúng câu hỏi mẫu -> Lấy thêm ngữ cảnh từ VectorDB.")
-            context_jobs = db_client.search_similar_jobs(query_text=user_text) 
+            context_jobs = await db_client.search_similar_jobs(query_text=user_text) 
             logger.info(context_jobs)
             jobs_context_str = ""
             if context_jobs:
@@ -202,13 +213,13 @@ Hãy kết hợp **cả ba** thông tin trên...
         else:
             print("⚠️ MISS: Câu hỏi lạ -> Dùng Light LLM chuẩn hóa")
             # BƯỚC 2: Nếu không trúng, nhờ Light LLM sửa lại câu hỏi
-            refined_text = self.normalize_question(user_text)
-            print(f"   Gốc: {user_text} \n   Sửa: {refined_text}")
-            final_prompt = "   Gốc: {user_text} \n   Sửa: {refined_text}"
+            refined_text = await self.normalize_question(user_text)
+            print(f"   Gốc của người dùng: {user_text} \n   Prompt sau khi đã sửa: {refined_text}")
+            final_prompt = "Gốc của người dùng: {user_text} \n   Prompt sau khi đã sửa: {refined_text}"
 
         # BƯỚC 3: Gửi cho Heavy LLM (Model xịn) trả lời
         # (Code gọi API stream giống hệt bài trước, chỉ thay content)
-        return self.chat_respond_custom(final_prompt, system_prompt, context)
+        return await self.chat_respond_custom(final_prompt, system_prompt, context)
     def _build_rag_prompt(self, cv_text: str, matched_jobs: List[Dict]) -> str:
         """Xây dựng System Prompt và User Prompt dựa trên CV và các Job phù hợp (đã được sửa để yêu cầu JSON)."""
         
@@ -272,7 +283,7 @@ Hãy kết hợp **cả ba** thông tin trên...
 
 
 
-    def rag_job_advisory(self, cv_text: str, matched_jobs: List[Dict]) -> Generator[Dict[str, Any], None, None]:
+    async def rag_job_advisory(self, cv_text: str, matched_jobs: List[Dict]) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Gửi yêu cầu RAG tới mô hình LLM để tạo báo cáo tư vấn (non-streaming). Trả về kết quả hoàn chỉnh.
         """
@@ -310,12 +321,13 @@ Hãy kết hợp **cả ba** thông tin trên...
         logger.info(f"🤖 Đang gọi LLM và chờ phản hồi hoàn chỉnh...")
         
         try:
-            response = requests.post(
-                url, 
-                headers=self.headers, 
-                json=payload, 
-            )
-            response.raise_for_status() # Bắt lỗi HTTP (4xx, 5xx)
+            async with httpx.AsyncClient(timeout=120) as client:
+                response = await client.post(
+                    url, 
+                    headers=self.headers, 
+                    json=payload, 
+                )
+                response.raise_for_status()
 
             # 4. Xử lý response non-streaming (Lấy toàn bộ JSON)
             full_response_json = response.json()
@@ -330,7 +342,7 @@ Hãy kết hợp **cả ba** thông tin trên...
                 logger.error("⚠️ Phản hồi từ LLM không chứa nội dung (content).")
                 yield {"error": "LLM không tạo ra phản hồi hợp lệ."}
                 
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             # Xử lý lỗi HTTP và trích xuất thông báo lỗi từ server
             error_response = {}
             try:
@@ -342,7 +354,7 @@ Hãy kết hợp **cả ba** thông tin trên...
             error_message = error_response.get('error', {}).get('message', f"Lỗi không xác định ({e.response.status_code})")
             yield {"error": f"Lỗi HTTP từ LLM: {error_message}"}
             
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"❌ Lỗi kết nối khi gọi LLM: {e}")
             yield {"error": "Lỗi kết nối mạng hoặc endpoint AI không khả dụng."}
             
@@ -367,8 +379,11 @@ class FPTChromaAdapter(EmbeddingFunction):
         # ChromaDB gửi một List[str], ta cần vòng lặp để gọi API từng cái một 
         # (hoặc tối ưu hơn là gọi batch nếu API FPT hỗ trợ)
         for text in texts:
+            try:
             # Gọi hàm FPTAIClient của bạn để lấy embedding cho từng văn bản
-            embedding = self.ai_client.get_embedding(text) 
-            embeddings.append(embedding)
-            
+                embedding = asyncio.run(self.ai_client.get_embedding(text)) 
+                embeddings.append(embedding)
+            except Exception as e:
+                logger.error(f"Lỗi khi lấy embedding cho ChromaDB: {e}")
+                embeddings.append([])
         return embeddings

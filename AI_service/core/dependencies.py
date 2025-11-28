@@ -1,10 +1,12 @@
 import logging
-from typing import Optional
+from typing import Optional, AsyncGenerator
 
 # --- KHẮC PHỤC LỖI: IMPORT CÁC CLASS CẦN THIẾT ---
 # Bạn cần import chính xác từ đường dẫn mà các class này được định nghĩa.
 from AI_service.service.ai.clients import FPTAIClient
 from AI_service.service.ai.vectordb import VectorDBClient 
+from AI_service.service.client.backend_client import BackendClient
+from AI_service.core.config import settings
 # Nếu bạn có file config riêng
 # from AI_service.core.config import settings 
 
@@ -42,3 +44,20 @@ def get_vector_db_client() -> VectorDBClient:
         ai_client = get_ai_client() 
         _db_client_instance = VectorDBClient(ai_client=ai_client)
     return _db_client_instance
+
+async def get_backend_client() -> AsyncGenerator[BackendClient, None]:
+    """
+    Dependency injector cho BackendClient. 
+    Sử dụng yield để cung cấp client và finally để dọn dẹp (cleanup).
+    """
+    # Khởi tạo client
+    client = BackendClient()
+    try:
+        # Cung cấp client cho endpoint để sử dụng
+        yield client
+    finally:
+        # Dọn dẹp tài nguyên (RẤT QUAN TRỌNG VÀ CHÍNH LÀ CHỖ CÓ .aclose())
+        logger.info("🧹 Đang đóng kết nối httpx.AsyncClient...")
+        # Vì http_client đã được định kiểu rõ ràng, IDE sẽ nhận diện và highlight đúng
+        await client.http_client.aclose() 
+        logger.info("✅ Đã đóng kết nối httpx.AsyncClient.")

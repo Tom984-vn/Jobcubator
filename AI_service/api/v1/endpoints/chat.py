@@ -1,7 +1,7 @@
 # AI_service/api/v1/endpoints/chat.py
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from typing import Generator, Dict, Any
+from typing import Generator, AsyncGenerator
 import os
 from .router import SemanticRouter
 import torch 
@@ -23,14 +23,14 @@ router = APIRouter()
 # ENDPOINT: CHAT CHUNG (/general)
 # ------------------------------------------------------------------------
 @router.post("/general")
-def endpoint_general_chat(data: TextRequest):
+async def endpoint_general_chat(data: TextRequest):
     """
     Xử lý câu hỏi chat chung, dùng Semantic Router để điều phối
     hoặc Light LLM để chuẩn hóa câu hỏi. Trả về streaming response.
     """
     
     # Hàm tạo luồng (Generator)
-    def output_generator() -> Generator[str, None, None]:
+    async def output_generator() -> AsyncGenerator[str, None, None]:
         # Dùng logic smart_chat mà bạn đã định nghĩa
                 # Truyền đầy đủ các tham số, bao gồm cả `data.context`
         stream = ai_client.smart_chat(
@@ -40,7 +40,7 @@ def endpoint_general_chat(data: TextRequest):
             context=data.context  # Truyền ngữ cảnh người dùng vào
         )
         
-        for chunk in stream:
+        async for chunk in stream:
             # Xử lý các chunk từ hàm chat_respond_custom (streaming)
             if "choices" in chunk and len(chunk["choices"]) > 0:
                 delta = chunk["choices"][0].get("delta", {})
@@ -53,9 +53,4 @@ def endpoint_general_chat(data: TextRequest):
         
     return StreamingResponse(output_generator(), media_type="text/plain")
 
-# ------------------------------------------------------------------------
-# ENDPOINT: GỢI Ý (Nếu cần cho Frontend)
-# ------------------------------------------------------------------------
-@router.get("/suggestions")
-def get_chat_suggestions():
-    return INTENT_ROUTER.get_all_suggestions()
+

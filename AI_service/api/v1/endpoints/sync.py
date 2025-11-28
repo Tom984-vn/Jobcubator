@@ -1,54 +1,43 @@
-import httpx
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
-from typing import Dict, Any, List
+import httpx 
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
+from typing import List, Dict, Any, Optional
 import logging
-from functools import lru_cache
 
-from AI_service.core.config import settings 
-from AI_service.core.dependencies import get_vector_db_client, VectorDBClient
-from AI_service.schemas.schemas import JobPostData
+# Import các client và hàm dependencies
+from AI_service.core.config import settings
+from AI_service.core.dependencies import get_vector_db_client, get_backend_client
+from AI_service.service.client.backend_client import BackendClient
+from AI_service.service.ai.vectordb import VectorDBClient
 
-# Thiết lập logging
+# Giả định schema này tồn tại để xử lý dữ liệu Job
+from AI_service.schemas.schemas import JobPostData 
+
 logger = logging.getLogger(__name__)
+# Đổi tiền tố router thành /sync
+router = APIRouter(prefix="/sync", tags=["Sync"]) 
 
-router = APIRouter(
-    prefix="/sync",
-    tags=["Synchronization"],
-)
+# --- HÀM XỬ LÝ NỀN CHO CẬP NHẬT/UPSERT (ASYNC) ---
 
-# =======================================================
-# HÀM CHẠY NGẦM (BACKGROUND TASK)
-# Nhiệm vụ: Tải Job từ Backend, Vector hóa, và Upsert vào VectorDB
-# =======================================================
-
-async def process_job_upsert(job_id: str, db_client: VectorDBClient):
+async def process_job_upsert(job_id: str, db_client: VectorDBClient, backend_client: BackendClient):
     """
-    Thực hiện quy trình lấy dữ liệu Job, vector hóa và upsert vào VectorDB.
-    Hàm này chạy trong một luồng riêng biệt (background) sau khi API trả về 200 OK.
+    Logic thực hiện việc fetch dữ liệu Job và upsert vào VectorDB (Async).
     """
-    logger.info(f"[BG_TASK] Bắt đầu xử lý Job ID: {job_id}")
+    job_data_raw = await backend_client.get_job_details(job_id)
+    
+    if job_data_raw is None:
+        logger.warning(f"[BG_TASK] Bỏ qua Job ID {job_id} do không tìm thấy hoặc lỗi fetch từ Backend.")
+        return # Dừng nếu không lấy được dữ liệu
 
-    backend_url = f"{settings.BACKEND_API_URL}/api/job_posts/{job_id}"
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(backend_url)
-            response.raise_for_status() 
-            job_data_raw = response.json()
-            logger.info(f"[BG_TASK] Đã tải dữ liệu Job ID {job_id} thành công.")
-            
-            # Giả định dữ liệu Job trả về là 1 Dict, cần phải bọc vào list cho add_jobs
-            if not isinstance(job_data_raw, dict):
-                 raise ValueError("Dữ liệu Job trả về không phải là dictionary.")
-            
-            # Tạo JobPostData Schema để validate và lấy metadatas chuẩn
+        # 1. Lấy dữ liệu Job chi tiết từ Backend bằng httpx.AsyncClient
             job_post_schema = JobPostData(**job_data_raw)
             
-            # Chuẩn bị dữ liệu để truyền vào add_jobs
-            # Chúng ta cần đảm bảo cấu trúc metadatas được truyền đúng
+            # Chuẩn bị dữ liệu để truyền vào add_jobs 
             job_dict_for_db = {
                 "id": job_post_schema.id,
                 "title": job_post_schema.title,
-                "description": job_post_schema.descriptionPath,
+                # Giả sử mô tả chi tiết nằm trong descriptionPath
+                "description": job_post_schema.descriptionPath, 
                 "metadatas": {
                     "title": job_post_schema.title,
                     "group": job_post_schema.category,
@@ -58,7 +47,9 @@ async def process_job_upsert(job_id: str, db_client: VectorDBClient):
                     "max_salary": job_post_schema.maxSalary if job_post_schema.maxSalary else 0,
                 }
             }
-
+            
+            job_data = [job_dict_for_db]
+            
     except httpx.HTTPStatusError as e:
         logger.error(f"[BG_TASK] LỖI HTTP khi lấy Job ID {job_id}: Mã {e.response.status_code}. Nội dung: {e.response.text}")
         return # Dừng nếu lỗi API
@@ -66,61 +57,57 @@ async def process_job_upsert(job_id: str, db_client: VectorDBClient):
         logger.error(f"[BG_TASK] LỖI KHÔNG XÁC ĐỊNH khi lấy Job ID {job_id}: {e}")
         return # Dừng nếu lỗi khác
 
-    # 2. Vector hóa và Upsert vào VectorDB
+    # 2. Upsert vào VectorDB (Phải dùng AWAIT)
     try:
-        # Hàm add_jobs sẽ tự động gọi FPTAIClient để tạo vector
-        db_client.add_jobs([job_dict_for_db])
-        logger.info(f"[BG_TASK] ✅ Hoàn tất xử lý và upsert Job ID: {job_id}")
+        # Giả định db_client.add_jobs là một async method hoặc có xử lý luồng bên trong
+        await db_client.add_jobs(job_data) 
+        
+        logger.info(f"✅ Đồng bộ Job ID {job_id} hoàn tất.")
+            
     except Exception as e:
-        logger.error(f"[BG_TASK] ❌ LỖI VectorDB/Embedding cho Job ID {job_id}: {e}")
+        logger.error(f"❌ Lỗi VectorDB/Embedding trong quá trình xử lý nền cho Job ID {job_id}: {e}")
 
+# --- DEPENDENCY ---
 
-# =======================================================
-# ENDPOINT PUBLIC (API được gọi từ Spring Boot)
-# =======================================================
+def get_sync_context(
+    db_client: VectorDBClient = Depends(get_vector_db_client),
+):
+    """Dependency chỉ để lấy các client cần thiết cho việc đồng bộ."""
+    return db_client
 
-@router.put("/job/{job_id}", status_code=status.HTTP_202_ACCEPTED)
+# --- ENDPOINT 1: CẬP NHẬT DỮ LIỆU (ĐƯỢC GỘP TỪ update.py) ---
+
+@router.put("/job/{job_id}", summary="Đồng bộ (Upsert) Job Post mới/cập nhật vào VectorDB", status_code=status.HTTP_202_ACCEPTED)
 async def sync_job_post(
-    job_id: str,
-    tasks: BackgroundTasks, # FastAPI tự động inject
-    db_client: VectorDBClient = Depends(get_vector_db_client), # Singleton VectorDB Client
-    # data: SyncJobPost # Có thể thêm data nếu Backend muốn gửi payload trực tiếp (hiện không dùng)
-):
+    job_id: str, 
+    background_tasks: BackgroundTasks,
+    # Inject VectorDBClient
+    db_client: VectorDBClient = Depends(get_vector_db_client), 
+    # Inject BackendClient
+    backend_client: BackendClient = Depends(get_backend_client)
+) -> Dict[str, str]:
     """
-    Endpoint nhận yêu cầu đồng bộ Job Post từ Backend.
-    Thực hiện Asynchronous (không đồng bộ) bằng BackgroundTasks.
+    Nhận yêu cầu đồng bộ từ Backend khi một Job Post được tạo hoặc cập nhật.
+    Thực hiện fetch dữ liệu chi tiết và upsert vào VectorDB trong Background.
     """
+    logger.info(f"Nhận request đồng bộ/cập nhật Job ID: {job_id}")
     
-    logger.info(f"[SYNC] Nhận request đồng bộ Job ID: {job_id}")
+    # Thêm tác vụ xử lý bất đồng bộ vào hàng đợi nền
+    background_tasks.add_task(process_job_upsert, job_id, db_client, backend_client)
     
-    # Thêm tác vụ xử lý phức tạp vào hàng đợi nền
-    # FastAPI sẽ trả về HTTP 202 ngay lập tức cho Backend
-    tasks.add_task(process_job_upsert, job_id, db_client)
-    
-    return {"message": f"Job ID {job_id} đã được đưa vào hàng đợi xử lý đồng bộ."}
+    return {"message": f"Yêu cầu đồng bộ Job ID {job_id} đã được chấp nhận và đang xử lý nền."}
 
 
-# =======================================================
-# DEBUG ENDPOINT (Cho người vận hành)
-# =======================================================
+# Thêm các endpoint quản lý khác vào đây (ví dụ: status, clear, trigger full sync)
 
-@router.get("/status")
-def get_sync_status(
-    db_client: VectorDBClient = Depends(get_vector_db_client)
-):
-    """Kiểm tra số lượng Job và User CV hiện tại trong VectorDB."""
-    return db_client.update_status()
+# Ví dụ về endpoint tiện ích (Nếu bạn có)
+@router.get("/status", summary="Kiểm tra trạng thái VectorDB")
+def get_sync_status(db_client: VectorDBClient = Depends(get_sync_context)):
+     # Logic kiểm tra sức khỏe và trả về trạng thái của VectorDB
+    return {"status": "ok", "db_info": db_client.get_info()}
 
-@router.delete("/clear/{collection_type}")
-def clear_vector_data(
-    collection_type: str,
-    db_client: VectorDBClient = Depends(get_vector_db_client)
-):
-    """Xóa toàn bộ dữ liệu Job ('job'), User CV ('user_cv') hoặc cả hai ('all')."""
-    if collection_type not in ['job', 'user_cv', 'all']:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="collection_type phải là 'job', 'user_cv', hoặc 'all'."
-        )
-    
-    return db_client.clear_all_data(collection_type=collection_type)
+@router.delete("/clear", summary="Xóa toàn bộ dữ liệu Job trong VectorDB (Cảnh báo)")
+def clear_job_data(db_client: VectorDBClient = Depends(get_sync_context)):
+    # Logic xóa dữ liệu
+    db_client.clear_collection("jobs")
+    return {"message": "Yêu cầu xóa dữ liệu jobs đã được gửi."}

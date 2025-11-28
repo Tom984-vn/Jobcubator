@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 import json
 import asyncio
 import logging
+from functools import partial
 
 # Import các thành phần của Pipeline
 from AI_service.schemas.schemas import ConsultRequest, ConsultReportResponse, JobFilter, JobInput # Giả định ConsultRequest có user_id, cv_text, filters
@@ -12,33 +13,36 @@ from AI_service.service.ai.vectordb import VectorDBClient
 from AI_service.core.dependencies import get_vector_db_client, get_ai_client
 
 logger = logging.getLogger(__name__)
+router = APIRouter()
 
-# --- KHỞI TẠO CÁC DEPENDENCY GLOBAL (hoặc dùng Depends) ---
-
-# Để giữ cho các client chỉ được khởi tạo 1 lần (Singleton pattern)
-try:
-    ai_client = FPTAIClient()
-    db_client = VectorDBClient(ai_client=ai_client) 
-    logger.info("Pipeline dependencies initialized successfully.")
-except Exception as e:
-    logger.error(f"FATAL: Failed to initialize AI Pipeline components: {e}")
-    # Nếu có lỗi, bạn nên ném ngoại lệ hoặc dùng mock trong môi trường production
 
 # Định nghĩa router
 router = APIRouter()
 
 # --- HÀM HỖ TRỢ CHO STREAMING ---
-def _create_and_store_cv_vector(user_id: str, cv_text: str) -> Optional[List[float]]:
+async def _create_and_store_cv_vector(
+    user_id: str, 
+    cv_text: str, 
+    ai_client: FPTAIClient, 
+    db_client: VectorDBClient
+) -> Optional[List[float]]:
     """Hàm hỗ trợ: Vector hóa CV mới và lưu/cập nhật vào DB."""
     logger.info(f"🔄 Đang vector hóa CV mới cho user: {user_id}...")
     
     try:
         # Gọi FPTAIClient để tạo vector
-        vector_list = ai_client.get_embedding(cv_text)
+        vector_list = await ai_client.get_embedding(cv_text)
         
         if vector_list and len(vector_list) > 0:
             # Lưu trữ CV mới bằng VectorDBClient
-            db_client.add_user_cv(user_id, cv_text, vector_list, metadatas={"source": "api_upload"})
+            add_func = partial(
+                db_client.add_user_cv, 
+                user_id, 
+                cv_text, 
+                vector_list, 
+                metadatas={"source": "api_upload"}
+            )
+            await asyncio.to_thread(add_func)
             return vector_list
     except Exception as e:
         logger.error(f"❌ Lỗi: Không thể tạo vector cho CV của {user_id}. {e}")
@@ -46,13 +50,20 @@ def _create_and_store_cv_vector(user_id: str, cv_text: str) -> Optional[List[flo
 
     return None
 
-def consult_job_rag_logic(user_id: str, cv_text: str, top_k: int = 3, filters: Optional[JobFilter] = None) -> Dict[str, Any]:
+async def consult_job_rag_logic(
+    user_id: str, 
+    cv_text: str, 
+    ai_client: FPTAIClient, 
+    db_client: VectorDBClient,
+    top_k: int = 3, 
+    filters: Optional[JobFilter] = None
+) -> Dict[str, Any]:
     """
     Thực hiện RAG Pipeline hoàn chỉnh non-streaming.
     """
     
     # --- BƯỚC 1: TRUY VẤN/TẠO CV VECTOR CỦA NGƯỜI DÙNG ---
-    user_cv_data = db_client.get_user_cv_vector(user_id)
+    user_cv_data = await asyncio.to_thread(db_client.get_user_cv_vector, user_id)
     current_cv_vector = None
     
     if user_cv_data and user_cv_data.get('cv_text', '').strip() == cv_text.strip():
@@ -60,7 +71,7 @@ def consult_job_rag_logic(user_id: str, cv_text: str, top_k: int = 3, filters: O
         current_cv_vector = user_cv_data.get('vector')
     else:
         logger.info(f"Tạo vector mới cho CV đầu vào {user_id}")
-        current_cv_vector = _create_and_store_cv_vector(user_id, cv_text)
+        current_cv_vector = await _create_and_store_cv_vector(user_id, cv_text)
 
     # --- BƯỚC 2: TRUY VẤN JOB PHÙ HỢP (Retrieval) ---
     logger.info(f"🔍 Đang tìm kiếm {top_k} job tương đồng bằng vector CV...")
@@ -69,39 +80,28 @@ def consult_job_rag_logic(user_id: str, cv_text: str, top_k: int = 3, filters: O
         logger.error(f"Không thể tạo vector cho CV của user: {user_id}.")
         return {"error": "Không thể xử lý CV của bạn. Vui lòng kiểm tra lại nội dung CV và thử lại."}
     else:
-        print(current_cv_vector)
-    matching_jobs = db_client.search_similar_jobs(
+        logger.info(current_cv_vector)
+    search_func = partial(
+        db_client.search_similar_jobs,
         query_vector=current_cv_vector, 
         n_results=top_k, 
         filter_obj=filters
     )
+    matching_jobs = await asyncio.to_thread(search_func)
     
     if not matching_jobs:
         return {"error": "Xin lỗi, không tìm thấy công việc nào phù hợp với CV của bạn."}
 
     # --- BƯỚC 3: GỌI LLM VÀ NỐI CHUỖI (Generation & Aggregation) ---
-    logger.info("🤖 Đang gọi LLM và chờ phản hồi hoàn chỉnh...")
+    logger.info(" Đang gọi LLM và chờ phản hồi hoàn chỉnh...")
     
-    generator = ai_client.rag_job_advisory(
+    llm_result = await ai_client.rag_job_advisory_async( # Đổi tên để phân biệt với hàm cũ
         cv_text=cv_text, 
         matched_jobs=matching_jobs
     )
     
 # Lấy kết quả duy nhất từ generator
-    try:
-        # Sử dụng next() để lấy dictionary kết quả đầu tiên và duy nhất
-        llm_result = next(generator) 
-    except StopIteration:
-        # Trường hợp generator trống (rất hiếm nếu code rag_job_advisory đúng)
-        logger.error("❌ Generator LLM không trả về kết quả nào.")
-        return {"error": "Lỗi nội bộ: AI không trả về dữ liệu."}
-    except Exception as e:
-        logger.error(f"❌ Lỗi khi lấy kết quả từ generator LLM: {e}")
-        return {"error": "Lỗi khi tạo báo cáo từ mô hình AI."}
-    
-    # Xử lý kết quả (kiểm tra lỗi hoặc nội dung)
     if 'error' in llm_result:
-        # Bắt lỗi nếu LLM báo lỗi
         logger.error(f"❌ Lỗi từ LLM: {llm_result['error']}")
         return {"error": f"Lỗi từ mô hình AI: {llm_result['error']}"}
         
@@ -118,7 +118,11 @@ def consult_job_rag_logic(user_id: str, cv_text: str, top_k: int = 3, filters: O
 
 # --- ENDPOINT CHÍNH ---
 @router.post("/consult", response_model=ConsultReportResponse, summary="Tư vấn Job RAG chuyên sâu (JSON)", tags=["AI Consultation"])
-def consult_pipeline_endpoint(data: ConsultRequest):
+async def consult_pipeline_endpoint(
+    data: ConsultRequest,
+    ai_client: FPTAIClient = Depends(get_ai_client),
+    db_client: VectorDBClient = Depends(get_vector_db_client)
+):
     """
     Endpoint thực hiện toàn bộ Pipeline RAG và trả về báo cáo JSON hoàn chỉnh.
     """
@@ -126,13 +130,14 @@ def consult_pipeline_endpoint(data: ConsultRequest):
     logger.info(f"Nhận request tư vấn cho user: {data.user_id}")
     
     # 1. Chạy logic cốt lõi
-    pipeline_result = consult_job_rag_logic(
+    pipeline_result = await consult_job_rag_logic(
         user_id=data.user_id,
         cv_text=data.cv_text,
+        ai_client=ai_client,
+        db_client=db_client,
         top_k=3,
         filters=data.filters
     )
-    
     # 2. Xử lý lỗi  
     if "error" in pipeline_result:
         # Trả về lỗi 400 Bad Request nếu là lỗi nghiệp vụ (không tìm thấy job, không tạo được vector)

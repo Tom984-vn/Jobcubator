@@ -4,9 +4,11 @@ from AI_service.service.ai.clients import FPTAIClient, FPTChromaAdapter
 from AI_service.schemas.schemas import JobFilter
 from AI_service.core.config import settings
 import logging
+import os
+import asyncio
+from functools import partial 
 
 # Thiết lập logging
-logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
 # --- HÀM lọc các thông tin yêu cầu cứng ---
@@ -70,26 +72,58 @@ class VectorDBClient:
     # [CHANGE] Nhận ai_client vào __init__ thay vì dùng biến global để tránh lỗi khởi tạo
     def __init__(self, ai_client: FPTAIClient): 
         logger.info(f"📦 Đang khởi tạo VectorDB với model: {settings.EMBED_MODEL}")
-        
+        self.chroma_client = None
         self.client = chromadb.PersistentClient(path=settings.DB_PATH)
         self.ai_client = ai_client # [CHANGE] Lưu client được truyền vào
         self.embedding_func = FPTChromaAdapter(ai_client=self.ai_client)
         
         # 1. Khởi tạo Collection Job
-        self.job_collection = self.client.get_or_create_collection(
-            name=settings.COLLECTION_NAME,
-            embedding_function=self.embedding_func
-        )
-        job_count = self.job_collection.count()
-        # [CHANGE] Dùng logger thay vì print
-        logger.info(f"📦 [VectorDB] Đã tải thành công Collection '{settings.COLLECTION_NAME}'. Tổng số job: {job_count}")
+        self.job_db_path = settings.COLLECTION_NAME
+        self.cv_db_path = settings.USER_COLLECTION_NAME
+        self.job_collection_name = "job_postings"
+        self.cv_collection_name = "user_cvs"
+
+    async def initialize(self):
+        """
+        Khởi tạo ChromaDB client và các Collection (Không đồng bộ).
+        Phải được gọi sau khi khởi tạo class.
+        """
+        logger.info("Bắt đầu khởi tạo VectorDBClient (Async)...")
+
+        # Đảm bảo thư mục tồn tại
+        os.makedirs(self.job_db_path, exist_ok=True)
+        os.makedirs(self.cv_db_path, exist_ok=True)
+
+        # Khởi tạo PersistentClient (Blocking I/O)
+        # Ta sẽ dùng một client duy nhất cho cả hai collection trong ví dụ này
+        # Mặc dù path khác nhau, ChromaDB client là blocking I/O.
+        # Tuy nhiên, để đơn giản, ta chỉ cần một lần khởi tạo client.
         
-        if job_count == 0:
-            logger.warning("⚠️ [VectorDB] Cảnh báo: DB rỗng, cần chạy seed_db.py để nạp dữ liệu mẫu.")
-        else:
+        # Do bạn dùng các DB Path khác nhau, ta sẽ khởi tạo riêng client cho Job và CV
+        
+        # Khởi tạo Job Client
+        job_client = await asyncio.to_thread(chromadb.PersistentClient, path=self.job_db_path)
+        self.job_collection = await asyncio.to_thread(
+            job_client.get_or_create_collection,
+            name=self.job_collection_name,
+            # Nếu bạn muốn ChromaDB tự embedding, hãy truyền embedding_function tại đây
+            # Nhưng vì ta dùng FPTAIClient để embedding, ta sẽ không truyền.
+        )
+        logger.info(f"✅ Collection '{self.job_collection_name}' đã sẵn sàng.")
+        
+        # Khởi tạo CV Client
+        cv_client = await asyncio.to_thread(chromadb.PersistentClient, path=self.cv_db_path)
+        self.cv_collection = await asyncio.to_thread(
+            cv_client.get_or_create_collection,
+            name=self.cv_collection_name,
+        )
+        logger.info(f"✅ Collection '{self.cv_collection_name}' đã sẵn sàng.")
+        
+        logger.info("✅ VectorDBClient (Async) đã khởi tạo hoàn tất.")
+
+    def update_status(self):
             sample_results = self.job_collection.peek(limit=1)
             logger.info(sample_results)
-            # Trích xuất dữ liệu mẫu
             sample_id = sample_results.get('ids', ['N/A'])[0]
 
             sample_doc = sample_results.get('documents', ['N/A'])[0]
@@ -102,125 +136,130 @@ class VectorDBClient:
             logger.info(f"   - Document (Mô tả): {sample_doc}")
             logger.info(f"   - metadatas Dùng để Lọc: {sample_metadata}")
             logger.info("==================================================")
-        # 2. Khởi tạo Collection User CV
-        # [CHANGE] Tự động tạo tên Collection CV nếu chưa có trong settings (hoặc dùng settings nếu có)
-        user_col_name = getattr(settings, 'USER_COLLECTION_NAME', f"{settings.COLLECTION_NAME}_USER_CV")
-        self.user_collection = self.client.get_or_create_collection(
-            name=user_col_name,
-            embedding_function=self.embedding_func
-        )
-        logger.info(f"✅ User CV Collection '{user_col_name}' sẵn sàng. Số CV: {self.user_collection.count()}")
-
-    def update_status(self):
-        """Kiểm tra trạng thái số lượng Job."""
-        job_count = self.job_collection.count()
-        logger.info(f"📦 [VectorDB] Tổng số job hiện tại: {job_count}")
-        return job_count
 
     # =======================================================
     # PHẦN A: LOGIC CHO JOB (Nạp dữ liệu & Tìm kiếm)
     # =======================================================
 
-    def add_jobs(self, jobs: list):
+    async def add_jobs(self, jobs: List[Dict[str, Any]]):
         """Thêm danh sách các job (dict) vào ChromaDB."""
-        documents = []
-        metadatas = []
-        ids = []
-        embeddings = []
-        jobs_failed_count = 0
+        if not self.job_collection:
+            raise RuntimeError("Job Collection chưa được khởi tạo.")
+            
+        if not jobs:
+            logger.warning("Danh sách Jobs rỗng, không có gì để thêm.")
+            return
         
-        logger.info(f"\n[ADD_JOBS] Bắt đầu vector hóa và thêm {len(jobs)} job...")
+        logger.info(f"🔄 Bắt đầu thêm {len(jobs)} jobs vào VectorDB...")
 
+        embedding_tasks = []
+        jobs_to_process = []
+        
         for job in jobs:
+            # Lấy thông tin cần thiết, đảm bảo kiểu dữ liệu là str cho ID
             job_id = str(job.get("id"))
             job_title = job.get("title", "Không tiêu đề")
             job_description = job.get("description", "")
             
-            # --- FIX 1: Truy cập dictionary metadatas lồng ---
-            # Sử dụng .get("metadatas", {}) để tránh lỗi nếu key 'metadatas' không tồn tại
-            job_metadata = job.get("metadatas", {}) 
-
-            # Trích xuất văn bản
+            # Trích xuất văn bản để gọi embedding API (phải là ASYNC)
             text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}"
+            
+            # Tạo danh sách các coroutine
+            embedding_tasks.append(self.ai_client.get_embedding(text_to_embed))
+            jobs_to_process.append(job) # Lưu lại đối tượng job gốc
 
-            # Gọi API
-            try:
-                vector_list = self.ai_client.get_embedding(text_to_embed)
-            except Exception as api_e:
-                logger.error(f"❌ LỖI VÉCTOR HÓA (ID {job_id}): {api_e}")
-                jobs_failed_count += 1
-                continue
+        logger.info(f"\n[ADD_JOBS] Bắt đầu vector hóa đồng thời {len(jobs_to_process)} job...")
 
-            # Kiểm tra kết quả
-            if vector_list and isinstance(vector_list, list) and len(vector_list) > 0: 
+        # 2. Chạy tất cả các tác vụ Embedding cùng lúc (concurrently)
+        # Sử dụng return_exceptions=True để không bị dừng nếu một API call bị lỗi
+        vectors_result = await asyncio.gather(*embedding_tasks, return_exceptions=True) 
+
+        # 3. Thu thập kết quả và chuẩn bị batch cho DB
+        documents = []
+        metadatas_list = []
+        ids = []
+        embeddings = []
+        jobs_failed_count = 0
+        
+        for i, job in enumerate(jobs_to_process):
+            job_id = str(job.get("id"))
+            vector_list = vectors_result[i]
+            
+            # Kiểm tra lỗi (vector_list là Exception) hoặc vector rỗng
+            is_valid_vector = not isinstance(vector_list, Exception) and \
+                              vector_list and isinstance(vector_list, list) and \
+                              len(vector_list) > 0
+
+            if is_valid_vector:
+                job_description = job.get("description", "")
+                job_metadata = job.get("metadatas", {}) # FIX 1: Truy cập metadatas lồng
+                
                 embeddings.append(vector_list)
                 documents.append(job_description)
                 
-                # --- FIX 2 & 3: CHUẨN BỊ metadatas ĐÚNG CẤU TRÚC VÀ KIỂU DỮ LIỆU ---
-                metadatas.append({
+                # Chuẩn bị Metadatas (Dựa trên logic và FIX của bạn)
+                metadatas_list.append({
                     "id": job["id"], 
-                    "title": job_metadata.get("title", "N/A"), 
-                    
-                    # FIX 2: SỬ DỤNG KEY CHUẨN TỪ SAMPLE_JOBS
-                    # 'group' thay cho 'category'
+                    "title": job_metadata.get("title", job.get("title", "N/A")), 
                     "group": job_metadata.get("group", job.get("group", "N/A")), 
                     "location": job_metadata.get("location", "N/A"),
-                    "workType": job_metadata.get("workType", "N/A"), # Giữ nguyên tên key này
-
-                    # FIX 3: ÉP KIỂU SỐ VÀ TRUY CẬP ĐÚNG CHỖ
-                    # Lấy từ dictionary lồng 'metadatas' và ép kiểu int (dùng 0 mặc định)
+                    "workType": job_metadata.get("workType", "N/A"), 
                     "min_salary": int(job_metadata.get("min_salary", 0)), 
-                    "max_salary": int(job_metadata.get("max_salary", 0)) # Bắt buộc phải thêm max_salary
+                    "max_salary": int(job_metadata.get("max_salary", 0))
                 })
                 ids.append(job_id)
             else:
-                logger.warning(f"⚠️ Job ID {job_id} không tạo được vector.")
+                if isinstance(vector_list, Exception):
+                     logger.error(f"❌ LỖI VÉCTOR HÓA (ID {job_id}): {vector_list}")
+                else:
+                    logger.warning(f"⚠️ Job ID {job_id} không tạo được vector hoặc vector rỗng.")
                 jobs_failed_count += 1
 
-        # Thêm vào DB
+        # 4. Thêm vào DB (Thao tác Blocking I/O, phải dùng asyncio.to_thread)
         if len(ids) > 0:
+            logger.info(f"⏳ Đang thêm {len(ids)} job vào DB (Blocking call)...")
             try:
-                self.job_collection.add(
+                # Sử dụng partial để wrap hàm blocking self.job_collection.add
+                add_func = partial(
+                    self.job_collection.add,
                     documents=documents,
                     embeddings=embeddings,
-                    metadatas=metadatas,
+                    metadatas=metadatas_list,
                     ids=ids
                 )
+                await asyncio.to_thread(add_func)
                 logger.info(f"✅ THÀNH CÔNG: Đã thêm {len(ids)} job vào Collection.")
             except Exception as db_e:
-                logger.error(f"❌ LỖI DB: {db_e}")
-
+                logger.error(f"❌ LỖI DB khi thêm batch: {db_e}")
+                
         if jobs_failed_count > 0:
             logger.info(f"--- BÁO CÁO: {jobs_failed_count} Job thất bại ---")
 
-    def search_similar_jobs(self, 
+    async def search_similar_jobs(self, 
                             query_text: Optional[str] = None, 
                             query_vector: Optional[List[float]] = None, 
-                            n_results=3, 
-                            filter_obj: Optional[JobFilter] = None) -> List[Dict]:
+                            n_results: int = 3, 
+                            filter_obj: Optional[JobFilter] = None) -> List[Dict[str,Any]]:
         
-
+        if not self.job_collection:
+            raise RuntimeError("Job Collection chưa được khởi tạo.")
+        
         chroma_where = build_chroma_filters(filter_obj)
         logger.info(f"Bộ lọc ChromaDB WHERE: {chroma_where}") # <-- LOG CẤU TRÚC LỌC ĐỂ DEBUG
         try:
             # [CHANGE] Sử dụng job_collection để tìm kiếm
-            if query_vector is not None and len(query_vector) > 0:
-                logger.info("Dùng query_vector")
-                results = self.job_collection.query(
-                    query_embeddings=[query_vector],
-                    n_results=n_results,
-                    where=chroma_where,
-                    include=['metadatas', 'documents', 'distances']
-                )
-            elif query_text is not None and len(query_text) > 0:
-                results = self.job_collection.query(
-                    query_texts=[query_text],
-                    n_results=n_results,
-                    where=chroma_where,
-                    include=['metadatas', 'documents', 'distances']
-                )
-            else: 
-                logger.error("Cần nhập query_vector hoặc query_text đầu vào!")
+            query_func = partial(
+                self.job_collection.query,
+                query_embeddings=[query_vector],
+                n_results=n_results,
+                include=["documents", "metadatas", "distances"],
+                where=chroma_where
+            )
+            
+            results = await asyncio.to_thread(query_func)
+            if not results or not results['ids'] or not results['ids'][0]:
+                return []
+            
             clean_results = []
             
             # Validate that all result arrays are present and have the same length
@@ -244,30 +283,41 @@ class VectorDBClient:
     # PHẦN B: LOGIC CHO USER CV (Sửa lỗi thụt lề & Array Ambiguous)
     # =======================================================
 
-    def add_user_cv(self, user_id: str, cv_text: str, vector: List[float], metadatas: Dict = None):
+    async def add_user_cv(self, user_id: str, cv_text: str, vector_list: List[float], metadatas: Dict = None):
         """Lưu/cập nhật CV vào user_collection."""
+        if not self.cv_collection:
+            raise RuntimeError("CV Collection chưa được khởi tạo.")
+            
         try:
-            self.user_collection.upsert(
+            add_func = partial(
+                self.cv_collection.add,
+                embeddings=[vector_list],
                 documents=[cv_text],
-                embeddings=[vector],
-                metadatas=[metadatas or {}],
+                metadatas=[metadatas],
                 ids=[user_id]
             )
+            await asyncio.to_thread(add_func)
             logger.info(f"✅ Đã lưu/cập nhật CV cho user: {user_id}")
         except Exception as e:
             logger.error(f"❌ Lỗi khi lưu CV cho user {user_id}: {e}")
+            raise
 
-    def get_user_cv_vector(self, user_id: str) -> Optional[Dict[str, Any]]:
+    async def get_user_cv_vector(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
         Lấy vector và CV gốc của người dùng theo ID.
         (Đã cập nhật phong cách 'Trích xuất an toàn' giống search_similar_jobs)
         """
+        if not self.cv_collection:
+            raise RuntimeError("CV Collection chưa được khởi tạo.")
+
         try:
             # Gọi API lấy dữ liệu
-            results = self.user_collection.get(
-                ids=[user_id], 
-                include=['embeddings', 'documents', 'metadatas'] 
+            get_func = partial(
+                self.cv_collection.get,
+                ids=[user_id],
+                include=["embeddings", "documents", "metadatas"]
             )
+            results = await asyncio.to_thread(get_func)
             
             # 1. TRÍCH XUẤT AN TOÀN (Safe Extraction)
             # Sử dụng .get() với giá trị mặc định là list rỗng []

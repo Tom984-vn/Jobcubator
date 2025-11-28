@@ -8,6 +8,7 @@ import chromadb
 import logging
 import os
 from pathlib import Path
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -19,33 +20,51 @@ class SemanticRouter:
     def __init__(self, ai_client: FPTAIClient):
         self.ai_client = ai_client
         self.intents: Dict[str, Any] = {}
+        self.sample_vectors = torch.empty(0, 0)
         self.sample_vectors = []
+        self.router_db_client = None
+        self.router_collection = None
         self.intent_map = []
+
+    def _sync_load_intents(self):
+        """
+        [Hàm SYNC] Tải file JSON mẫu câu hỏi bằng cách blocking I/O tiêu chuẩn.
+        Sẽ được gọi trong một luồng riêng biệt thông qua asyncio.to_thread.
+        """
         try:
-        # Load file mẫu câu hỏi
+            # Sử dụng open() tiêu chuẩn (blocking)
             with open(JSON_FILE_PATH, "r", encoding="utf-8") as f:
                 self.intents = json.load(f)
-            print(f"✅ Đã tải file intents từ: {JSON_FILE_PATH}")
-            
+            logger.info(f"✅ Đã tải file intents từ: {JSON_FILE_PATH}")
+            return True
         except FileNotFoundError:
-             # In ra đường dẫn bị lỗi để tiện debug
-             print(f"❌ Lỗi TẢI FILE: Không tìm thấy file tại '{JSON_FILE_PATH}'. Vui lòng kiểm tra lại số cấp .parents[X].") 
+            logger.error(f"❌ Lỗi TẢI FILE: Không tìm thấy file tại '{JSON_FILE_PATH}'.") 
         except json.JSONDecodeError as e:
-             print(f"❌ Lỗi JSON: File '{JSON_FILE_PATH}' không hợp lệ. Chi tiết: {e}")
-        
+            logger.error(f"❌ Lỗi JSON: File '{JSON_FILE_PATH}' không hợp lệ. Chi tiết: {e}")
+        except Exception as e:
+            logger.error(f"❌ Lỗi không xác định khi tải file intents: {e}")
+            
+        return False
+    async def initialize(self):
                 # --- Cấu hình Persistence cho Router ---
         router_db_path = settings.Respond_vector_PATH
         router_col_name = "ai_intent_router"
-        
+        is_loaded = await asyncio.to_thread(self._sync_load_intents)
+        if not is_loaded:
+            logger.error("Router không thể tải Intents. Quá trình khởi tạo bị hủy.")
+            return
         # Khởi tạo Client và Collection riêng cho Router
         # Đảm bảo thư mục tồn tại nếu là PersistentClient
         os.makedirs(router_db_path, exist_ok=True)
-        self.router_db_client = chromadb.PersistentClient(path=router_db_path)  
-        self.router_collection = self.router_db_client.get_or_create_collection(
+        self.router_db_client = await asyncio.to_thread(chromadb.PersistentClient, path=router_db_path) 
+        self.router_collection = await asyncio.to_thread(
+            self.router_db_client.get_or_create_collection,
             name=router_col_name,
         )
-        # --- Logic Tải hoặc Vector hóa/Lưu ---
-        router_count = self.router_collection.count()
+        
+        # --- 3. Logic Tải hoặc Vector hóa/Lưu ---
+        router_count = await asyncio.to_thread(self.router_collection.count)
+        
         
         if router_count > 0:
             # 1. TẢI TỪ VECTORDB (Khởi động nhanh)
@@ -53,7 +72,8 @@ class SemanticRouter:
             
             try:
                 # Lấy toàn bộ vector và metadata
-                results = self.router_collection.get(
+                results = await asyncio.to_thread(
+                    self.router_collection.get,
                     include=['embeddings', 'metadatas']
                 )
                 
@@ -67,19 +87,22 @@ class SemanticRouter:
 
             except Exception as e:
                 logger.error(f"❌ LỖI khi tải Router từ ChromaDB: {e}. Thử vector hóa lại.")
-                self.router_collection.delete(where={}) # Xóa để vector hóa lại
-                self._vectorize_and_store() # Thực hiện vector hóa và lưu mới
+                await asyncio.to_thread(self.router_collection.delete, where={}) # Xóa để vector hóa lại
+                await self._vectorize_and_store() # Thực hiện vector hóa và lưu mới
             
         else:
             # 2. VECTOR HÓA VÀ LƯU (Lần chạy đầu tiên)
             logger.info("🔄 Router rỗng. Đang vector hóa, khởi tạo và lưu trữ...")
-            self._vectorize_and_store()
+            await self._vectorize_and_store()
 
 
-    def _vectorize_and_store(self):
+    async def _vectorize_and_store(self):
         """
         Thực hiện vector hóa các mẫu câu và lưu trữ vào ChromaDB và PyTorch Tensor.
         """
+        if not self.intents:
+            logger.warning("Không có intents để vector hóa.")
+            return
         # --- Cần phải khởi tạo các biến này để lưu vào ChromaDB ---
         vectors_to_add = []      # List of lists (dữ liệu thô cho ChromaDB)
         metadatas_to_add = []    # List of dicts (metadata cho ChromaDB)
@@ -121,7 +144,8 @@ class SemanticRouter:
         if vectors_to_add:
             try:
                 # SỬ DỤNG vectors_to_add và metadatas_to_add đã được định dạng đúng
-                self.router_collection.add(
+                await asyncio.to_thread(
+                    self.router_collection.add,
                     embeddings=vectors_to_add,
                     metadatas=metadatas_to_add,
                     ids=ids_to_add
@@ -139,7 +163,7 @@ class SemanticRouter:
             self.sample_vectors = torch.empty(0, 0)
             logger.warning("⚠️ Cảnh báo: Router rỗng (không có vector).")
 
-    def find_best_instruction(self, user_query: str , threshold=0.7):
+    async def find_best_instruction(self, user_query: str , threshold=0.7):
         """
         Tìm xem câu hỏi user có khớp với mẫu nào không.
         Trả về: (Instruction, True) nếu khớp.
@@ -150,7 +174,7 @@ class SemanticRouter:
             return None, False
         
         # Embed câu hỏi người dùng
-        query_list = self.ai_client.get_embedding(user_query)
+        query_list = await self.ai_client.get_embedding(user_query)
         if not query_list: return None, False
         
         query_vec = torch.tensor(query_list, dtype=torch.float32)
@@ -171,14 +195,3 @@ class SemanticRouter:
             return self.intent_map[idx.item()], True
         
         return None, False
-    def get_all_suggestions(self):
-        """
-        Trả về danh sách tất cả câu hỏi mẫu để hiển thị lên Frontend.
-        Output: List[str] hoặc List[Dict]
-        """
-        suggestion_list = []
-        for category in self.intents:
-            # Lấy ra 1-2 câu mẫu tiêu biểu nhất của mỗi chủ đề để hiển thị thôi
-            # Không cần lấy hết nếu danh sách quá dài
-            suggestion_list.extend(category["samples"][:2]) 
-        return suggestion_list
