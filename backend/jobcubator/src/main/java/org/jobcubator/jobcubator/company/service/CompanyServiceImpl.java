@@ -69,7 +69,7 @@ public class CompanyServiceImpl implements CompanyService{
         Company company = new Company();
         company.setName(createDTO.name());
         company.setWebsite(createDTO.website());
-        company.setSize(String.valueOf(createDTO.size()));
+        company.setSize(createDTO.size());
         company.setDescription(createDTO.description());
         company.addMember(currentUser, CompanyRole.OWNER);
         company = companyRepository.save(company);
@@ -110,7 +110,7 @@ public class CompanyServiceImpl implements CompanyService{
         }
         company.setName(updateDTO.name());
         company.setWebsite(updateDTO.website());
-        company.setSize(String.valueOf(updateDTO.size()));
+        company.setSize(updateDTO.size());
         company.setDescription(updateDTO.description());
         company = companyRepository.save(company);
         return CompanyDTO.builder()

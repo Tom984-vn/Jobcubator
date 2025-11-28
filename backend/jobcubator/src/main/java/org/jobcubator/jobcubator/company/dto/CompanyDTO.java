@@ -16,11 +16,7 @@ public record CompanyDTO(
     UUID id,
     String name,
     String website,
-<<<<<<< HEAD
-    Integer size
-=======
     String size,
     CompanyRole role
->>>>>>> b5acf33 (Add GET /api/company/my-company endpoint)
 ) {
 }
