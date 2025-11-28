@@ -11,13 +11,10 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-CURRENT_FILE = Path(__file__).resolve()
+CURRENT_DIR = Path(__file__).resolve().parent
 
-# Hoặc đơn giản hơn, nếu bạn đặt file JSON trong thư mục AI_service/
-AI_SERVICE_DIR = CURRENT_FILE.parents[3] # Nếu client.py ở cấp 3
-
-# Xây dựng đường dẫn tuyệt đối đến respond.json (Giả sử nằm trong thư mục AI_SERVICE)
-JSON_FILE_PATH = AI_SERVICE_DIR / "respond.json"
+# File JSON nằm CÙNG CẤP với client.py
+JSON_FILE_PATH = CURRENT_DIR / "respond.json"
 class SemanticRouter:
     def __init__(self, ai_client: FPTAIClient):
         self.ai_client = ai_client
