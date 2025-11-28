@@ -47,10 +47,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
 
         try{
-            if(jwt.isBlank()) {
-                throw new ServletException("JWT token is empty");
-            }
-
             username = jwtTokenService.getUsernameFromToken(jwt);
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
