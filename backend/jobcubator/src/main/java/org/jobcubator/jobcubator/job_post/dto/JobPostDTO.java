@@ -1,5 +1,6 @@
 package org.jobcubator.jobcubator.job_post.dto;
 
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -20,6 +21,9 @@ public record  JobPostDTO(
     Integer maxSalary,
     UUID companyId,
     String description,
+    String requirements,
+    String benefits,
+    String schedule,
     Set<String> tags
 ) {
 }

@@ -37,7 +37,18 @@ public record JobPostRequestDTO(
     @PositiveOrZero
     Integer maxSalary,
 
+    @Size(max = 10000)
     String description,
+
+    @Size(max = 10000)
+    String requirements,
+
+    @Size(max = 10000)
+    String benefits,
+
+    @Size(max = 10000)
+    String schedule,
+
     Set<String> tags
 ) {
 }

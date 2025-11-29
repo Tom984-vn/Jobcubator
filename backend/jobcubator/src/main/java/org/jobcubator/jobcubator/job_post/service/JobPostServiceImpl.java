@@ -58,6 +58,9 @@ public class JobPostServiceImpl implements JobPostService {
         newJobPost.setMinSalary(createDTO.minSalary());
         newJobPost.setMaxSalary(createDTO.maxSalary());
         newJobPost.setDescription(createDTO.description());
+        newJobPost.setRequirements(createDTO.requirements());
+        newJobPost.setBenefits(createDTO.benefits());
+        newJobPost.setSchedule(createDTO.schedule());
         newJobPost.setCompany(company);
 
         if (createDTO.tags() != null && !createDTO.tags().isEmpty()) {
@@ -101,6 +104,9 @@ public class JobPostServiceImpl implements JobPostService {
         jobPost.setMinSalary(updateDTO.minSalary());
         jobPost.setMaxSalary(updateDTO.maxSalary());
         jobPost.setDescription(updateDTO.description());
+        jobPost.setRequirements(updateDTO.requirements());
+        jobPost.setBenefits(updateDTO.benefits());
+        jobPost.setSchedule(updateDTO.schedule());
 
         jobPost = jobPostRepository.save(jobPost);
         return mapToJobPostDTO(jobPost, company);
@@ -246,6 +252,9 @@ public class JobPostServiceImpl implements JobPostService {
                 .maxSalary(jobPost.getMaxSalary())
                 .companyId(company.getId())
                 .description(jobPost.getDescription())
+                .requirements(jobPost.getRequirements())
+                .benefits(jobPost.getBenefits())
+                .schedule(jobPost.getSchedule())
                 .tags(jobPost.getTags().stream().map(Tag::getName).collect(Collectors.toSet()))
                 .build();
     }

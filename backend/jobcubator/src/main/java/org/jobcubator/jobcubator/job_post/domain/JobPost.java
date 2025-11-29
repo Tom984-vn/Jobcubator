@@ -38,6 +38,15 @@ public class JobPost {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "requirements", columnDefinition = "TEXT")
+    private String requirements;
+
+    @Column(name = "benefits", columnDefinition = "TEXT")
+    private String benefits;
+
+    @Column(name = "schedule", columnDefinition = "TEXT")
+    private String schedule;
+
     @Column(name = "location", length = 150)
     private String location;
 
