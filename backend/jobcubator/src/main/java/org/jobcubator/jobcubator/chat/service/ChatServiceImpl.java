@@ -71,7 +71,7 @@ public class ChatServiceImpl implements ChatService {
 
         Instant now = Instant.now();
 
-        unreadMessages.forEach(msg -> msg.setSentAt(now));
+        unreadMessages.forEach(msg -> msg.setReadAt(now));
 
         chatMessageRepository.saveAll(unreadMessages);
 
