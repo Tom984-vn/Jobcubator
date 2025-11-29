@@ -2,7 +2,10 @@ package org.jobcubator.jobcubator.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jobcubator.jobcubator.application.domain.Application;
+import org.jobcubator.jobcubator.application.domain.ApplicationRepository;
 import org.jobcubator.jobcubator.authentication.service.JwtTokenServiceImpl;
+import org.jobcubator.jobcubator.company.domain.CompanyMemberRepository;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.jobcubator.jobcubator.user.service.UserServiceImpl;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +20,9 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -31,54 +36,84 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtTokenServiceImpl  jwtTokenService;
     private final UserServiceImpl userDetailsService;
+    private final ApplicationRepository applicationRepository;
+    private final CompanyMemberRepository companyMemberRepository;
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(new ChannelInterceptor() {
             @Override
-            public Message<?> preSend(@NonNull Message<?> message,@NonNull MessageChannel channel) {
+            public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
                 StompHeaderAccessor accessor =
                         MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-                // We only care about the initial CONNECT frame
                 assert accessor != null;
+
+                // 1. Logic cũ: Xử lý CONNECT (Giữ nguyên)
                 if (StompCommand.CONNECT.equals(accessor.getCommand())) {
                     String authHeader = accessor.getFirstNativeHeader("Authorization");
-
                     if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                        String token = authHeader.substring(7);
-
                         try {
-                            // 1. Extract username from token
+                            String token = authHeader.substring(7);
                             String username = jwtTokenService.getUsernameFromToken(token);
-
                             if (username != null) {
-                                // 2. Load user details
-                                User userDetails = (User)userDetailsService.loadUserByUsername(username);
-
-                                // 3. Validate token
+                                User userDetails = (User) userDetailsService.loadUserByUsername(username);
                                 if (jwtTokenService.validateToken(token, userDetails.getUsername())) {
-
-                                    // 4. Create Authentication object
                                     UsernamePasswordAuthenticationToken authToken =
-                                            new UsernamePasswordAuthenticationToken(
-                                                    userDetails,
-                                                    null,
-                                                    userDetails.getAuthorities()
-                                            );
-
-                                    // 5. CRITICAL: Set the user in the accessor
-                                    // This makes @AuthenticationPrincipal work in the Controller
+                                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                                     accessor.setUser(authToken);
                                 }
                             }
                         } catch (Exception e) {
                             log.error("WebSocket authentication failed: {}", e.getMessage());
-                            // Don't throw exception here if you want to allow anonymous connections,
-                            // but usually you want to fail silently or log it.
+                        }
+                    }
+                } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+                String destination = accessor.getDestination();
+
+                if (destination != null && destination.startsWith("/topic/application/")) {
+
+                    Authentication auth = (Authentication) accessor.getUser();
+                    if (auth == null || !(auth.getPrincipal() instanceof User)) {
+                        throw new AccessDeniedException("User not authenticated");
+                    }
+                    User user = (User) auth.getPrincipal();
+
+                    String[] parts = destination.split("/");
+                    Long applicationId = null;
+                    try {
+                        // Check độ dài để tránh lỗi ArrayOutOfBounds
+                        if (parts.length >= 4) {
+                            applicationId = Long.parseLong(parts[3]);
+                        }
+                    } catch (NumberFormatException e) {
+                        // Log warning nếu cần thiết, hoặc ignore
+                    }
+
+                    if (applicationId != null) {
+                        Application application = applicationRepository.findByIdWithDetails(applicationId)
+                                .orElseThrow(() -> new AccessDeniedException("Application not found"));
+
+                        boolean isCandidate = application.getCandidate().getId().equals(user.getId());
+
+                        boolean isCompanyMember = false;
+                        if (!isCandidate) {
+                            if (application.getJobPost() != null && application.getJobPost().getCompany() != null) {
+                                isCompanyMember = companyMemberRepository.existsByCompanyIdAndUserId(
+                                        application.getJobPost().getCompany().getId(),
+                                        user.getId()
+                                );
+                            }
+                        }
+
+                        if (!isCandidate && !isCompanyMember) {
+                            log.warn("User {} (ID: {}) tried to subscribe to restricted topic {}", user.getUsername(), user.getId(), destination);
+                            throw new AccessDeniedException("You are not authorized to subscribe to this chat.");
                         }
                     }
                 }
+            }
+
                 return message;
             }
         });
