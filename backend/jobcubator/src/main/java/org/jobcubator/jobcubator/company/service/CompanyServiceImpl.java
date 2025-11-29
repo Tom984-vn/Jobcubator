@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-@Transactional //Dam bao tinh toan ven cua dlieu (chi luu len db khi chay update thanh cong)
 public class CompanyServiceImpl implements CompanyService{
 
     private final CompanyRepository companyRepository;

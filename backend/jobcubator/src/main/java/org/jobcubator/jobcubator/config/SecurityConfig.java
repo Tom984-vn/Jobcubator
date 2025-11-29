@@ -1,6 +1,8 @@
 package org.jobcubator.jobcubator.config;
 
+import lombok.RequiredArgsConstructor;
 import org.jobcubator.jobcubator.authentication.filter.JwtAuthenticationFilter;
+import org.jobcubator.jobcubator.config.ratelimit.RateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,7 +25,10 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -83,6 +88,7 @@ public class SecurityConfig {
                     .requestMatchers("POST", "/api/courses/filter").permitAll()
                     .requestMatchers("GET", "/api/courses/**").permitAll()
                     .anyRequest().authenticated())
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

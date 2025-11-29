@@ -6,6 +6,7 @@ import org.jobcubator.jobcubator.application.domain.Application;
 import org.jobcubator.jobcubator.application.domain.ApplicationRepository;
 import org.jobcubator.jobcubator.authentication.service.JwtTokenServiceImpl;
 import org.jobcubator.jobcubator.company.domain.CompanyMemberRepository;
+import org.jobcubator.jobcubator.config.ratelimit.RateLimitingService;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.jobcubator.jobcubator.user.service.UserServiceImpl;
 import org.springframework.context.annotation.Configuration;
@@ -38,6 +39,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final UserServiceImpl userDetailsService;
     private final ApplicationRepository applicationRepository;
     private final CompanyMemberRepository companyMemberRepository;
+    private final RateLimitingService rateLimitingService;
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
@@ -112,8 +114,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         }
                     }
                 }
-            }
+            } else if(StompCommand.SEND.equals(accessor.getCommand())) {
+                    Authentication auth = (Authentication) accessor.getUser();
+                    if(auth == null){
+                        throw new AccessDeniedException("Unauthorized");
+                    }
+                    User user = (User) auth.getPrincipal();
 
+                    if(!rateLimitingService.resolveChatBucket(user.getUsername()).tryConsume(1)){
+                        throw new AccessDeniedException("Slow down! You are sending messages too fast.");
+                    }
+                }
                 return message;
             }
         });
