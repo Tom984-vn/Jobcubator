@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.jobcubator.jobcubator.company.domain.Company;
 import org.jobcubator.jobcubator.company.domain.CompanyRepository;
 import org.jobcubator.jobcubator.company.service.CompanySecurityService;
+import org.jobcubator.jobcubator.intergration.ai.AiSyncService;
 import org.jobcubator.jobcubator.job_post.domain.JobPost;
 import org.jobcubator.jobcubator.job_post.domain.JobPostRepository;
 import org.jobcubator.jobcubator.job_post.dto.JobPostDTO;
@@ -37,6 +38,7 @@ public class JobPostServiceImpl implements JobPostService {
     private final CompanyRepository companyRepository;
     private final CompanySecurityService companySecurityService;
     private final TagServiceImpl tagService;
+    private final AiSyncService aiSyncService;
 
     @Override
     @Transactional
@@ -70,7 +72,11 @@ public class JobPostServiceImpl implements JobPostService {
 
         newJobPost = jobPostRepository.save(newJobPost);
         
-        return mapToJobPostDTO(newJobPost, company);
+        JobPostDTO result = mapToJobPostDTO(newJobPost, company);
+
+        aiSyncService.syncJobToAI(result);
+
+        return result;
     }
 
     @Override
@@ -109,7 +115,11 @@ public class JobPostServiceImpl implements JobPostService {
         jobPost.setSchedule(updateDTO.schedule());
 
         jobPost = jobPostRepository.save(jobPost);
-        return mapToJobPostDTO(jobPost, company);
+        JobPostDTO result = mapToJobPostDTO(jobPost, company);
+
+        aiSyncService.syncJobToAI(result);
+
+        return result;
     }
 
     @Override
