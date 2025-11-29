@@ -34,11 +34,18 @@ public class ChatMessage {
     @Column(name = "sent_at", nullable = false)
     private Instant sentAt;
 
+    @Column(name = "read_at")
+    private Instant readAt;
+
     @PrePersist
     public void prePersist() {
         if(this.sentAt == null) {
             this.sentAt = Instant.now();
         }
+    }
+
+    public void maskAsRead(){
+        this.readAt = Instant.now();
     }
 
 }

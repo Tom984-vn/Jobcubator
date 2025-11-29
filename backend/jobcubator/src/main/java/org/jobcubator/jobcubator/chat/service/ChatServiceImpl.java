@@ -6,15 +6,18 @@ import org.jobcubator.jobcubator.application.domain.ApplicationRepository;
 import org.jobcubator.jobcubator.chat.domain.ChatMessage;
 import org.jobcubator.jobcubator.chat.domain.ChatMessageRepository;
 import org.jobcubator.jobcubator.chat.dto.ChatMessageResponse;
+import org.jobcubator.jobcubator.chat.dto.ReadReceiptEvent;
 import org.jobcubator.jobcubator.company.domain.Company;
 import org.jobcubator.jobcubator.company.domain.CompanyMemberRepository;
 import org.jobcubator.jobcubator.user.domain.User;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -52,6 +55,33 @@ public class ChatServiceImpl implements ChatService {
         return mapToDTO(chatmessage);
     }
 
+    @Override
+    @Transactional
+    public ReadReceiptEvent markMessagesAsRead(Long applicationId, User user){
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+
+        validateViewer(user, application);
+
+        List<ChatMessage> unreadMessages = chatMessageRepository.findUnreadMessagesForUser(applicationId, user.getId());
+
+        if(unreadMessages.isEmpty()){
+            return null;
+        }
+
+        Instant now = Instant.now();
+
+        unreadMessages.forEach(msg -> msg.setSentAt(now));
+
+        chatMessageRepository.saveAll(unreadMessages);
+
+        return ReadReceiptEvent.builder()
+                .applicationId(applicationId)
+                .readerId(user.getId())
+                .readAt(now)
+                .build();
+    }
+
     private ChatMessageResponse mapToDTO(ChatMessage msg){
         return ChatMessageResponse.builder()
                 .id(msg.getId())
@@ -60,6 +90,7 @@ public class ChatServiceImpl implements ChatService {
                 .senderName(msg.getSender().getFullName())
                 .content(msg.getContent())
                 .sentAt(msg.getSentAt())
+                .readAt(msg.getReadAt())
                 .build();
         }
 

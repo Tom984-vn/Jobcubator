@@ -141,6 +141,7 @@ CREATE TABLE chat_messages (
     sender_id UUID NOT NULL,
     content TEXT NOT NULL,
     sent_at TIMESTAMP NOT NULL,
+    read_at TIMESTAMP NOT NULL,
     
     CONSTRAINT fk_chat_application 
         FOREIGN KEY (application_id) 

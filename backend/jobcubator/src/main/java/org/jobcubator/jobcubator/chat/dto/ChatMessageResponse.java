@@ -14,6 +14,7 @@ public record ChatMessageResponse(Long id,
                                   String senderName,
                                   @Size(min = 1, max = 2000)
                                   String content,
-                                  Instant sentAt
+                                  Instant sentAt,
+                                  Instant readAt
                                  ) {
 }

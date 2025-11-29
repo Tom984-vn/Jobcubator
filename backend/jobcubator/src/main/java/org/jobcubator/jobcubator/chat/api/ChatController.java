@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.jobcubator.jobcubator.chat.dto.ChatMessageResponse;
+import org.jobcubator.jobcubator.chat.dto.ReadReceiptEvent;
 import org.jobcubator.jobcubator.chat.service.ChatServiceImpl;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +43,15 @@ public class ChatController {
             @AuthenticationPrincipal User user
     ){
         return chatService.saveMessage(applicationId, user, content);
+    }
+
+    @MessageMapping("/chat/{applicationId}/read")
+    @SendTo("/topic/application/{applicationId}/read")
+    public ReadReceiptEvent markAsRead(
+            @DestinationVariable Long applicationId,
+            @AuthenticationPrincipal User user
+    ){
+        return chatService.markMessagesAsRead(applicationId, user);
     }
 
 }
