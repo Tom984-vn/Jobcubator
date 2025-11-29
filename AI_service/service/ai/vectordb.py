@@ -283,29 +283,39 @@ class VectorDBClient:
     # PHẦN B: LOGIC CHO USER CV (Sửa lỗi thụt lề & Array Ambiguous)
     # =======================================================
 
-    async def add_user_cv(self, user_id: str, cv_text: str, vector_list: List[float], metadatas: Dict = None):
+    async def add_user_cv(self, user_data_list: List[Dict[str, Any]]):
         """Lưu/cập nhật CV vào user_collection."""
         if not self.cv_collection:
             raise RuntimeError("CV Collection chưa được khởi tạo.")
-            
+        if not user_data_list:
+            logger.warning("Không có dữ liệu User Profile để thêm.")
+            return
+        ids = [user['id'] for user in user_data_list]
+        # Sử dụng text (tóm tắt profile) làm văn bản chính để vector hóa
+        documents = [user['text'] for user in user_data_list]
+        metadatas = [user['metadatas'] for user in user_data_list]
+        try:
+            vector_list = await asyncio.to_thread(self.embedding_model.get_embedding_list, documents)
+        except Exception as e:
+            logger.error(f"❌ Lỗi khi tạo embeddings cho User Profiles: {e}")
+            raise RuntimeError("Lỗi dịch vụ tạo Embedding.") from e
         try:
             add_func = partial(
-                self.cv_collection.add,
-                embeddings=[vector_list],
-                documents=[cv_text],
-                metadatas=[metadatas],
-                ids=[user_id]
+                self.cv_collection.upsert, 
+                embeddings=vector_list,
+                documents=documents,
+                metadatas=metadatas,
+                ids=ids
             )
             await asyncio.to_thread(add_func)
-            logger.info(f"✅ Đã lưu/cập nhật CV cho user: {user_id}")
+            logger.info(f"✅ Đã upsert {len(ids)} User Profiles.")
         except Exception as e:
-            logger.error(f"❌ Lỗi khi lưu CV cho user {user_id}: {e}")
+            logger.error(f"❌ Lỗi khi upsert User Profiles vào VectorDB: {e}")
             raise
 
     async def get_user_cv_vector(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
-        Lấy vector và CV gốc của người dùng theo ID.
-        (Đã cập nhật phong cách 'Trích xuất an toàn' giống search_similar_jobs)
+        Lấy vector và CV gốc của người dùng theo ID từ cv_collection.
         """
         if not self.cv_collection:
             raise RuntimeError("CV Collection chưa được khởi tạo.")
@@ -319,27 +329,22 @@ class VectorDBClient:
             )
             results = await asyncio.to_thread(get_func)
             
-            # 1. TRÍCH XUẤT AN TOÀN (Safe Extraction)
-            # Sử dụng .get() với giá trị mặc định là list rỗng []
+            # 1. TRÍCH XUẤT AN TOÀN
             ids = results.get('ids', [])
             documents = results.get('documents', [])
             embeddings = results.get('embeddings', [])
             metadatas = results.get('metadatas', [])
 
             # 2. KIỂM TRA DỮ LIỆU
-            # Nếu không có ID nào được trả về, tức là User không tồn tại
             if not ids or len(ids) == 0:
-                logger.warning(f"⚠️ Không tìm thấy dữ liệu cho User ID: {user_id}")
+                logger.warning(f"⚠️ Không tìm thấy dữ liệu CV cho User ID: {user_id}")
                 return None
 
             # 3. ĐÓNG GÓI KẾT QUẢ
-            # Vì get(ids=[user_id]) chỉ trả về 1 kết quả duy nhất tại vị trí [0]
-            
-            # Kiểm tra vector có tồn tại và hợp lệ không
             current_vector = embeddings[0] if embeddings and len(embeddings) > 0 else None
             
             if current_vector is None:
-                logger.warning(f"⚠️ User {user_id} tồn tại nhưng chưa có vector (lỗi vector hóa trước đó).")
+                logger.warning(f"⚠️ CV User {user_id} tồn tại nhưng chưa có vector.")
                 return None
 
             return {

@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Optional, TypedDict
+from typing import List, Optional
+
 
 class MatchRequest(BaseModel):
     user_embedding: List[float]
@@ -65,7 +66,7 @@ class DBStatusResponse(BaseModel):
     message: str = "Thành công. Đã trả về các ID được giới hạn."
 
 # 4. class for DTO backend -------------------------------------------------------------------
-class JobPostData(TypedDict):
+class JobPostData(BaseModel):
     """Định nghĩa cấu trúc dữ liệu JobPost dựa trên JobPostDTO của backend."""
     id: str
     companyName: str
@@ -79,3 +80,17 @@ class JobPostData(TypedDict):
     maxSalary: int
     companyId: str
     descriptionPath: str
+
+class UserProfileData(BaseModel):
+        fullName: str
+        username: str
+        email: str
+        phoneNumber: str
+        gender: str
+        birthDate: str
+        years_of_experience: int
+        organization: str
+        position: str
+        preferredLocation: str
+        minSalary: int
+        maxSalary: int
