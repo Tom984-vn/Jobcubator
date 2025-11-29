@@ -35,6 +35,7 @@ public class CompanyServiceImpl implements CompanyService{
     }
 
     @Override
+    @Transactional
     public void deleteCompany(User user, UUID id) {
         Company company = companyRepository.findById(id).orElseThrow(() -> new RuntimeException("Company not found"));
         if(companySecurityService.canManageCompany(company.getId(), user)) {
