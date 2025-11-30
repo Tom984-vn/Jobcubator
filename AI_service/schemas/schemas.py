@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import List, Optional
+from pydantic import BaseModel, Field
+from typing import List, Optional, Set
 
 
 class MatchRequest(BaseModel):
@@ -64,6 +64,16 @@ class DBStatusResponse(BaseModel):
     total_count: int
     ids: List[str]
     message: str = "Thành công. Đã trả về các ID được giới hạn."
+    
+class ProfileEntrySchema(BaseModel):
+    """Schema cho một mục nhập Lịch sử (kinh nghiệm/học vấn) - tương ứng ProfileEntryDTO."""
+    # Giả định ProfileEntryType được gửi dưới dạng string (vd: 'EXPERIENCE', 'EDUCATION')
+    type: str = Field(..., description="Loại mục nhập (EXPERIENCE, EDUCATION, etc.)")
+    organization: Optional[str] = Field(None, description="Tổ chức/Trường học")
+    title: Optional[str] = Field(None, description="Chức danh/Văn bằng")
+    startDate: Optional[str] = Field(None, description="Ngày bắt đầu")
+    endDate: Optional[str] = Field(None, description="Ngày kết thúc")
+    description: Optional[str] = Field(None, description="Mô tả công việc/thành tích")
 
 # 4. class for DTO backend -------------------------------------------------------------------
 class JobPostData(BaseModel):
@@ -79,9 +89,14 @@ class JobPostData(BaseModel):
     minSalary: int
     maxSalary: int
     companyId: str
-    descriptionPath: str
+    description: str
+    requirements: str
+    benefits: str
+    schedule: str
+    tags: Set[str] = Field(default_factory=set, description="Các tag/kỹ năng liên quan")
 
 class UserProfileData(BaseModel):
+        id: str
         fullName: str
         username: str
         email: str
@@ -94,3 +109,4 @@ class UserProfileData(BaseModel):
         preferredLocation: str
         minSalary: int
         maxSalary: int
+        history: List[ProfileEntrySchema] = Field(default_factory=list, description="Danh sách các mục nhập lịch sử (kinh nghiệm, học vấn)")

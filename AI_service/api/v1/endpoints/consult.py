@@ -63,7 +63,7 @@ async def consult_job_rag_logic(
     """
     
     # --- BƯỚC 1: TRUY VẤN/TẠO CV VECTOR CỦA NGƯỜI DÙNG ---
-    user_cv_data = await asyncio.to_thread(db_client.get_user_cv_vector, user_id)
+    user_cv_data = await db_client.get_user_cv_vector(user_id)
     current_cv_vector = None
     
     if user_cv_data and user_cv_data.get('cv_text', '').strip() == cv_text.strip():

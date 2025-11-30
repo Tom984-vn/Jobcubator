@@ -83,6 +83,10 @@ class VectorDBClient:
         self.job_collection_name = "job_postings"
         self.cv_collection_name = "user_cvs"
 
+        self.user_collection: Any = None 
+        self.jobs_collection: Any = None
+
+
     async def initialize(self):
         """
         Khởi tạo ChromaDB client và các Collection (Không đồng bộ).
@@ -113,7 +117,7 @@ class VectorDBClient:
         
         # Khởi tạo CV Client
         cv_client = await asyncio.to_thread(chromadb.PersistentClient, path=self.cv_db_path)
-        self.cv_collection = await asyncio.to_thread(
+        self.user_collection = await asyncio.to_thread(
             cv_client.get_or_create_collection,
             name=self.cv_collection_name,
         )
@@ -123,18 +127,19 @@ class VectorDBClient:
 
     def update_status(self):
             sample_results = self.job_collection.peek(limit=1)
+            user_sample_results = self.user_collection.peek(limit=1)
             logger.info(sample_results)
+            logger.info(user_sample_results)
             sample_id = sample_results.get('ids', ['N/A'])[0]
 
             sample_doc = sample_results.get('documents', ['N/A'])[0]
-            sample_metadata = sample_results.get('metadatas', [{}])[0]
-            sample_title = sample_metadata.get('title', ['N/A'])
+            sample_title = sample_results.get('title', ['N/A'])
             logger.info("==================================================")
             logger.info("👀 DEBUG: Kiểm tra Job mẫu đầu tiên từ ChromaDB:")
             logger.info(f"   - ID: {sample_id}")
             logger.info(f"   - Title : {sample_title}")
             logger.info(f"   - Document (Mô tả): {sample_doc}")
-            logger.info(f"   - metadatas Dùng để Lọc: {sample_metadata}")
+            logger.info(f"   - Dùng để Lọc: {sample_results}")
             logger.info("==================================================")
 
     # =======================================================
@@ -160,10 +165,12 @@ class VectorDBClient:
             job_id = str(job.get("id"))
             job_title = job.get("title", "Không tiêu đề")
             job_description = job.get("description", "")
-            
+            job_requirement = job.get("requirements", "Chưa có")
+            job_benefits = job.get("benefits","Chưa có")
+            job_tag = job.get("tags", "")
             # Trích xuất văn bản để gọi embedding API (phải là ASYNC)
-            text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}"
-            
+            text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}. Yêu cầu: {job_requirement}. Quyền lợi: {job_benefits}. Từ khóa: {job_tag}"
+ 
             # Tạo danh sách các coroutine
             embedding_tasks.append(self.ai_client.get_embedding(text_to_embed))
             jobs_to_process.append(job) # Lưu lại đối tượng job gốc
@@ -191,26 +198,41 @@ class VectorDBClient:
                               len(vector_list) > 0
 
             if is_valid_vector:
+                job_title = job.get("title", "Không tiêu đề")
                 job_description = job.get("description", "")
-                job_metadata = job.get("metadatas", {}) # FIX 1: Truy cập metadatas lồng
-                
+                job_requirement = job.get("requirement", "Chưa có")
+                job_benefits = job.get("benefits","Chưa có")
+                text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}. Yêu cầu: {job_requirement}. Quyền lợi: {job_benefits}" 
+                print(text_to_embed) #Bỏ
                 embeddings.append(vector_list)
-                documents.append(job_description)
+                documents.append(text_to_embed)
+                # 1. Chuyển đổi tags từ Set (trong DTO) sang List[str]
+                tags_list = list(job.get("tags", [])) 
                 
+                # 2. FIX CUỐI CÙNG: Xử lý List Tags.
+                # Vector DB không chấp nhận list. Chúng ta chuyển nó thành một chuỗi duy nhất.
+                if tags_list:
+                    # Chuyển List[str] thành một chuỗi duy nhất, phân tách bằng dấu phẩy
+                    final_tags = ", ".join(tags_list) # Ví dụ: "Python, SQL, React"
+                else:
+                    # Nếu danh sách rỗng ([]), phải gán nó thành None để tránh lỗi List
+                    final_tags = ""
                 # Chuẩn bị Metadatas (Dựa trên logic và FIX của bạn)
                 metadatas_list.append({
                     "id": job["id"], 
-                    "title": job_metadata.get("title", job.get("title", "N/A")), 
-                    "group": job_metadata.get("group", job.get("group", "N/A")), 
-                    "location": job_metadata.get("location", "N/A"),
-                    "workType": job_metadata.get("workType", "N/A"), 
-                    "min_salary": int(job_metadata.get("min_salary", 0)), 
-                    "max_salary": int(job_metadata.get("max_salary", 0))
+                    "title": job.get("title", job.get("title", "N/A")), 
+                    "group": job.get("category", job.get("group", "N/A")), 
+                    "companyName": job.get("companyName", "N/A"),
+                    "location": job.get("location", "N/A"),
+                    "workType": job.get("jobType", "N/A"), 
+                    "min_salary": int(job.get("min_salary", 0)), 
+                    "max_salary": int(job.get("max_salary", 0)),
+                    "tags": final_tags, # Dùng cho lọc/tìm kiếm theo kỹ năng
                 })
                 ids.append(job_id)
             else:
                 if isinstance(vector_list, Exception):
-                     logger.error(f"❌ LỖI VÉCTOR HÓA (ID {job_id}): {vector_list}")
+                    logger.error(f"❌ LỖI VÉCTOR HÓA (ID {job_id}): {vector_list}")
                 else:
                     logger.warning(f"⚠️ Job ID {job_id} không tạo được vector hoặc vector rỗng.")
                 jobs_failed_count += 1
@@ -284,25 +306,123 @@ class VectorDBClient:
     # =======================================================
 
     async def add_user_cv(self, user_data_list: List[Dict[str, Any]]):
-        """Lưu/cập nhật CV vào user_collection."""
-        if not self.cv_collection:
+        if not self.user_collection:
             raise RuntimeError("CV Collection chưa được khởi tạo.")
         if not user_data_list:
             logger.warning("Không có dữ liệu User Profile để thêm.")
             return
-        ids = [user['id'] for user in user_data_list]
-        # Sử dụng text (tóm tắt profile) làm văn bản chính để vector hóa
-        documents = [user['text'] for user in user_data_list]
-        metadatas = [user['metadatas'] for user in user_data_list]
-        try:
-            vector_list = await asyncio.to_thread(self.embedding_model.get_embedding_list, documents)
-        except Exception as e:
-            logger.error(f"❌ Lỗi khi tạo embeddings cho User Profiles: {e}")
-            raise RuntimeError("Lỗi dịch vụ tạo Embedding.") from e
+
+        embedding_tasks = []
+        users_to_process = []
+        
+        # 1. Chuẩn bị vector hóa
+        for user in user_data_list:
+            document_parts = [
+                f"Hồ sơ người dùng: {user.get('fullName', 'N/A')}",
+                f"Vị trí mong muốn: {user.get('position', 'N/A')}",
+                f"Kinh nghiệm: {user.get('years_of_experience', 0)} năm",
+            ]
+
+            # Xử lý trường history (List[ProfileEntrySchema]) - Cần gộp vào document để vector hóa
+            history_text = []
+            for entry in user.get("history", []):
+                # Tạo một chuỗi mô tả từ mỗi mục nhập lịch sử
+                entry_parts = [
+                    entry.get("type", ""),         # Ví dụ: EXPERIENCE, EDUCATION
+                    entry.get("title", ""),        # Ví dụ: Kỹ sư Phần mềm / Cử nhân IT
+                    entry.get("organization", ""), # Ví dụ: Công ty X / Đại học Y
+                    entry.get("description", ""),  # Mô tả chi tiết (rất quan trọng cho vector)
+                ]
+                # Nối các phần tử không rỗng lại thành một đoạn văn bản
+                history_text.append(" | ".join(filter(None, entry_parts)))
+
+            if history_text:
+                document_parts.append("\n--- CHI TIẾT KINH NGHIỆM VÀ HỌC VẤN ---")
+                document_parts.extend(history_text)
+            
+            # Tạo chuỗi document cuối cùng cho việc vector hóa
+            document = "\n".join(document_parts)
+            
+            # 2. TẠO TÁC VỤ EMBEDDING VÀ LƯU TRỮ USER
+            
+            # Thêm tác vụ vector hóa với document đã được xây dựng
+            embedding_tasks.append(self.ai_client.get_embedding(document))
+            # LƯU Ý: Phải thêm đối tượng user gốc vào đây để dùng cho việc trích xuất metadata sau
+            users_to_process.append(user)
+
+        vectors_result = await asyncio.gather(*embedding_tasks, return_exceptions=True)
+        # 3. Thu thập kết quả và chuẩn bị batch
+        documents = []
+        metadatas = []
+        ids = []
+        embeddings = []
+        
+        for i, user in enumerate(users_to_process):
+            user_id = str(user.get("id"))
+            vector_list = vectors_result[i]
+            
+            is_valid_vector = not isinstance(vector_list, Exception) and \
+                             vector_list and isinstance(vector_list, list) and \
+                             len(vector_list) > 0
+                             
+            if is_valid_vector:
+                document_parts = [
+                    f"Hồ sơ người dùng: {user.get('fullName', 'N/A')}",
+                    f"Vị trí: {user.get('position', 'N/A')}",
+                    f"Tổ chức: {user.get('organization', 'N/A')}",
+                    f"Kinh nghiệm: {user.get('years_of_experience', 0)} năm",
+                    f"Mức lương mong muốn: {user.get('minSalary', 0)} - {user.get('maxSalary', 0)}",
+                ]
+                history_text = []
+                for entry in user.get("history", []):
+                    # Tạo một chuỗi mô tả từ mỗi mục nhập lịch sử
+                    entry_parts = [
+                        entry.get("type", ""), # EXPERIENCE, EDUCATION
+                        entry.get("title", ""), # Chức danh/Văn bằng
+                        entry.get("organization", ""), # Tên công ty/trường
+                        entry.get("description", ""), # Mô tả chi tiết
+                    ]
+                    # Lọc các phần tử rỗng và nối lại bằng dấu gạch ngang
+                    history_text.append(" | ".join(filter(None, entry_parts)))
+                if history_text:
+                    document_parts.append("\n--- CHI TIẾT LỊCH SỬ/KINH NGHIỆM ---")
+                    document_parts.extend(history_text)
+                
+                # Tạo chuỗi document cuối cùng cho việc vector hóa (Document)
+                user_cv_document = "\n".join(document_parts)
+                
+                embeddings.append(vector_list)
+                documents.append(user_cv_document)
+                user_metadata = {
+                    "id": user_id,
+                    "fullName": user.get("fullName", "N/A"),
+                    "years_of_experience": int(user.get("years_of_experience", 0)), 
+                    "preferred_location": user.get("preferredLocation", "N/A"),
+                    "position": user.get("position", "N/A"),
+                    "organization": user.get("organization", "N/A"),
+
+                    # Lương (đảm bảo là int, dùng snake_case)
+                    "min_salary": int(user.get("minSalary", 0)), 
+                    "max_salary": int(user.get("maxSalary", 0)),
+                    
+                    # Các trường như email, phone number, gender thường không cần thiết
+                    # cho việc tìm kiếm Vector, nhưng có thể thêm nếu muốn lọc.
+                }
+                
+                metadatas.append(user_metadata)
+                ids.append(user_id)
+            else:
+                 logger.error(f"❌ LỖI VÉCTOR HÓA (ID {user_id}): {vector_list}")
+                 
+        if not ids:
+            logger.warning("Không có User CV nào được vector hóa thành công để thêm.")
+            return
+
+        # 4. Upsert vào DB (Blocking I/O)
         try:
             add_func = partial(
-                self.cv_collection.upsert, 
-                embeddings=vector_list,
+                self.user_collection.upsert, 
+                embeddings=embeddings,
                 documents=documents,
                 metadatas=metadatas,
                 ids=ids
@@ -315,15 +435,15 @@ class VectorDBClient:
 
     async def get_user_cv_vector(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
-        Lấy vector và CV gốc của người dùng theo ID từ cv_collection.
+        Lấy vector và CV gốc của người dùng theo ID từ user_collection.
         """
-        if not self.cv_collection:
+        if not self.user_collection:
             raise RuntimeError("CV Collection chưa được khởi tạo.")
 
         try:
             # Gọi API lấy dữ liệu
             get_func = partial(
-                self.cv_collection.get,
+                self.user_collection.get,
                 ids=[user_id],
                 include=["embeddings", "documents", "metadatas"]
             )
