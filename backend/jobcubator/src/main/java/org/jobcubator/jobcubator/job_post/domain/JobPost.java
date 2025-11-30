@@ -65,7 +65,7 @@ public class JobPost {
     @Column(name = "max_salary")
     private Integer maxSalary;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
@@ -75,6 +75,12 @@ public class JobPost {
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     private Set<Tag> tags;
+
+    @PrePersist
+    void prePersist(){
+        if(createdAt == null)
+            createdAt = Instant.now();
+    }
 
     // Helper methods
     public void addTag(Tag tag) {
