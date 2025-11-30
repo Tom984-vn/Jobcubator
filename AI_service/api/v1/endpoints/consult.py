@@ -10,7 +10,7 @@ from functools import partial
 from AI_service.schemas.schemas import ConsultRequest, ConsultReportResponse, JobFilter, JobInput # Giả định ConsultRequest có user_id, cv_text, filters
 from AI_service.service.ai.clients import FPTAIClient
 from AI_service.service.ai.vectordb import VectorDBClient
-from AI_service.core.dependencies import get_vector_db_client, get_ai_client
+from AI_service.core.dependencies import AIClientDep, DBClientDep
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,14 +33,13 @@ async def _create_and_store_cv_vector(
         # Gọi FPTAIClient để tạo vector
         vector_list = await ai_client.get_embedding(cv_text)
         
-        if vector_list and len(vector_list) > 0:
+        if vector_list is not None and len(vector_list) > 0:
             # Lưu trữ CV mới bằng VectorDBClient
             add_func = partial(
                 db_client.add_user_cv, 
                 user_id, 
                 cv_text, 
-                vector_list, 
-                metadatas={"source": "api_upload"}
+                vector_list
             )
             await asyncio.to_thread(add_func)
             return vector_list
@@ -64,14 +63,14 @@ async def consult_job_rag_logic(
     
     # --- BƯỚC 1: TRUY VẤN/TẠO CV VECTOR CỦA NGƯỜI DÙNG ---
     user_cv_data = await db_client.get_user_cv_vector(user_id)
+    print(user_cv_data)
     current_cv_vector = None
-    
-    if user_cv_data and user_cv_data.get('cv_text', '').strip() == cv_text.strip():
+    if user_cv_data is not None:
         logger.info(f"✅ Dùng vector CV đã lưu trữ cho user: {user_id}.")
         current_cv_vector = user_cv_data.get('vector')
     else:
         logger.info(f"Tạo vector mới cho CV đầu vào {user_id}")
-        current_cv_vector = await _create_and_store_cv_vector(user_id, cv_text)
+        current_cv_vector = await _create_and_store_cv_vector(user_id, cv_text,ai_client,db_client)
 
     # --- BƯỚC 2: TRUY VẤN JOB PHÙ HỢP (Retrieval) ---
     logger.info(f"🔍 Đang tìm kiếm {top_k} job tương đồng bằng vector CV...")
@@ -81,13 +80,11 @@ async def consult_job_rag_logic(
         return {"error": "Không thể xử lý CV của bạn. Vui lòng kiểm tra lại nội dung CV và thử lại."}
     else:
         logger.info(current_cv_vector)
-    search_func = partial(
-        db_client.search_similar_jobs,
-        query_vector=current_cv_vector, 
-        n_results=top_k, 
-        filter_obj=filters
-    )
-    matching_jobs = await asyncio.to_thread(search_func)
+    matching_jobs = await db_client.search_similar_jobs(
+        query_vector=current_cv_vector,
+        n_results=top_k,
+        filter_obj=None #filters
+)
     
     if not matching_jobs:
         return {"error": "Xin lỗi, không tìm thấy công việc nào phù hợp với CV của bạn."}
@@ -95,8 +92,8 @@ async def consult_job_rag_logic(
     # --- BƯỚC 3: GỌI LLM VÀ NỐI CHUỖI (Generation & Aggregation) ---
     logger.info(" Đang gọi LLM và chờ phản hồi hoàn chỉnh...")
     
-    llm_result = await ai_client.rag_job_advisory_async( # Đổi tên để phân biệt với hàm cũ
-        cv_text=cv_text, 
+    llm_result = await ai_client.rag_job_advisory( # Đổi tên để phân biệt với hàm cũ
+        cv_text=user_cv_data, 
         matched_jobs=matching_jobs
     )
     
@@ -120,14 +117,12 @@ async def consult_job_rag_logic(
 @router.post("/consult", response_model=ConsultReportResponse, summary="Tư vấn Job RAG chuyên sâu (JSON)", tags=["AI Consultation"])
 async def consult_pipeline_endpoint(
     data: ConsultRequest,
-    ai_client: FPTAIClient = Depends(get_ai_client),
-    db_client: VectorDBClient = Depends(get_vector_db_client)
+    ai_client: AIClientDep, 
+    db_client: DBClientDep
 ):
     """
     Endpoint thực hiện toàn bộ Pipeline RAG và trả về báo cáo JSON hoàn chỉnh.
     """
-    
-    logger.info(f"Nhận request tư vấn cho user: {data.user_id}")
     
     # 1. Chạy logic cốt lõi
     pipeline_result = await consult_job_rag_logic(
@@ -160,6 +155,7 @@ async def consult_pipeline_endpoint(
             logger.error(f"❌ Lỗi JSON Decode từ phản hồi LLM: {json_str[:100]}...")
             raise HTTPException(status_code=500, detail="Phản hồi LLM không phải JSON hợp lệ.")
         
+
         # 3.2. Ánh xạ dữ liệu Job sang JobInput (Khắc phục lỗi Pydantic)
         job_details_list = []
         for job in matched_jobs:
@@ -170,7 +166,7 @@ async def consult_pipeline_endpoint(
                 # JobInput là schema bạn định nghĩa: id, description, category, location, min_salary, job_type
                 job_detail = JobInput(
                     id=job.get('id', 'N/A'),
-                    title=metadatas.get('title', 'Không có tiêu đề'),
+                    title=job.get('title', 'Không có tiêu đề'),
                     description=job.get('description', 'Không có mô tả chi tiết.'),
                     # Ánh xạ các trường bị thiếu từ metadatas:
                     # Dùng 'group' và 'workType' làm dự phòng vì dữ liệu mẫu của bạn dùng các key này

@@ -6,7 +6,7 @@ from datetime import datetime # Cần thiết cho trường applicationDeadline
 
 # Import các client và hàm dependencies
 from AI_service.core.config import settings
-from AI_service.core.dependencies import get_vector_db_client
+from AI_service.core.dependencies import DBClientDep
 from AI_service.service.ai.vectordb import VectorDBClient
 
 # Import Pydantic BaseModel từ file schemas đã sửa
@@ -140,7 +140,7 @@ async def process_user_upsert(user_data: UserProfileData, db_client: VectorDBCli
 # --- DEPENDENCY ---
 
 def get_sync_context(
-    db_client: VectorDBClient = Depends(get_vector_db_client),
+    db_client: VectorDBClient = Depends(DBClientDep),
 ):
     """Dependency chỉ để lấy các client cần thiết cho việc đồng bộ."""
     return db_client
@@ -152,7 +152,7 @@ def get_sync_context(
 async def sync_job_post(
     job_data: JobPostData,
     background_tasks: BackgroundTasks,
-    db_client: VectorDBClient = Depends(get_vector_db_client)
+    db_client: VectorDBClient = Depends(DBClientDep)
 ) -> Dict[str, str]:
     """
     Nhận yêu cầu đồng bộ từ Backend khi một Job Post được tạo hoặc cập nhật.
@@ -169,7 +169,7 @@ async def sync_job_post(
 async def sync_user_post(
     user_data: UserProfileData,
     background_tasks: BackgroundTasks,
-    db_client: VectorDBClient = Depends(get_vector_db_client)
+    db_client: VectorDBClient = Depends(DBClientDep)
 ) -> Dict[str, str]:
     """
     Nhận yêu cầu đồng bộ từ Backend khi một User Profile được tạo hoặc cập nhật.
