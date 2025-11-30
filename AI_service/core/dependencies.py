@@ -60,6 +60,12 @@ def get_semantic_router(request: Request) -> SemanticRouter:
     return router
 
 # Loại tham chiếu (Type Aliases) để dùng trong route handlers (Rất tiện lợi)
-AIClientDep = Annotated[FPTAIClient, Depends(get_ai_client)]
-DBClientDep = Annotated[VectorDBClient, Depends(get_db_client)]
-SemanticRouterDep = Annotated[SemanticRouter, Depends(get_semantic_router)]
+
+def AIClientDep() -> FPTAIClient:
+    return Depends(get_ai_client)
+
+def DBClientDep() -> VectorDBClient:
+    return Depends(get_db_client)
+
+def SemanticRouterDep() -> SemanticRouter:
+    return Depends(get_semantic_router)

@@ -148,22 +148,15 @@ def get_sync_context(
 
 # --- ENDPOINTS ---
 
-@router.put("/job", summary="Đồng bộ (Upsert) Job Post mới/cập nhật vào VectorDB", status_code=status.HTTP_202_ACCEPTED)
+@router.put("/job")
 async def sync_job_post(
     job_data: JobPostData,
     background_tasks: BackgroundTasks,
-    db_client: VectorDBClient = Depends(DBClientDep)
-) -> Dict[str, str]:
-    """
-    Nhận yêu cầu đồng bộ từ Backend khi một Job Post được tạo hoặc cập nhật.
-    Truyền toàn bộ dữ liệu Job vào BackgroundTasks.
-    """
-    logger.info(f"Nhận request đồng bộ/cập nhật Job ID: {job_data.id}")
-    
-    # Truyền toàn bộ đối tượng job_data vào tác vụ nền
-    background_tasks.add_task(process_job_upsert, job_data, db_client)
-    
-    return {"message": f"Yêu cầu đồng bộ Job ID {job_data.id} đã được chấp nhận và đang xử lý nền."}
+    db_client: VectorDBClient = Depends(DBClientDep)  # resolve instance here
+):
+    background_tasks.add_task(process_job_upsert, job_data, db_client)  # pass instance
+    return {"message": f"Job {job_data.id} đang xử lý nền."}
+
 
 @router.put("/user", summary="Đồng bộ (Upsert) User Profile mới/cập nhật vào VectorDB", status_code=status.HTTP_202_ACCEPTED)
 async def sync_user_post(
