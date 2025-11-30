@@ -87,6 +87,9 @@ public class SecurityConfig {
 
                     .requestMatchers("POST", "/api/courses/filter").permitAll()
                     .requestMatchers("GET", "/api/courses/**").permitAll()
+
+                    .requestMatchers("PUT", "/api/courses/**").hasRole("ADMIN")
+                    .requestMatchers("POST", "/api/courses").hasRole("ADMIN")
                     .anyRequest().authenticated())
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
