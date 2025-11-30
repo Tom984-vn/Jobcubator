@@ -3,6 +3,7 @@ import { IoSearch } from "react-icons/io5";
 import { MdModeEdit } from "react-icons/md";
 import { FaTrash } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 function EmployerSearch() {
   return (
@@ -76,7 +77,9 @@ function EmployerJobList(props) {
             Kinh nghiệm
           </th>
           <th className="text-left p-3 border-b border-gray-300">Mức lương</th>
-          <th className="text-left p-3 border-b border-gray-300">Ngày đăng</th>
+          <th className="text-left p-3 border-b border-gray-300">
+            Ngày hết hạn
+          </th>
           <th className="text-left p-3 border-b border-gray-300">
             Số lượng cần tuyển
           </th>
@@ -97,7 +100,7 @@ function EmployerJobList(props) {
             <td className="p-3 ">{job.jobType}</td>
             <td className="p-3 ">{job.experience} năm</td>
             <td className="p-3 ">{job.salary}</td>
-            <td className="p-3 ">{job.postedDate}</td>
+            <td className="p-3 ">{job.applicationDeadline}</td>
             <td className="p-3 ">{job.positions}</td>
             <td className="p-3 ">{job.applicants}</td>
             <td
@@ -126,8 +129,27 @@ function EmployerJobList(props) {
     </table>
   );
 }
+import { getJobsByEmployer } from "../../utils/Job";
+import { getMyCompany } from "../../utils/Company";
 export default function EmployerJobs() {
   const navigate = useNavigate();
+  const [jobs, setJobs] = useState([]);
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const accessToken = localStorage.getItem("accessToken");
+      const companyData = await getMyCompany(accessToken);
+      const companyId = companyData[0].id;
+      const jobsData = await getJobsByEmployer(
+        {
+          page: 0,
+          size: 20,
+        },
+        companyId
+      );
+      setJobs(jobsData.content);
+    };
+    fetchJobs();
+  }, []);
   return (
     <div className="w-full box-border">
       <div className="bg-white raleway-bold text-xl border-b border-gray-500 w-full p-5 flex justify-between items-center">
@@ -144,32 +166,20 @@ export default function EmployerJobs() {
       </div>
       <EmployerSearch />
       <EmployerJobList
-        jobs={[
-          {
-            id: 1,
-            title: "Lập trình viên Frontend",
-            status: "Đang đăng tuyển",
-            jobType: "Full-time",
-            experience: 2,
-            salary: "15-20 triệu",
-            postedDate: "2024-06-01",
-            positions: 3,
-            applicants: 25,
-            priority: "Cao",
-          },
-          {
-            id: 2,
-            title: "Chuyên viên Marketing",
-            status: "Chờ duyệt",
-            jobType: "Part-time",
-            experience: 1,
-            salary: "10-15 triệu",
-            postedDate: "2024-05-28",
-            positions: 2,
-            applicants: 10,
-            priority: "Trung bình",
-          },
-        ]}
+        jobs={jobs.map((job) => ({
+          id: job.id,
+          title: job.title,
+          status: "Đang đăng tuyển",
+          jobType: job.jobType,
+          experience: "Không yêu cầu",
+          salary: job.minSalary + " - " + job.maxSalary + " VND",
+          applicationDeadline: new Date(
+            job.applicationDeadline
+          ).toLocaleDateString(),
+          positions: job.numberOfVacancies,
+          applicants: 10,
+          priority: "Cao",
+        }))}
       />
     </div>
   );

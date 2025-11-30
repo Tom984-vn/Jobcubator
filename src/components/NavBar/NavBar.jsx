@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { TbFileCv } from "react-icons/tb";
 import { FaRegPlusSquare } from "react-icons/fa";
 import { TfiWrite } from "react-icons/tfi";
-
+import { getMyCompany } from "../../utils/Company";
 const UserMenu = () => {
   const navigate = useNavigate();
   return (
@@ -55,10 +55,14 @@ export default function NavBar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [resumeDropdownOpen, setResumeDropdownOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [companyData, setCompanyData] = useState(null);
   useEffect(() => {
     if (accessToken) {
       getUserData({ accessToken: accessToken }).then((data) => {
         setUserData(data);
+      });
+      getMyCompany(accessToken).then((data) => {
+        setCompanyData(data);
       });
     }
     if (accessToken) {
@@ -330,23 +334,32 @@ export default function NavBar() {
         </NavLink>
       </div>
       {userData ? (
-        <div
-          className="cursor-pointer"
-          onClick={() => setUserMenuOpen(!userMenuOpen)}
-        >
-          <div className="flex items-center gap-2">
-            <img
-              src={avatarUrl || "/images/defaultAvatar.jpg"}
-              alt="User Avatar"
-              className="w-10 h-10 rounded-full border border-gray-500 object-cover"
-            />
-            <p>
-              Xin chào, <span>{userData.username}</span>
-            </p>
-            <RxCaretDown />
+        <>
+          {companyData && (
+            <Link to="/employer">
+              <button className="btn bg-primary-300 hover:bg-secondary-2-300 transition-all duration-200 text-white active:bg-primary-200 active:outline-primary-100 py-2 px-4 mr-4">
+                Đi tới trang tuyển dụng
+              </button>
+            </Link>
+          )}
+          <div
+            className="cursor-pointer"
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+          >
+            <div className="flex items-center gap-2">
+              <img
+                src={avatarUrl || "/images/defaultAvatar.jpg"}
+                alt="User Avatar"
+                className="w-10 h-10 rounded-full border border-gray-500 object-cover"
+              />
+              <p>
+                Xin chào, <span>{userData.username}</span>
+              </p>
+              <RxCaretDown />
+            </div>
+            {userMenuOpen && <UserMenu />}
           </div>
-          {userMenuOpen && <UserMenu />}
-        </div>
+        </>
       ) : (
         <div>
           <Link to="/login">

@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getMyCompany } from "../../utils/Company";
+import { postJob } from "../../utils/Job";
+import { useNavigate } from "react-router-dom";
 export default function EmployerAddJob() {
   const [selectedSalaryType, setSelectedSalaryType] = useState("range");
   const [selectedWorkLocation, setSelectedWorkLocation] = useState("on-site");
   const [workDescription, setWorkDescription] = useState([]);
   const [requirements, setRequirements] = useState([]);
   const [benefits, setBenefits] = useState([]);
+  const [companyData, setCompanyData] = useState({});
+  const navigate = useNavigate();
   const [jobData, setJobData] = useState({
     title: "",
     category: "",
-    companyAddress: "",
+    location: "",
     numberOfVacancies: "",
     jobType: "",
     applicationDeadline: "",
@@ -18,13 +23,33 @@ export default function EmployerAddJob() {
     requirements: "",
     benefits: "",
     schedule: "",
-    tags: new Set(),
   });
   const changeDataField = (field, value) => {
     setJobData((prevData) => ({
       ...prevData,
       [field]: value,
     }));
+  };
+  const accessToken = localStorage.getItem("accessToken");
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      const data = await getMyCompany(accessToken);
+      console.log(data[0]);
+      setCompanyData(data[0]);
+    };
+    fetchCompanyData();
+  }, []);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const jobPostData = {
+      ...jobData,
+      applicationDeadline: `${jobData.applicationDeadline}T00:00:00Z`,
+      description: workDescription.join("\n"),
+      requirements: requirements.join("\n"),
+      benefits: benefits.join("\n"),
+    };
+    await postJob(jobPostData, companyData.id, accessToken);
+    navigate("/employer/jobs");
   };
   return (
     <div className="m-5 p-5 bg-white rounded-lg w-full">
@@ -125,7 +150,7 @@ export default function EmployerAddJob() {
                 checked={selectedWorkLocation === "remote"}
                 onChange={() => {
                   setSelectedWorkLocation("remote");
-                  changeDataField("companyAddress", "remote");
+                  changeDataField("location", "remote");
                 }}
               />
               {"  "}
@@ -148,10 +173,8 @@ export default function EmployerAddJob() {
                   type="text"
                   className="border border-gray-300 rounded-lg p-2 w-full focus:outline-primary-400"
                   placeholder="Nhập địa chỉ công việc"
-                  value={jobData.companyAddress || ""}
-                  onChange={(e) =>
-                    changeDataField("companyAddress", e.target.value)
-                  }
+                  value={jobData.location || ""}
+                  onChange={(e) => changeDataField("location", e.target.value)}
                 />
               </div>
             )}
@@ -162,6 +185,8 @@ export default function EmployerAddJob() {
               type="text"
               className="border border-gray-300 mt-4 rounded-lg p-2 w-full focus:outline-primary-400"
               placeholder="Nhập kinh nghiệm yêu cầu"
+              value={jobData.experience || ""}
+              onChange={(e) => changeDataField("experience", e.target.value)}
             />
           </div>
           <div>
@@ -169,11 +194,21 @@ export default function EmployerAddJob() {
             <input
               type="date"
               className="border border-gray-300 mt-4 rounded-lg p-2 w-full focus:outline-primary-400"
+              value={jobData.applicationDeadline || ""}
+              onChange={(e) =>
+                changeDataField("applicationDeadline", e.target.value)
+              }
             />
           </div>
           <div>
             <label className="block text-gray-700">Trình độ học vấn</label>
-            <select className="border border-gray-300 mt-4 rounded-lg p-2 w-full focus:outline-primary-400">
+            <select
+              className="border border-gray-300 mt-4 rounded-lg p-2 w-full focus:outline-primary-400"
+              value={jobData.educationLevel || ""}
+              onChange={(e) =>
+                changeDataField("educationLevel", e.target.value)
+              }
+            >
               <option value="">Chọn trình độ</option>
               <option value="high-school">Trung học phổ thông</option>
               <option value="bachelor">Cử nhân</option>
@@ -182,11 +217,13 @@ export default function EmployerAddJob() {
             </select>
           </div>
           <div>
-            <label className="block text-gray-700">Cấp bậc tuyển dụng</label>
+            <label className="block text-gray-700">Lĩnh vực công việc</label>
             <input
               type="text"
               className="border border-gray-300 mt-4 rounded-lg p-2 w-full focus:outline-primary-400"
-              placeholder="Nhập cấp bậc"
+              placeholder="Nhập lĩnh vực công việc"
+              value={jobData.category || ""}
+              onChange={(e) => changeDataField("category", e.target.value)}
             />
           </div>
           <div>
@@ -195,11 +232,19 @@ export default function EmployerAddJob() {
               type="number"
               className="border border-gray-300 mt-4 rounded-lg p-2 w-full focus:outline-primary-400"
               placeholder="Nhập số lượng"
+              value={jobData.numberOfVacancies || ""}
+              onChange={(e) =>
+                changeDataField("numberOfVacancies", e.target.value)
+              }
             />
           </div>
           <div>
             <label className="block text-gray-700">Loại hình công việc</label>
-            <select className="border border-gray-300 mt-4 rounded-lg p-2 w-full focus:outline-primary-400">
+            <select
+              className="border border-gray-300 mt-4 rounded-lg p-2 w-full focus:outline-primary-400"
+              value={jobData.jobType || ""}
+              onChange={(e) => changeDataField("jobType", e.target.value)}
+            >
               <option value="">Chọn loại hình</option>
               <option value="full-time">Toàn thời gian</option>
               <option value="part-time">Bán thời gian</option>
@@ -313,7 +358,10 @@ export default function EmployerAddJob() {
           </button>
         </div>
         <div className="flex justify-end">
-          <button className="bg-primary-400 text-white px-6 py-3 rounded-lg hover:bg-secondary-2-300 transition-colors duration-300">
+          <button
+            onClick={handleSubmit}
+            className="bg-primary-400 text-white px-6 py-3 rounded-lg hover:bg-secondary-2-300 transition-colors duration-300"
+          >
             Thêm việc làm
           </button>
           <button className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-800 transition-colors duration-300 ml-4">

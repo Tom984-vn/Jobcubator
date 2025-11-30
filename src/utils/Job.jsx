@@ -40,3 +40,25 @@ export async function fetchAppliedJobs(accessToken) {
   });
   return response.data;
 }
+export async function fetchApplicantsByJobId(jobId, accessToken) {
+  const response = await api.get(`/applications/job/${jobId}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+}
+export async function postJob(data, companyId, accessToken) {
+  const response = await api.post(`/job_posts/${companyId}`, data, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+}
+export async function getJobsByEmployer(pageable, companyId) {
+  const response = await api.get(`/job_posts/by-company/${companyId}`, {
+    params: pageable,
+  });
+  return response.data;
+}

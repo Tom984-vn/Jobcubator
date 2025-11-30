@@ -17,3 +17,11 @@ export async function createCompany(data, accessToken) {
   });
   return response.data;
 }
+export async function getMyCompany(accessToken) {
+  const response = await api.get("/company/my-company", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+}

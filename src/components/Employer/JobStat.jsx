@@ -1,7 +1,7 @@
 export default function JobStat(props) {
   return (
     <div
-      className={`p-5 rounded-lg shadow-md flex gap-4 items-center justify-center ${props.className}`}
+      className={`p-5 rounded-lg shadow-md w-full flex gap-4 items-center justify-center ${props.className}`}
     >
       {props.icon}
       <div>

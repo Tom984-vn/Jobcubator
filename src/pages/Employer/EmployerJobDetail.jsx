@@ -1,46 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaArrowCircleLeft } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import JobStat from "../../components/Employer/JobStat";
-import { FaEye } from "react-icons/fa";
-import { FaHeart } from "react-icons/fa";
-import { IoPeopleSharp } from "react-icons/io5";
+import JobDetailsTab from "./JobDetailsTab";
+import { fetchJobById } from "../../utils/Job";
+import { useParams } from "react-router-dom";
 
-function JobDetailsTab() {
-  return (
-    <div>
-      <div className="flex gap-5">
-        <JobStat
-          label="Số lượt xem"
-          count={123}
-          icon={<FaEye className="text-3xl" />}
-          className="bg-primary-400 text-white w-fit gap-5"
-        />
-        <JobStat
-          label="Số lượt yêu thích"
-          count={123}
-          icon={<FaHeart className="text-3xl" />}
-          className="bg-secondary-2-200 text-black w-fit gap-5"
-        />
-        <JobStat
-          label="Lượt ứng tuyển"
-          count={123}
-          icon={<IoPeopleSharp className="text-3xl" />}
-          className="bg-green-600 text-white w-fit gap-5"
-        />
-      </div>
-    </div>
-  );
-}
 function ApplicantsTab() {
   return <div>Applicants Content</div>;
 }
 function SettingsTab() {
   return <div>Settings Content</div>;
 }
+import { fetchApplicantsByJobId } from "../../utils/Job";
 export default function EmployerJobDetail() {
   const navigate = useNavigate();
+  const accessToken = localStorage.getItem("accessToken");
   const [selectedTab, setSelectedTab] = useState("jobDetails");
+  const jobId = useParams().id;
+  const [jobData, setJobData] = useState({});
+  const [applicants, setApplicants] = useState([]);
+  useEffect(() => {
+    fetchJobById(jobId).then((data) => setJobData(data));
+    fetchApplicantsByJobId(jobId, accessToken).then((data) =>
+      setApplicants(data)
+    );
+  }, [jobId]);
+
   return (
     <div className="w-full box-border">
       <div className="bg-white raleway-bold text-xl border-b border-gray-500 w-full p-5 flex items-center gap-3">
@@ -49,6 +34,13 @@ export default function EmployerJobDetail() {
           onClick={() => navigate(-1)}
         >
           <FaArrowCircleLeft />
+        </button>
+        <button
+          onClick={() => {
+            fetchApplicantsByJobId(jobId, accessToken);
+          }}
+        >
+          Test button
         </button>
         <p
           className={
@@ -88,7 +80,12 @@ export default function EmployerJobDetail() {
         </p>
       </div>
       <div className="p-5">
-        {selectedTab === "jobDetails" && <JobDetailsTab />}
+        {selectedTab === "jobDetails" && jobData && (
+          <JobDetailsTab
+            jobData={jobData}
+            numberOfApplicants={applicants.length}
+          />
+        )}
         {selectedTab === "applicants" && <ApplicantsTab />}
         {selectedTab === "settings" && <SettingsTab />}
       </div>

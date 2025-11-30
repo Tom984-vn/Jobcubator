@@ -8,7 +8,10 @@ export default function TopBar() {
   const navigate = useNavigate();
   return (
     <div className="bg-secondary-2-100 p-2 pr-5 flex justify-between items-center sticky top-0 z-10">
-      <div className="header-name text-xl font-bold ml-2 flex items-center gap-0.5 text-primary-300">
+      <div
+        onClick={() => navigate("/")}
+        className="header-name text-xl font-bold ml-2 flex items-center gap-0.5 text-primary-300 cursor-pointer"
+      >
         <LuBriefcaseBusiness size={40} color="#1C229E" />
         Jobcubator
       </div>

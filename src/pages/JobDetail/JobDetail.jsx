@@ -87,10 +87,15 @@ import { useParams } from "react-router-dom";
 import { fetchJobById } from "../../utils/Job";
 import { fetchCompanyById } from "../../utils/Company";
 import JobApplicationModal from "./JobApplicationForm";
+const mapJobTypeToVietnamese = {
+  "full-time": "Toàn thời gian",
+  "part-time": "Bán thời gian",
+};
 export default function JobDetail() {
   const [jobData, setJobData] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const jobId = useParams().id;
+  const [companyData, setCompanyData] = useState(null);
   useEffect(() => {
     // Fetch job data by ID here
     const fetchData = async () => {
@@ -110,23 +115,25 @@ export default function JobDetail() {
       }
       await applyJob(jobId, coverLetter, accessToken);
       alert("Ứng tuyển thành công!");
+      setOpenModal(false);
     } catch (error) {
       console.error("Error applying for job:", error);
       alert("Ứng tuyển thất bại. Vui lòng thử lại sau.");
     }
   };
-  // useEffect(() => {
-  //   // Fetch company data by ID here
-  //   const fetchCompanyData = async () => {
-  //     if (jobData && jobData.companyId) {
-  //       const data = await fetchCompanyById(jobData.companyId);
-  //       setCompanyData(data);
-  //     }
-  //   };
-  //   fetchCompanyData();
-  // }, [jobData]);
+  useEffect(() => {
+    // Fetch company data by ID here
+    const fetchCompanyData = async () => {
+      if (jobData && jobData.companyId) {
+        const data = await fetchCompanyById(jobData.companyId);
+        setCompanyData(data);
+      }
+    };
+    fetchCompanyData();
+  }, [jobData]);
   return (
-    jobData && (
+    jobData &&
+    companyData && (
       <div className="bg-gray-100 pb-10">
         <JobApplicationModal
           open={openModal}
@@ -145,7 +152,7 @@ export default function JobDetail() {
               Tìm việc
             </NavLink>
             <RxCaretRight className="text-xl" />
-            <p> {testJobData.jobname}</p>
+            <p> {jobData.title}</p>
           </div>
           <div className="grid grid-cols-3">
             <div className="col-span-2">
@@ -220,33 +227,36 @@ export default function JobDetail() {
                 </div>
                 <div className="mt-5">
                   <p className="raleway-bold">Mô tả công việc:</p>
-                  {testJobData.description.map((section) => (
-                    <div key={section.name} className="mt-4">
-                      <h2 className="raleway-bold text-md">[{section.name}]</h2>
-                      <p className="whitespace-pre-line mt-2 text-justify">
-                        {section.content}
-                      </p>
-                    </div>
-                  ))}
+                  {jobData.description ||
+                    testJobData.description.map((section, index) => (
+                      <div key={index} className="mt-2">
+                        <p className="font-semibold">{section.name}:</p>
+                        <pre className="whitespace-pre-wrap text-justify">
+                          {section.content}
+                        </pre>
+                      </div>
+                    ))}
                 </div>
                 <div className="mt-5">
                   <p className="raleway-bold">Yêu cầu ứng viên:</p>
                   <ul className="list-disc list-inside mt-2">
-                    {testJobData.requirements.map((req, index) => (
-                      <li key={index} className="text-justify">
-                        {req}
-                      </li>
-                    ))}
+                    {jobData.requirements ||
+                      testJobData.requirements.map((req, index) => (
+                        <li key={index} className="text-justify">
+                          {req}
+                        </li>
+                      ))}
                   </ul>
                 </div>
                 <div className="mt-5">
                   <p className="raleway-bold">Quyền lợi được hưởng:</p>
                   <ul className="list-disc list-inside mt-2">
-                    {testJobData.benefits.map((benefit, index) => (
-                      <li key={index} className="text-justify">
-                        {benefit}
-                      </li>
-                    ))}
+                    {jobData.benefits ||
+                      testJobData.benefits.map((benefit, index) => (
+                        <li key={index} className="text-justify">
+                          {benefit}
+                        </li>
+                      ))}
                   </ul>
                 </div>
                 <div className="mt-5">
@@ -370,14 +380,12 @@ export default function JobDetail() {
                     alt="company logo"
                     className="w-20 border border-gray-300 rounded-lg p-1"
                   />
-                  <h2 className="raleway-bold text-lg">
-                    {testCompanyData.name}
-                  </h2>
+                  <h2 className="raleway-bold text-lg">{companyData.name}</h2>
                 </div>
                 <div className="flex items-center mt-5 gap-2">
                   <IoPeople className="text-gray-500" />{" "}
                   <p className="text-gray-500"> Quy mô:</p>{" "}
-                  <p className="font-semibold">{testCompanyData.employees}</p>
+                  <p className="font-semibold">{companyData.size}</p>
                 </div>
                 <div className="flex items-center mt-5 gap-2">
                   <FaCube className="text-gray-500" />{" "}
@@ -393,10 +401,10 @@ export default function JobDetail() {
                   <FaCube className="text-gray-500" />{" "}
                   <p className="text-gray-500"> Website:</p>{" "}
                   <a
-                    href={`https://${testCompanyData.website}`}
+                    href={`https://${companyData.website}`}
                     className="font-semibold text-primary-400 hover:underline"
                   >
-                    {testCompanyData.website}
+                    {companyData.website}
                   </a>
                 </div>
               </div>
@@ -433,7 +441,7 @@ export default function JobDetail() {
                     <div>
                       <p>Số lượng tuyển</p>
                       <p className="inline text-md font-semibold text-primary-400">
-                        {testJobData.vacancies} người
+                        {jobData.numberOfVacancies} người
                       </p>
                     </div>
                   </div>
@@ -444,7 +452,7 @@ export default function JobDetail() {
                     <div>
                       <p>Hình thức làm việc</p>
                       <p className="inline text-md font-semibold text-primary-400">
-                        {testJobData.type}
+                        {mapJobTypeToVietnamese[jobData.jobType]}
                       </p>
                     </div>
                   </div>
