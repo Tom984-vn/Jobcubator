@@ -4,9 +4,13 @@ import { useNavigate } from "react-router-dom";
 import JobDetailsTab from "./JobDetailsTab";
 import { fetchJobById } from "../../utils/Job";
 import { useParams } from "react-router-dom";
-
-function ApplicantsTab() {
-  return <div>Applicants Content</div>;
+import ApplicantTable from "../../components/Employer/ApplicantTable";
+function ApplicantsTab({ applicants }) {
+  return (
+    <div>
+      <ApplicantTable applicants={applicants} />
+    </div>
+  );
 }
 function SettingsTab() {
   return <div>Settings Content</div>;
@@ -34,13 +38,6 @@ export default function EmployerJobDetail() {
           onClick={() => navigate(-1)}
         >
           <FaArrowCircleLeft />
-        </button>
-        <button
-          onClick={() => {
-            fetchApplicantsByJobId(jobId, accessToken);
-          }}
-        >
-          Test button
         </button>
         <p
           className={
@@ -86,7 +83,9 @@ export default function EmployerJobDetail() {
             numberOfApplicants={applicants.length}
           />
         )}
-        {selectedTab === "applicants" && <ApplicantsTab />}
+        {selectedTab === "applicants" && (
+          <ApplicantsTab applicants={applicants} />
+        )}
         {selectedTab === "settings" && <SettingsTab />}
       </div>
     </div>

@@ -4,17 +4,16 @@ import { uploadAvatar } from "../../utils/User";
 import { updateAvatarUrl } from "../../utils/User";
 import { getUserAvatarUrl } from "../../utils/User";
 function AvatarUploader({ userProfile, accessToken, onAvatarChange }) {
-  const [avatarUrl, setAvatarUrl] = useState(
-    userProfile.avatarUrl || "/images/defaultAvatar.jpg"
-  );
+  const [avatarUrl, setAvatarUrl] = useState("images/defaultAvatar.jpg");
   const [loading, setLoading] = useState(false);
   const [hover, setHover] = useState(false);
   useEffect(() => {
     const fetchAvatar = async () => {
       try {
         const data = await getUserAvatarUrl(accessToken);
-        console.log(data);
-        setAvatarUrl(data);
+        if (data) {
+          setAvatarUrl(data);
+        }
       } catch (error) {
         console.error("Error fetching avatar URL:", error);
       }

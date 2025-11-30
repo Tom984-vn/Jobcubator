@@ -49,9 +49,16 @@ export default function Sidebar() {
         >
           <HiMiniSquares2X2 className="text-xl" /> Trang chủ
         </NavLink>
-        <li className="hover:text-primary-400 cursor-pointer mt-2 flex items-center gap-2 hover:bg-secondary-2-100 p-2 rounded-lg transition-colors duration-300">
+        <NavLink
+          to="/employer/chat"
+          className={({ isActive }) => {
+            return isActive
+              ? "text-primary-400 cursor-pointer mt-2 flex items-center gap-2 bg-secondary-2-100 p-2 rounded-lg"
+              : "hover:text-primary-400 bg-none text-white cursor-pointer mt-2 flex items-center gap-2 hover:bg-secondary-2-100 p-2 rounded-lg transition-colors duration-300";
+          }}
+        >
           <IoChatbubbleEllipsesOutline className="text-xl" /> Tin nhắn
-        </li>
+        </NavLink>
         <label className="mt-6 text-gray-300 uppercase text-md">
           Tuyển dụng
         </label>

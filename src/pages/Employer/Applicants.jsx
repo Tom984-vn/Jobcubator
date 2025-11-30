@@ -87,80 +87,44 @@ const CVSearch = (props) => {
     </div>
   );
 };
+import ApplicantTable from "../../components/Employer/ApplicantTable";
 import { FaWandMagicSparkles } from "react-icons/fa6";
-function ApplicantTable(props) {
-  return (
-    <table className="bg-white rounded-lg m-5 text-sm w-[95%] mx-auto">
-      <thead>
-        <tr className="text-left border-b border-gray-300">
-          <th className="p-3">Tên ứng viên</th>
-          <th className="p-3">Công việc ứng tuyển</th>
-          <th className="p-3">Email</th>
-          <th className="p-3">Số điện thoại</th>
-          <th className="p-3">Trạng thái</th>
-          <th className="p-3">Ngày ứng tuyển</th>
-          <th className="p-3">Nhãn</th>
-          <th className="p-3">Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        {props.applicants && props.applicants.length ? (
-          props.applicants.map((applicant, index) => (
-            <tr
-              key={index}
-              className="border-b border-gray-300 hover:bg-gray-100 cursor-pointer"
-            >
-              <td className="p-3">{applicant.name}</td>
-              <td className="p-3">{applicant.jobApplied}</td>
-              <td className="p-3">{applicant.email}</td>
-              <td className="p-3">{applicant.phone}</td>
-              <td
-                className={`p-3 ${
-                  applicant.status == "Từ chối"
-                    ? " text-red-500 raleway-bold"
-                    : ""
-                } ${
-                  applicant.status == "Tiếp nhận"
-                    ? " text-green-500 raleway-bold"
-                    : ""
-                }`}
-              >
-                {applicant.status}
-              </td>
-              <td className="p-3">{applicant.applicationDate}</td>
-              <td
-                className={`p-3 ${
-                  applicant.label == "Tiềm năng"
-                    ? "text-green-500 raleway-bold"
-                    : ""
-                } ${
-                  applicant.label == "Ít tiềm năng"
-                    ? "text-red-500 raleway-bold"
-                    : ""
-                }`}
-              >
-                {applicant.label}
-              </td>
-              <td className="p-3">
-                <button className="ml-2 text-lg flex w-8 justify-center items-center aspect-square bg-red-500 rounded-lg text-white  hover:bg-red-800 transition-colors duration-200">
-                  <FaTrash />
-                </button>
-              </td>
-            </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan="8" className="p-3 text-center text-gray-500">
-              Không có ứng viên nào
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  );
-}
+import { getJobsByEmployer } from "../../utils/Job";
+import { fetchApplicantsByJobId } from "../../utils/Job";
+import { useEffect } from "react";
+import { getMyCompany } from "../../utils/Company";
 export default function Applicants() {
   const [jobList, setJobList] = useState([]);
+  const [applicants, setApplicants] = useState([]);
+
+  const fetchJobs = async () => {
+    const token = localStorage.getItem("accessToken");
+    const company = await getMyCompany(token);
+    const jobs = await getJobsByEmployer({ page: 0, size: 30 }, company[0].id);
+    setJobList(jobs.content);
+  };
+
+  const fetchApplicants = async (jobId) => {
+    const applicants = await fetchApplicantsByJobId(jobId);
+    setApplicants((prev) => {
+      //Remove duplicates
+      const existingIds = new Set(prev.map((applicant) => applicant.id));
+      const newApplicants = applicants.filter(
+        (applicant) => !existingIds.has(applicant.id)
+      );
+      return [...prev, ...newApplicants];
+    });
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  useEffect(() => {
+    if (jobList.length > 0) {
+      jobList.forEach((job) => fetchApplicants(job.id));
+    }
+  }, [jobList]);
   return (
     <div className="w-full box-border">
       <div className="bg-white raleway-bold text-xl border-b border-gray-500 w-full p-5 flex justify-between items-center">
@@ -171,28 +135,7 @@ export default function Applicants() {
         </button>
       </div>
       <CVSearch jobList={jobList} setJobList={setJobList} />
-      <ApplicantTable
-        applicants={[
-          {
-            name: "Nguyễn Văn A",
-            jobApplied: "Lập trình viên Frontend",
-            email: "nguyenvana@example.com",
-            phone: "0123456789",
-            status: "Tiếp nhận",
-            applicationDate: "2024-06-01",
-            label: "Tiềm năng",
-          },
-          {
-            name: "Trần Thị B",
-            jobApplied: "Chuyên viên Marketing",
-            email: "tranthib@example.com",
-            phone: "0987654321",
-            status: "Từ chối",
-            applicationDate: "2024-06-02",
-            label: "Ít tiềm năng",
-          },
-        ]}
-      />
+      <ApplicantTable applicants={applicants} />
     </div>
   );
 }

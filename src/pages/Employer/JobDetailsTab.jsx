@@ -25,6 +25,7 @@ const formatToMillions = (value) => {
 const mapJobTypeToVietnamese = {
   "full-time": "Toàn thời gian",
   "part-time": "Bán thời gian",
+  internship: "Thực tập",
 };
 const testJobData = {
   jobname: "Java Backend Developer (Junior-Middle-Senior)",

@@ -19,6 +19,8 @@ import { TbFileCv } from "react-icons/tb";
 import { FaRegPlusSquare } from "react-icons/fa";
 import { TfiWrite } from "react-icons/tfi";
 import { getMyCompany } from "../../utils/Company";
+import { IoChatbubbleEllipses } from "react-icons/io5";
+
 const UserMenu = () => {
   const navigate = useNavigate();
   return (
@@ -76,6 +78,7 @@ export default function NavBar() {
     }
   }, [accessToken]);
   const isJobPage = window.location.pathname.startsWith("/jobs");
+  const navigate = useNavigate();
   return (
     <header
       className={`bg-white p-4 flex items-center text-primary-200 shadow-md ${
@@ -162,12 +165,20 @@ export default function NavBar() {
                     </div>
                     <GoArrowRight className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
                   </NavLink>
-                  <li className="group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between">
+                  <NavLink
+                    className={({ isActive }) => {
+                      return isActive
+                        ? "group py-2 raleway-bold text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between"
+                        : "group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between";
+                    }}
+                    to={"/jobs/suggestions"}
+                  >
+                    {" "}
                     <div className="flex items-center gap-2">
-                      <FaBriefcase /> Việc làm phù hợp
+                      <FaBriefcase /> Báo cáo tư vấn việc làm
                     </div>
                     <GoArrowRight className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
-                  </li>
+                  </NavLink>
                 </ul>
                 <h3 className="text-gray-500">Công ty</h3>
                 <ul>
@@ -280,6 +291,7 @@ export default function NavBar() {
                         ? "group py-2 raleway-bold text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between"
                         : "group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between";
                     }}
+                    end
                     to={"/resume-builder"}
                   >
                     <div className="flex items-center gap-2">
@@ -333,17 +345,25 @@ export default function NavBar() {
           <FaAngleDown className="inline-block ml-1" size={12} />
         </NavLink>
       </div>
-      {userData ? (
-        <>
-          {companyData && (
+      {userData && companyData ? (
+        <div className="grow flex justify-end items-center relative">
+          {companyData.length > 0 && (
             <Link to="/employer">
-              <button className="btn bg-primary-300 hover:bg-secondary-2-300 transition-all duration-200 text-white active:bg-primary-200 active:outline-primary-100 py-2 px-4 mr-4">
+              <button className="btn text-sm w-fit bg-primary-300 hover:bg-secondary-2-300 transition-all duration-200 text-white active:bg-primary-200 active:outline-primary-100 py-2 px-4 mr-4">
                 Đi tới trang tuyển dụng
               </button>
             </Link>
           )}
           <div
-            className="cursor-pointer"
+            onClick={() => {
+              navigate("/chat");
+            }}
+            className="cursor-pointer text-sm w-fit bg-primary-300 hover:bg-secondary-2-300 transition-all rounded-lg duration-200 text-white active:bg-primary-200 active:outline-primary-100 py-2 px-4 mr-4"
+          >
+            <IoChatbubbleEllipses size={16} className="inline mr-2" /> Tin nhắn
+          </div>
+          <div
+            className="cursor-pointer w-50"
             onClick={() => setUserMenuOpen(!userMenuOpen)}
           >
             <div className="flex items-center gap-2">
@@ -359,7 +379,7 @@ export default function NavBar() {
             </div>
             {userMenuOpen && <UserMenu />}
           </div>
-        </>
+        </div>
       ) : (
         <div>
           <Link to="/login">

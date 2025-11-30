@@ -20,6 +20,9 @@ import EmployerAddJob from "./pages/Employer/EmployerAddJob";
 import Applicants from "./pages/Employer/Applicants";
 import EmployerJobDetail from "./pages/Employer/EmployerJobDetail";
 import MyApplications from "./pages/Findjob/MyApplications";
+import ChatPage from "./pages/Employer/Chat";
+import JobSuggestions from "./pages/Findjob/JobSuggestions";
+import CompanyProfile from "./pages/Employer/CompanyProfile";
 function App() {
   return (
     <BrowserRouter>
@@ -36,19 +39,21 @@ function App() {
             path="resume-builder/edit/:method"
             element={<ResumeDetail />}
           />
+          <Route path="jobs/suggestions" element={<JobSuggestions />} />
           <Route path="resume-builder/myCV" element={<MyResume />} />
+          <Route path="chat" element={<ChatPage />} />
         </Route>
         <Route path="/employer" element={<EmployerRoute />}>
-          <Route index element={<EmployerHomePage />} />
+          <Route index element={<CompanyProfile />} />
           <Route path="jobs" element={<EmployerJobs />} />
           <Route path="jobs/add" element={<EmployerAddJob />} />
           <Route path="applicants" element={<Applicants />} />
           <Route path="jobs/:id" element={<EmployerJobDetail />} />
+          <Route path="chat" element={<ChatPage />} />
         </Route>
         <Route path="/login" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/chat" element={<Chat />} />
       </Routes>
     </BrowserRouter>
   );

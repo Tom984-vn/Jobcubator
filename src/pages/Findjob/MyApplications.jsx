@@ -7,6 +7,8 @@ import { FaRegHeart } from "react-icons/fa";
 import { CiClock2 } from "react-icons/ci";
 import { BsWallet2 } from "react-icons/bs";
 import { IoLocationOutline } from "react-icons/io5";
+import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
+
 const statusMapToVn = {
   PENDING: "Đang chờ",
   ACCEPTED: "Đã chấp nhận",
@@ -25,7 +27,7 @@ const Job = (props) => {
 
   return (
     <div
-      className="relative bg-white rounded-lg box-content p-4 shadow-lg 
+      className="relative bg-white rounded-lg box-content p-2 shadow-lg 
                 border-2 border-transparent 
                 hover:border-[#E48309] 
                 transition-all duration-100 cursor-pointer group"
@@ -79,6 +81,17 @@ const Job = (props) => {
             <b className="text-black">Ứng tuyển ngày: </b>
             {formatDate(props.dateApplied)}
           </p>
+          <div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate("/chat");
+              }}
+              className="bg-primary-400 hover:bg-secondary-2-300 flex text-white text-sm items-center gap-2 px-4 py-2 rounded-md mt-3 transition-all duration-300"
+            >
+              <IoChatbubbleEllipsesOutline /> Chat
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -196,7 +209,7 @@ export default function MyApplications() {
   });
 
   return (
-    <div className="p-5">
+    <div className="p-5 min-h-screen">
       <div className="w-[95%] mx-auto">
         <h1 className="text-2xl font-bold mb-4">Việc làm đã ứng tuyển</h1>
         <p>Danh sách các việc làm bạn đã ứng tuyển sẽ hiển thị ở đây.</p>

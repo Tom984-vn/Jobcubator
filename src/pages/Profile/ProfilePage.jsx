@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { IoTrash } from "react-icons/io5";
 import { IoIosAddCircle } from "react-icons/io";
+import { FaWandMagicSparkles } from "react-icons/fa6";
+import { AIConsultation } from "../../utils/AI.jsx";
 function mapGenderToVn(gender) {
   if (gender === "MALE") return "Nam";
   if (gender === "FEMALE") return "Nữ";
@@ -75,6 +77,7 @@ import { getUserData } from "../Authentication/Authfunc.jsx";
 import { UpdateUserProfile } from "../../utils/User.jsx";
 import CVRadioInput from "../../components/CV/CVRadioInput.jsx";
 import AvatarUploader from "./AvatarUploader.jsx";
+import { PiPlus } from "react-icons/pi";
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState({});
   const accessToken = localStorage.getItem("accessToken");
@@ -89,6 +92,14 @@ export default function ProfilePage() {
     };
     fetchUserProfile();
   }, []);
+  const handleAIConsultation = async () => {
+    try {
+      const data = await AIConsultation(userProfile.userId);
+      console.log("AI Consultation Result:", data);
+    } catch (error) {
+      console.error("Error during AI consultation:", error);
+    }
+  };
   const postUpdate = async () => {
     try {
       const data = await UpdateUserProfile(userProfile, accessToken);
@@ -184,29 +195,52 @@ export default function ProfilePage() {
               one-field
               "
             >
-              <div className="top-part ">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="size-6 self-center"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <p
-                  className="
+              <div className="top-part flex justify-between">
+                <div className="flex">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="size-6 self-center"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <p
+                    className="
                   left-0
                   text-sm
                   flex-1
                   self-center
                   "
+                  >
+                    Loại thời gian
+                  </p>
+                </div>
+                <button
+                  className={`
+    cursor-pointer
+    active:outline-offset-1 active:outline-2
+    active:outline-primary-100
+    flex rounded
+    items-center
+    border-2
+    border-primary-300
+    hover:border-secondary-2-300
+    bg-white hover:bg-secondary-2-300
+    text-primary-300 hover:text-white
+    transition-colors duration-100 ease-in-out
+    h-8 w-fit p-2 gap-2
+    place-content-around
+    text-xs
+    `}
                 >
-                  Loại thời gian
-                </p>
+                  <IoIosAddCircle className="size-4" />
+                  Thêm
+                </button>
               </div>
               <div
                 className="
@@ -225,26 +259,7 @@ export default function ProfilePage() {
                 gap-2
                 overflow-scroll
                 "
-              >
-                <VarietyBox displayText="Toàn thời gian" />
-                <VarietyBox
-                  skillIcon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="size-4 self-center"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 0 1-9.694 6.46c-5.799 0-10.5-4.7-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 0 1 .818.162Z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  }
-                  displayText="Ca đêm"
-                />
-              </div>
+              ></div>
             </div>
             <div
               className="
@@ -334,29 +349,52 @@ export default function ProfilePage() {
             one-field
             "
           >
-            <div className="top-part ">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="size-6 self-center"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <p
-                className="
+            <div className="top-part flex justify-between">
+              <div className="flex">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="size-6 self-center"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <p
+                  className="
                 left-0
                 text-sm
                 flex-1
                 self-center
                 "
+                >
+                  Kĩ năng
+                </p>
+              </div>
+              <button
+                className={`
+    cursor-pointer
+    active:outline-offset-1 active:outline-2
+    active:outline-primary-100
+    flex rounded
+    items-center
+    border-2
+    border-primary-300
+    hover:border-secondary-2-300
+    bg-white hover:bg-secondary-2-300
+    text-primary-300 hover:text-white
+    transition-colors duration-100 ease-in-out
+    h-8 w-fit p-2 gap-2
+    place-content-around
+    text-xs
+    `}
               >
-                Kĩ năng
-              </p>
+                <IoIosAddCircle className="size-4" />
+                Thêm
+              </button>
             </div>
             <div
               className="
@@ -375,24 +413,7 @@ export default function ProfilePage() {
               gap-2
               overflow-scroll
               "
-            >
-              <VarietyBox displayText="KN 1" />
-              <VarietyBox displayText="KN 2" />
-              <VarietyBox displayText="KN 3" />
-              <VarietyBox displayText="KN 4" />
-              <VarietyBox displayText="KN 5" />
-              <VarietyBox displayText="KN 6" />
-              <VarietyBox displayText="KN 7" />
-              <VarietyBox displayText="KN 8" />
-              <VarietyBox displayText="KN 9" />
-              <VarietyBox displayText="KN 10" />
-              <VarietyBox displayText="KN 11" />
-              <VarietyBox displayText="KN 12" />
-              <VarietyBox displayText="KN 13" />
-              <VarietyBox displayText="KN 14" />
-              <VarietyBox displayText="KN 15" />
-              <VarietyBox displayText="KN 16" />
-            </div>
+            ></div>
           </div>
           <div
             className="
@@ -808,6 +829,10 @@ export default function ProfilePage() {
               onClick={postUpdate}
             >
               Cập nhật thông tin
+            </button>
+            <button className="bg-secondary-2-300 hover:bg-secondary-2-400 rounded-lg py-2 text-white">
+              <FaWandMagicSparkles className="inline mr-2" />
+              Gợi ý tìm việc theo hồ sơ
             </button>
             <button className="bg-gray-300 hover:bg-gray-400 text-primary-400 rounded-lg py-2">
               Hủy bỏ
