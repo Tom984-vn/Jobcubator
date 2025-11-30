@@ -219,7 +219,7 @@ Hãy kết hợp **cả ba** thông tin trên...
 
         # BƯỚC 3: Gửi cho Heavy LLM (Model xịn) trả lời
         # (Code gọi API stream giống hệt bài trước, chỉ thay content)
-        return await self.chat_respond_custom(final_prompt, system_prompt, context)
+        return self.chat_respond_custom(final_prompt, system_prompt, context)
     def _build_rag_prompt(self, cv_text: str, matched_jobs: List[Dict]) -> str:
         """Xây dựng System Prompt và User Prompt dựa trên CV và các Job phù hợp (đã được sửa để yêu cầu JSON)."""
         
@@ -231,7 +231,7 @@ Hãy kết hợp **cả ba** thông tin trên...
             với danh sách các công việc được cung cấp.
             
             Dữ liệu Ngữ cảnh:
-            - CV: {cv_text[:1000]}... (CV đầy đủ được cung cấp trong User Prompt)
+            - CV: {cv_text}... (CV đầy đủ được cung cấp trong User Prompt)
             - Danh sách Job Phù Hợp: {jobs_summary}
             
             QUY TẮC BẮT BUỘC:
@@ -261,11 +261,11 @@ Hãy kết hợp **cả ba** thông tin trên...
         job_context = "\n\n--- DANH SÁCH CÔNG VIỆC TƯƠNG ĐỒNG (Tham khảo) ---\n"
         for i, job in enumerate(matched_jobs):
             title = job.get('metadatas', {}).get('title', 'N/A')
-            description = job.get('document', 'Không có mô tả chi tiết.') # Đã sửa key từ 'description' sang 'document' nếu bạn dùng ChromaDB
+            description = job.get('documents', 'Không có mô tả chi tiết.') # Đã sửa key từ 'description' sang 'document' nếu bạn dùng ChromaDB
             distance = job.get('distance')
             
             job_context += f"## Công việc {i+1}: {title}\n"
-            job_context += f"Mô tả: {description[:300]}...\n"
+            job_context += f"Mô tả: {description}...\n"
             job_context += f"Khoảng cách Vector (Distance): {distance:.4f}\n"
             job_context += "--------------------------------------\n"
 
@@ -283,7 +283,7 @@ Hãy kết hợp **cả ba** thông tin trên...
 
 
 
-    async def rag_job_advisory(self, cv_text: str, matched_jobs: List[Dict]) -> AsyncGenerator[Dict[str, Any], None]:
+    async def rag_job_advisory(self, cv_text: str, matched_jobs: List[Dict]) -> Dict[str, Any]:
         """
         Gửi yêu cầu RAG tới mô hình LLM để tạo báo cáo tư vấn (non-streaming). Trả về kết quả hoàn chỉnh.
         """
@@ -295,9 +295,8 @@ Hãy kết hợp **cả ba** thông tin trên...
             user_prompt = prompt_payload.get('userPrompt')
         except Exception as e:
             logger.error(f"❌ Lỗi khi xây dựng RAG Prompt: {e}")
-            # Do non-streaming, ta trả về lỗi ngay
-            yield {"error": "Lỗi khi chuẩn bị dữ liệu cho AI."}
-            return
+            # Do non-streaming, ta trả về lỗi ngay {"error": "Lỗi khi chuẩn bị dữ liệu cho AI."}
+            return {"error": "Lỗi khi chuẩn bị dữ liệu cho AI."}
             
         # 2. Chuẩn bị Request Payload (Chat Completion API)
         payload = {
@@ -337,10 +336,10 @@ Hãy kết hợp **cả ba** thông tin trên...
             
             if content_text:
                 # Trả về kết quả hoàn chỉnh dưới dạng một chunk duy nhất
-                yield {"text": content_text}
+                return {"text": content_text}
             else:
                 logger.error("⚠️ Phản hồi từ LLM không chứa nội dung (content).")
-                yield {"error": "LLM không tạo ra phản hồi hợp lệ."}
+                return {"error": "LLM không tạo ra phản hồi hợp lệ."}
                 
         except httpx.HTTPStatusError as e:
             # Xử lý lỗi HTTP và trích xuất thông báo lỗi từ server
@@ -352,15 +351,15 @@ Hãy kết hợp **cả ba** thông tin trên...
 
             logger.error(f"❌ Lỗi HTTP khi gọi LLM: {e.response.text}")
             error_message = error_response.get('error', {}).get('message', f"Lỗi không xác định ({e.response.status_code})")
-            yield {"error": f"Lỗi HTTP từ LLM: {error_message}"}
+            return {"error": f"Lỗi HTTP từ LLM: {error_message}"}
             
         except httpx.RequestError as e:
             logger.error(f"❌ Lỗi kết nối khi gọi LLM: {e}")
-            yield {"error": "Lỗi kết nối mạng hoặc endpoint AI không khả dụng."}
+            return {"error": "Lỗi kết nối mạng hoặc endpoint AI không khả dụng."}
             
         except Exception as e:
             logger.error(f"❌ Lỗi không xác định trong RAG advisory: {e}")
-            yield {"error": "Lỗi không xác định khi tạo báo cáo."}
+            return {"error": "Lỗi không xác định khi tạo báo cáo."}
 
 class FPTChromaAdapter(EmbeddingFunction):
     """

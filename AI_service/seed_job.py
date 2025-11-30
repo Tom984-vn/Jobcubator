@@ -96,43 +96,6 @@ SAMPLE_USERS_RAW = [
 # --- HÀM HỖ TRỢ XÂY DỰNG TEXT CHO EMBEDDING ---
 
 
-
-
-def create_user_embedding_text(user_data: Dict[str, Any]) -> str:
-    """Xây dựng chuỗi văn bản User Profile toàn diện, tương tự logic trong sync.py."""
-    
-    # 1. Xây dựng lịch sử chi tiết
-    history_summary = []
-    for entry in user_data.get("history", []):
-        entry_type = entry.get('type', "Mục nhập").upper()
-        org = entry.get('organization', "Không rõ")
-        title = entry.get('title', "Không rõ")
-        desc = (entry.get('description', "")).replace('\n', ' ').strip()
-        
-        summary_part = ""
-        if entry_type == 'EXPERIENCE':
-            summary_part = f"Kinh nghiệm làm việc tại {org} ở vị trí '{title}'. Mô tả chính: {desc[:150]}..."
-        elif entry_type == 'EDUCATION':
-            summary_part = f"Học vấn tại {org}, đạt bằng cấp '{title}'."
-        
-        if summary_part:
-            history_summary.append(summary_part)
-        
-    history_text = "\n- " + "\n- ".join(history_summary) if history_summary else "Không có lịch sử chi tiết."
-    print(history_text)
-    # 2. Xây dựng đoạn text cuối cùng
-    user_text = (
-        f"Hồ sơ người dùng: {user_data.get('fullName')}. "
-        f"Vị trí hiện tại/mong muốn: {user_data.get('position')} tại {user_data.get('organization')}. "
-        f"Kinh nghiệm: {user_data.get('years_of_experience')} năm. "
-        f"Vị trí ưu tiên: {user_data.get('preferredLocation')}. "
-        f"Mức lương mong muốn: {user_data.get('minSalary')} - {user_data.get('maxSalary')}. "
-        f"\n\nLịch sử chi tiết:\n{history_text}"
-    )
-    print(user_text)
-    return user_data
-
-
 # --- CÁC HÀM ASYNC THAO TÁC DB ---
 
 async def add_sample_jobs_to_db(db_client: VectorDBClient, sample_jobs_raw: List[Dict[str, Any]]):
@@ -149,31 +112,12 @@ async def add_sample_jobs_to_db(db_client: VectorDBClient, sample_jobs_raw: List
         raise
 
 async def add_sample_users_to_db(db_client: VectorDBClient, sample_users_raw: List[Dict[str, Any]]):
-    """Xử lý dữ liệu user thô, xây dựng text và thêm vào DB (ASYNC)."""
-    
-    users_for_db = []
-    for user in sample_users_raw:
-        user_text = create_user_embedding_text(user)
-        
-        # Tạo metadata (loại bỏ id, history)
-        metadata = user.copy()
-        for key in ['id', 'history']:
-            metadata.pop(key, None)
-            
-        users_for_db.append({
-            "id": user["id"],
-            "text": user_text,
-            "metadatas": metadata
-        })
-        
-    if not users_for_db:
-        logger.warning("Không có user nào được chuẩn bị để thêm vào DB.")
-        return
+
         
     try:
-        logger.info(f"🔄 Đang thêm {len(users_for_db)} user profile mẫu vào VectorDB...")
+        logger.info(f"🔄 Đang thêm {len(sample_users_raw)} user profile mẫu vào VectorDB...")
         # Gọi hàm async add_users
-        await db_client.add_user_cv(users_for_db)
+        await db_client.add_user_cv(sample_users_raw)
         logger.info("✅ Thêm user profile mẫu thành công!")
     except Exception as e:
         logger.error(f"❌ Lỗi trong quá trình thêm user profile: {e}")

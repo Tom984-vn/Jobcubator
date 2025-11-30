@@ -225,8 +225,8 @@ class VectorDBClient:
                     "companyName": job.get("companyName", "N/A"),
                     "location": job.get("location", "N/A"),
                     "workType": job.get("jobType", "N/A"), 
-                    "min_salary": int(job.get("min_salary", 0)), 
-                    "max_salary": int(job.get("max_salary", 0)),
+                    "min_salary": int(job.get("minSalary", 0)), 
+                    "max_salary": int(job.get("maxSalary", 0)),
                     "tags": final_tags, # Dùng cho lọc/tìm kiếm theo kỹ năng
                 })
                 ids.append(job_id)
@@ -449,6 +449,7 @@ class VectorDBClient:
             )
             results = await asyncio.to_thread(get_func)
             
+            
             # 1. TRÍCH XUẤT AN TOÀN
             ids = results.get('ids', [])
             documents = results.get('documents', [])
@@ -461,18 +462,25 @@ class VectorDBClient:
                 return None
 
             # 3. ĐÓNG GÓI KẾT QUẢ
-            current_vector = embeddings[0] if embeddings and len(embeddings) > 0 else None
+            if embeddings is not None and len(embeddings) > 0:
+                current_vector = embeddings[0]
             
             if current_vector is None:
                 logger.warning(f"⚠️ CV User {user_id} tồn tại nhưng chưa có vector.")
                 return None
-
-            return {
+            
+            result_data = {
                 "user_id": ids[0],
-                "cv_text": documents[0] if documents else "",
+                "cv_text": documents[0] if documents and documents[0] is not None else "",
                 "vector": current_vector,
-                "metadatas": metadatas[0] if metadatas else {}
+                "metadatas": metadatas[0] if metadatas and metadatas[0] is not None else {}
             }
+            # Debug
+            logger.info(f"✅ Đã tìm thấy vector/CV cho User {user_id}.")
+            print("testinG!!!!")
+            print(result_data)
+            
+            return result_data
             
         except Exception as e:
             logger.error(f"❌ Lỗi khi lấy vector/CV cho User {user_id}: {e}")

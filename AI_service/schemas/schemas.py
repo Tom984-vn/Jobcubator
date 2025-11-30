@@ -45,7 +45,7 @@ class JobFilter(BaseModel):
 
 # --- 3. DTO cho Yêu cầu Tư vấn (/consult) ---
 class ConsultRequest(BaseModel):
-    cv_text: str
+    cv_text: str  #Thường cho = None
     user_id: Optional[str] = None
     top_k: int = 3
     filters: Optional[JobFilter] = None
