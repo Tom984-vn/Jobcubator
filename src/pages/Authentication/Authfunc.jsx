@@ -1,4 +1,13 @@
 import API from "../../api.jsx";
+export async function refreshToken() {
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (!refreshToken) throw new Error("No refresh token available");
+
+  const { data } = await API.post("/auth/refresh", { refreshToken });
+  localStorage.setItem("accessToken", data.accessToken);
+  localStorage.setItem("refreshToken", data.refreshToken);
+  return data;
+}
 
 export async function registerUser({ fullName, username, email, password }) {
   const { data } = await API.post("/auth/register", {

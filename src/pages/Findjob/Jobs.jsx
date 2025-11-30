@@ -2,14 +2,33 @@ import SearchBar from "./SearchBar";
 import AdvancedFilter from "./AdvancedFilter";
 import JobDisplay from "./JobDisplay";
 import AskAI from "./AskAI";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { RxCaretRight } from "react-icons/rx";
+import { fetchJobsByFilter } from "../../utils/Job";
 export default function Jobs() {
   const [AskData, setAskData] = useState([]);
+  const [filter, setFilter] = useState({});
+  const changeFilterField = (field, value) => {
+    setFilter((filters) => {
+      return { ...filters, [field]: value };
+    });
+  };
+  const [jobData, setJobData] = useState([]);
+  useEffect(() => {
+    const fetchFilteredJobs = async () => {
+      try {
+        const data = await fetchJobsByFilter({ page: 0, size: 30 }, filter);
+        setJobData(data.content);
+      } catch (error) {
+        console.error("Error fetching filtered jobs:", error);
+      }
+    };
+    fetchFilteredJobs();
+  }, [filter]);
   return (
     <div className="bg-gray-100 ">
-      <SearchBar />
+      <SearchBar changeFilterField={changeFilterField} filter={filter} />
       <div className="relative py-10">
         <div className="flex items-center gap-2 text-md text-gray-500 w-[90%] mx-auto">
           <NavLink className={"raleway-bold text-primary-400"} to={"/"}>
@@ -19,7 +38,10 @@ export default function Jobs() {
           <p>Tìm việc</p>
         </div>
         <div className="grid grid-cols-4 w-[90%] mx-auto gap-5">
-          <AdvancedFilter />
+          <AdvancedFilter
+            changeFilterField={changeFilterField}
+            filter={filter}
+          />
           <JobDisplay
             addData={(data) => {
               setAskData((datas) => {
@@ -31,6 +53,7 @@ export default function Jobs() {
                 return newDatas;
               });
             }}
+            jobData={jobData}
           />
         </div>
         <AskAI

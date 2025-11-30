@@ -1,6 +1,11 @@
+import { useNavigate } from "react-router-dom";
 export default function Resume(props) {
+  const navigate = useNavigate();
   return (
-    <div className="bg-gray-200 group p-3 rounded-xl hover:bg-blue-50 transition-all duration-300 cursor-pointer hover:border-primary-400 hover:border hover:scale-[1.02] hover:shadow-lg">
+    <div
+      onClick={() => navigate(`/resume-builder/edit`)}
+      className="bg-gray-200 group p-3 rounded-xl hover:bg-blue-50 transition-all duration-300 cursor-pointer hover:border-primary-400 hover:border hover:scale-[1.02] hover:shadow-lg"
+    >
       <div className="relative">
         <img
           src={props.exampleImage}

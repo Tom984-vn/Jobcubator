@@ -1,6 +1,6 @@
 .authBanner {
   flex: 1;
-  background-image: url("./images/authBanner.jpg");
+  background-image: url("images/authBanner.jpg");
   background-size: cover;
   background-position: center;
   clip-path: polygon(5% 0, 100% 0, 100% 100%, 0 100%);

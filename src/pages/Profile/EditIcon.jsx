@@ -25,6 +25,7 @@ export default function EditIcon({
     active:outline-offset-1 active:outline-2
     active:outline-primary-100
     flex rounded
+    items-center
     border-2
     border-primary-300
     hover:border-secondary-2-300

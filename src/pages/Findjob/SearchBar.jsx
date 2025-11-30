@@ -216,11 +216,21 @@ const LocationDropDown = () => {
             Hãy chọn một tỉnh, thành phố
           </p>
         )}
+        {selectedCities.length > 0 && (
+          <div className="flex justify-end mt-4 border-t border-gray-300 py-3">
+            <button className="bg-gray-200 text-gray-700 px-8 py-2 rounded-full mr-4 hover:bg-gray-300">
+              Hủy
+            </button>
+            <button className="bg-secondary-2-300 text-white  py-2 rounded-full px-10 hover:bg-secondary-2-400">
+              Chọn
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-export default function SearchBar() {
+export default function SearchBar(props) {
   const [open, setOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   return (
@@ -251,6 +261,11 @@ export default function SearchBar() {
           <input
             placeholder="Vị trí tuyển dụng"
             className="w-100 focus:outline-0 border-r-2 border-gray-300 p-2"
+            onChange={(e) => {
+              if (props.useFilter === false) return;
+              props.changeFilterField("title", e.target.value);
+            }}
+            value={props.filter && props.filter.title}
           />
         </div>
         <div className="flex items-center">

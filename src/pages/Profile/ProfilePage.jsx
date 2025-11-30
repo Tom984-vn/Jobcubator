@@ -2,6 +2,14 @@ import "./Profile.css";
 import EditIcon from "./EditIcon.jsx";
 import NavBar from "../../components/NavBar/NavBar";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { IoTrash } from "react-icons/io5";
+import { IoIosAddCircle } from "react-icons/io";
+function mapGenderToVn(gender) {
+  if (gender === "MALE") return "Nam";
+  if (gender === "FEMALE") return "Nữ";
+  return "Khác";
+}
 
 const VarietyBox = (props) => {
   return (
@@ -63,10 +71,34 @@ const AcademicsBox = (props) => {
     </div>
   );
 };
-
+import { getUserData } from "../Authentication/Authfunc.jsx";
+import { UpdateUserProfile } from "../../utils/User.jsx";
+import CVRadioInput from "../../components/CV/CVRadioInput.jsx";
+import AvatarUploader from "./AvatarUploader.jsx";
 export default function ProfilePage() {
+  const [userProfile, setUserProfile] = useState({});
+  const accessToken = localStorage.getItem("accessToken");
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const data = await getUserData(accessToken);
+        setUserProfile(data);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+    fetchUserProfile();
+  }, []);
+  const postUpdate = async () => {
+    try {
+      const data = await UpdateUserProfile(userProfile, accessToken);
+      alert("Update thông tin thành công!");
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+    }
+  };
   return (
-    <div className="relative bg-gray-300 gap-3 items-center ">
+    <div className="relative bg-gray-100 gap-3 items-center ">
       <NavBar />
       <div
         className="
@@ -87,7 +119,6 @@ export default function ProfilePage() {
           h-fit
           flex-2
           gap-3
-          bg-green-200
           "
         >
           <div
@@ -131,7 +162,6 @@ export default function ProfilePage() {
                 >
                   Địa điểm
                 </p>
-                <EditIcon displayText="Chỉnh sửa" />
               </div>
               <input
                 className="
@@ -139,7 +169,14 @@ export default function ProfilePage() {
                 left-0
                 flex-1
                 "
-                placeholder="Location here"
+                placeholder="Nhập địa điểm bạn muốn làm việc"
+                value={userProfile.preferredLocation || ""}
+                onChange={(e) =>
+                  setUserProfile({
+                    ...userProfile,
+                    preferredLocation: e.target.value,
+                  })
+                }
               ></input>
             </div>
             <div
@@ -170,7 +207,6 @@ export default function ProfilePage() {
                 >
                   Loại thời gian
                 </p>
-                <EditIcon displayText="Chỉnh sửa" />
               </div>
               <div
                 className="
@@ -236,13 +272,16 @@ export default function ProfilePage() {
                 >
                   Email
                 </p>
-                <EditIcon displayText="Chỉnh sửa" />
               </div>
               <input
                 className="
                 info-text-box
                 "
-                placeholder="Mail"
+                placeholder="Nhập mail của bạn"
+                value={userProfile.email || ""}
+                onChange={(e) =>
+                  setUserProfile({ ...userProfile, email: e.target.value })
+                }
               ></input>
             </div>
             <div
@@ -273,7 +312,6 @@ export default function ProfilePage() {
                 >
                   Số di động
                 </p>
-                <EditIcon displayText="Chỉnh sửa" />
               </div>
               <input
                 className="
@@ -281,6 +319,13 @@ export default function ProfilePage() {
                 left-0
                 "
                 placeholder="SDT"
+                value={userProfile.phoneNumber || ""}
+                onChange={(e) =>
+                  setUserProfile({
+                    ...userProfile,
+                    phoneNumber: e.target.value,
+                  })
+                }
               ></input>
             </div>
           </div>
@@ -312,7 +357,6 @@ export default function ProfilePage() {
               >
                 Kĩ năng
               </p>
-              <EditIcon displayText="Chỉnh sửa" />
             </div>
             <div
               className="
@@ -394,88 +438,380 @@ export default function ProfilePage() {
                     />
                   </svg>
                 }
+                onClick={() =>
+                  setUserProfile({
+                    ...userProfile,
+                    history: [
+                      ...(userProfile.history || []),
+                      {
+                        type: "EDUCATION",
+                        organization: "",
+                        title: "",
+                        startDate: "",
+                        endDate: "",
+                        description: "",
+                      },
+                    ],
+                  })
+                }
                 className="w-fit"
               />
             </div>
-            <div
-              className="
-              flex
-              flex-col
-              flex-1
-              h-fit
-              border-slate-200
-              transition-all
-              ease-in-out
-              duration-200
-              hover:border-slate-300
-              hover:shadow
-              rounded
-              p-2
-              gap-2
-              "
-            >
-              <AcademicsBox
-                timeString="2016 - 2020"
-                displayText="ABC Highschool"
-                field="Chuyên Toán"
+            <div className="flex flex-col flex-1 h-fit border-slate-200 transition-all ease-in-out duration-200 hover:border-slate-300 hover:shadow rounded p-2 gap-2">
+              {(
+                (userProfile.history &&
+                  userProfile.history.filter(
+                    (entry) => entry.type === "EDUCATION"
+                  )) ||
+                []
+              ).map((entry, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col gap-1 border-b border-gray-200 pb-2"
+                >
+                  <input
+                    placeholder="Trường học"
+                    value={entry.organization}
+                    onChange={(e) => {
+                      const educationEntries = userProfile.history.filter(
+                        (entry) => entry.type === "EDUCATION"
+                      );
+                      const newHistory = [...educationEntries];
+                      newHistory[index].organization = e.target.value;
+                      setUserProfile({
+                        ...userProfile,
+                        history: userProfile.history
+                          .filter((entry) => entry.type !== "EDUCATION")
+                          .concat(newHistory),
+                      });
+                    }}
+                    className="border px-2 py-1 rounded"
+                  />
+                  <input
+                    placeholder="Chuyên ngành"
+                    value={entry.title}
+                    onChange={(e) => {
+                      const educationEntries = userProfile.history.filter(
+                        (entry) => entry.type === "EDUCATION"
+                      );
+                      const newHistory = [...educationEntries];
+                      newHistory[index].title = e.target.value;
+                      setUserProfile({
+                        ...userProfile,
+                        history: userProfile.history
+                          .filter((entry) => entry.type !== "EDUCATION")
+                          .concat(newHistory),
+                      });
+                    }}
+                    className="border px-2 py-1 rounded"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      placeholder="Ngày bắt đầu"
+                      value={entry.startDate}
+                      onChange={(e) => {
+                        const educationEntries = userProfile.history.filter(
+                          (entry) => entry.type === "EDUCATION"
+                        );
+                        const newHistory = [...educationEntries];
+                        newHistory[index].startDate = e.target.value;
+                        setUserProfile({
+                          ...userProfile,
+                          history: userProfile.history
+                            .filter((entry) => entry.type !== "EDUCATION")
+                            .concat(newHistory),
+                        });
+                      }}
+                      className="border px-2 py-1 rounded flex-1"
+                    />
+                    <input
+                      placeholder="Ngày kết thúc"
+                      value={entry.endDate}
+                      onChange={(e) => {
+                        const educationEntries = userProfile.history.filter(
+                          (entry) => entry.type === "EDUCATION"
+                        );
+                        const newHistory = [...educationEntries];
+                        newHistory[index].endDate = e.target.value;
+                        setUserProfile({
+                          ...userProfile,
+                          history: userProfile.history
+                            .filter((entry) => entry.type !== "EDUCATION")
+                            .concat(newHistory),
+                        });
+                      }}
+                      className="border px-2 py-1 rounded flex-1"
+                    />
+                  </div>
+                  <textarea
+                    placeholder="Mô tả thành tích"
+                    value={entry.description}
+                    onChange={(e) => {
+                      const educationEntries = userProfile.history.filter(
+                        (entry) => entry.type === "EDUCATION"
+                      );
+                      const newHistory = [...educationEntries];
+                      newHistory[index].description = e.target.value;
+                      setUserProfile({
+                        ...userProfile,
+                        history: userProfile.history
+                          .filter((entry) => entry.type !== "EDUCATION")
+                          .concat(newHistory),
+                      });
+                    }}
+                    className="border px-2 py-1 rounded"
+                  />
+                  <button
+                    className="hover:bg-red-500 flex rounded p-1 px-4 items-center hover:text-white text-red-500 border-2 border-red-500 self-start"
+                    onClick={() => {
+                      const educationEntries = userProfile.history.filter(
+                        (entry) => entry.type === "EDUCATION"
+                      );
+                      const newHistory = [...educationEntries];
+                      newHistory.splice(index, 1);
+                      setUserProfile({
+                        ...userProfile,
+                        history: userProfile.history
+                          .filter((entry) => entry.type !== "EDUCATION")
+                          .concat(newHistory),
+                      });
+                    }}
+                  >
+                    <IoTrash /> Xóa
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="h-fit one-field">
+            <div className="top-part ">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="size-6 self-center"
+              >
+                <path d="M11.7 2.805a.75.75 0 0 1 .6 0A60.65 60.65 0 0 1 22.83 8.72a.75.75 0 0 1-.231 1.337 49.948 49.948 0 0 0-9.902 3.912l-.003.002c-.114.06-.227.119-.34.18a.75.75 0 0 1-.707 0A50.88 50.88 0 0 0 7.5 12.173v-.224c0-.131.067-.248.172-.311a54.615 54.615 0 0 1 4.653-2.52.75.75 0 0 0-.65-1.352 56.123 56.123 0 0 0-4.78 2.589 1.858 1.858 0 0 0-.859 1.228 49.803 49.803 0 0 0-4.634-1.527.75.75 0 0 1-.231-1.337A60.653 60.653 0 0 1 11.7 2.805Z" />
+                <path d="M13.06 15.473a48.45 48.45 0 0 1 7.666-3.282c.134 1.414.22 2.843.255 4.284a.75.75 0 0 1-.46.711 47.87 47.87 0 0 0-8.105 4.342.75.75 0 0 1-.832 0 47.87 47.87 0 0 0-8.104-4.342.75.75 0 0 1-.461-.71c.035-1.442.121-2.87.255-4.286.921.304 1.83.634 2.726.99v1.27a1.5 1.5 0 0 0-.14 2.508c-.09.38-.222.753-.397 1.11.452.213.901.434 1.346.66a6.727 6.727 0 0 0 .551-1.607 1.5 1.5 0 0 0 .14-2.67v-.645a48.549 48.549 0 0 1 3.44 1.667 2.25 2.25 0 0 0 2.12 0Z" />
+                <path d="M4.462 19.462c.42-.419.753-.89 1-1.395.453.214.902.435 1.347.662a6.742 6.742 0 0 1-1.286 1.794.75.75 0 0 1-1.06-1.06Z" />
+              </svg>
+              <p className="top-0 left-0 text-sm flex-1 self-center">
+                Kinh nghiệm làm việc
+              </p>
+              <EditIcon
+                displayText="Thêm"
+                onClick={() =>
+                  setUserProfile({
+                    ...userProfile,
+                    history: [
+                      ...(userProfile.history || []),
+                      {
+                        type: "EXPERIENCE",
+                        organization: "",
+                        title: "",
+                        startDate: "",
+                        endDate: "",
+                        description: "",
+                      },
+                    ],
+                  })
+                }
+                icon={<IoIosAddCircle />}
+                className="w-fit"
               />
-              <div className="h-0.5 bg-gray-200"></div>
-              <AcademicsBox displayText="ABC Highschool" />
-              <div className="h-0.5 bg-gray-200"></div>
-              <AcademicsBox displayText="ABC Highschool" />
+            </div>
+            <div className="flex flex-col flex-1 h-fit border-slate-200 transition-all ease-in-out duration-200 hover:border-slate-300 hover:shadow rounded p-2 gap-2">
+              {(
+                (userProfile.history &&
+                  userProfile.history.filter(
+                    (entry) => entry.type === "EXPERIENCE"
+                  )) ||
+                []
+              ).map((entry, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col gap-1 border-b border-gray-200 pb-2"
+                >
+                  <input
+                    placeholder="Công ty"
+                    value={entry.organization}
+                    onChange={(e) => {
+                      const experienceEntries = userProfile.history.filter(
+                        (entry) => entry.type === "EXPERIENCE"
+                      );
+                      const newHistory = [...experienceEntries];
+                      newHistory[index].organization = e.target.value;
+                      setUserProfile({
+                        ...userProfile,
+                        history: userProfile.history
+                          .filter((entry) => entry.type !== "EXPERIENCE")
+                          .concat(newHistory),
+                      });
+                    }}
+                    className="border px-2 py-1 rounded"
+                  />
+                  <input
+                    placeholder="Vị trí"
+                    value={entry.title}
+                    onChange={(e) => {
+                      const experienceEntries = userProfile.history.filter(
+                        (entry) => entry.type === "EXPERIENCE"
+                      );
+                      const newHistory = [...experienceEntries];
+                      newHistory[index].title = e.target.value;
+                      setUserProfile({
+                        ...userProfile,
+                        history: userProfile.history
+                          .filter((entry) => entry.type !== "EXPERIENCE")
+                          .concat(newHistory),
+                      });
+                    }}
+                    className="border px-2 py-1 rounded"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      placeholder="Ngày bắt đầu"
+                      value={entry.startDate}
+                      onChange={(e) => {
+                        const experienceEntries = userProfile.history.filter(
+                          (entry) => entry.type === "EXPERIENCE"
+                        );
+                        const newHistory = [...experienceEntries];
+                        newHistory[index].startDate = e.target.value;
+                        setUserProfile({
+                          ...userProfile,
+                          history: userProfile.history
+                            .filter((entry) => entry.type !== "EXPERIENCE")
+                            .concat(newHistory),
+                        });
+                      }}
+                      className="border px-2 py-1 rounded flex-1"
+                    />
+                    <input
+                      placeholder="Ngày kết thúc"
+                      value={entry.endDate}
+                      onChange={(e) => {
+                        const experienceEntries = userProfile.history.filter(
+                          (entry) => entry.type === "EXPERIENCE"
+                        );
+                        const newHistory = [...experienceEntries];
+                        newHistory[index].endDate = e.target.value;
+                        setUserProfile({
+                          ...userProfile,
+                          history: userProfile.history
+                            .filter((entry) => entry.type !== "EXPERIENCE")
+                            .concat(newHistory),
+                        });
+                      }}
+                      className="border px-2 py-1 rounded flex-1"
+                    />
+                  </div>
+                  <textarea
+                    placeholder="Mô tả công việc"
+                    value={entry.description}
+                    onChange={(e) => {
+                      const experienceEntries = userProfile.history.filter(
+                        (entry) => entry.type === "EXPERIENCE"
+                      );
+                      const newHistory = [...experienceEntries];
+                      newHistory[index].description = e.target.value;
+                      setUserProfile({
+                        ...userProfile,
+                        history: userProfile.history
+                          .filter((entry) => entry.type !== "EXPERIENCE")
+                          .concat(newHistory),
+                      });
+                    }}
+                    className="border px-2 py-1 rounded"
+                  />
+                  <button
+                    className="hover:bg-red-500 flex rounded p-1 px-4 items-center hover:text-white text-red-500 border-2 border-red-500 self-start"
+                    onClick={() => {
+                      const experienceEntries = userProfile.history.filter(
+                        (entry) => entry.type === "EXPERIENCE"
+                      );
+                      const newHistory = [...experienceEntries];
+                      newHistory.splice(index, 1);
+                      setUserProfile({
+                        ...userProfile,
+                        history: userProfile.history
+                          .filter((entry) => entry.type !== "EXPERIENCE")
+                          .concat(newHistory),
+                      });
+                    }}
+                  >
+                    <IoTrash /> Xóa
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-        <div
-          className="
-          relative
-          flex-1
-          bg-white
-          h-25
-          rounded-md
-          right-0
+        <div className="bg-white w-[30%] h-fit rounded-md p-5 shadow-md">
+          <div
+            className="
+          flex
+          items-start justify-center
+          gap-5
           "
-        >
-          <div
-            className="
-            absolute
-            bg-pink-300
-            flex-3
-            top-1/5
-            left-6
-            h-15
-            w-15
-            rounded
-            "
-          ></div>
-          <div
-            className="
-            main-info-texts-block
-            absolute
-            left-26
-            top-1/2
-            -translate-y-1/2
-            w-32
-            h-16
-            "
           >
-            <p
-              className="
-                absolute
-                top-1/8
+            <AvatarUploader
+              userProfile={userProfile}
+              accessToken={accessToken}
+            />
+            <div className="flex flex-col">
+              <p
+                className="
+                raleway-bold text-primary-400
                 "
+              >
+                {userProfile.fullName || "Tên đầy đủ"}
+              </p>
+              <input
+                placeholder="Vị trí mong muốn"
+                value={userProfile.position}
+                onChange={(e) =>
+                  setUserProfile({ ...userProfile, position: e.target.value })
+                }
+                className="border  border-gray-300 rounded-lg px-3 py-1 focus:outline-0 mt-2 hover:border-primary-400 hover:border-2 focus:border-2 focus:border-primary-400"
+              />
+              <input
+                placeholder="Ngày tháng năm sinh"
+                value={userProfile.birthDate}
+                onChange={(e) =>
+                  setUserProfile({
+                    ...userProfile,
+                    birthDate: e.target.value,
+                  })
+                }
+                className="border mb-3 border-gray-300 rounded-lg px-3 py-1 focus:outline-0 mt-2 hover:border-primary-400 hover:border-2 focus:border-2 focus:border-primary-400"
+              />
+              <CVRadioInput
+                label="Giới tính"
+                options={["Nam", "Nữ", "Khác"]}
+                checked={mapGenderToVn(userProfile.gender) || "Khác"}
+                onChange={(value) => {
+                  const mapVnToGender = {
+                    Nam: "MALE",
+                    Nữ: "FEMALE",
+                    Khác: "OTHER",
+                  };
+                  value = mapVnToGender[value];
+                  setUserProfile({ ...userProfile, gender: value });
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-4">
+            <button
+              className="bg-primary-400 hover:bg-secondary-2-300 rounded-lg py-2 text-white "
+              onClick={postUpdate}
             >
-              Name here
-            </p>
-            <p
-              className="
-                absolute
-                text-sm
-                bottom-1/8
-                "
-            >
-              Position here
-            </p>
+              Cập nhật thông tin
+            </button>
+            <button className="bg-gray-300 hover:bg-gray-400 text-primary-400 rounded-lg py-2">
+              Hủy bỏ
+            </button>
           </div>
           {/* <Link to="/courses">
             <button

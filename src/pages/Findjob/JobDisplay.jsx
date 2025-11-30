@@ -7,6 +7,12 @@ import { AiOutlineExperiment } from "react-icons/ai";
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+const formatToMillions = (number) => {
+  if (number >= 1000000) {
+    return (number / 1000000).toFixed(1) + "tr VND";
+  }
+  return number.toLocaleString("vi-VN") + " VND";
+};
 const Job = (props) => {
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
@@ -42,7 +48,8 @@ const Job = (props) => {
               })}
             </div>
             <p className="text-primary-400 font-bold group-hover:text-[#E48309]">
-              {props.jobData.salaryMin} - {props.jobData.salaryMax}
+              {formatToMillions(props.jobData.salaryMin)} -{" "}
+              {formatToMillions(props.jobData.salaryMax)}
             </p>
           </div>
           <h3 className="raleway-bold group-hover:text-[#E48309]">
@@ -76,7 +83,7 @@ const Job = (props) => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
-              navigate("2");
+              navigate(`${props.jobData.id}`);
             }}
             className="bg-primary-200 text-white p-1 px-2 rounded-full hover:bg-secondary-2-300"
           >
@@ -138,114 +145,36 @@ export default function JobDisplay(props) {
         </button>
       </div>
       <div className="mt-4 space-y-4 max-h-[100vh] overflow-y-scroll">
-        <Job
-          jobData={{
-            jobname: "Chuyên Viên Phát Triển Phần Mềm",
-            company: "Công Ty ABC",
-            category: "Công Nghệ Thông Tin",
-            type: "Toàn thời gian",
-            salaryMin: "15 tr",
-            salaryMax: "25 tr",
-            experience: "1 năm",
-            location: "Hà Nội",
-            extraTags: ["Công nghệ thông tin", "Chuyên viên"],
-            tags: ["Hot", "1 giờ trước"],
-            logo: "/images/exampleLogo.png",
-          }}
-          ask={(data) => {
-            props.addData(data);
-          }}
-        />
-        <Job
-          jobData={{
-            jobname: "Chuyên Viên Phát Triển Phần Mềm 2",
-            company: "Công Ty ABC",
-            category: "Công Nghệ Thông Tin",
-            type: "Toàn thời gian",
-            salaryMin: "15 tr",
-            salaryMax: "25 tr",
-            experience: "1 năm",
-            location: "Hà Nội",
-            extraTags: ["Công nghệ thông tin", "Chuyên viên"],
-            tags: ["Hot", "1 giờ trước"],
-            logo: "/images/exampleLogo.png",
-          }}
-          ask={(data) => {
-            props.addData(data);
-          }}
-        />
-        <Job
-          jobData={{
-            jobname: "Chuyên Viên Phát Triển Phần Mềm",
-            company: "Công Ty ABC",
-            category: "Công Nghệ Thông Tin",
-            type: "Toàn thời gian",
-            salaryMin: "15 tr",
-            salaryMax: "25 tr",
-            experience: "1 năm",
-            location: "Hà Nội",
-            extraTags: ["Công nghệ thông tin", "Chuyên viên"],
-            tags: ["Hot", "1 giờ trước"],
-            logo: "/images/exampleLogo.png",
-          }}
-          ask={(data) => {
-            props.addData(data);
-          }}
-        />
-        <Job
-          jobData={{
-            jobname: "Chuyên Viên Phát Triển Phần Mềm",
-            company: "Công Ty ABC",
-            category: "Công Nghệ Thông Tin",
-            type: "Toàn thời gian",
-            salaryMin: "15 tr",
-            salaryMax: "25 tr",
-            experience: "1 năm",
-            location: "Hà Nội",
-            extraTags: ["Công nghệ thông tin", "Chuyên viên"],
-            tags: ["Hot", "1 giờ trước"],
-            logo: "/images/exampleLogo.png",
-          }}
-          ask={(data) => {
-            props.addData(data);
-          }}
-        />
-        <Job
-          jobData={{
-            jobname: "Chuyên Viên Phát Triển Phần Mềm",
-            company: "Công Ty ABC",
-            category: "Công Nghệ Thông Tin",
-            type: "Toàn thời gian",
-            salaryMin: "15 tr",
-            salaryMax: "25 tr",
-            experience: "1 năm",
-            location: "Hà Nội",
-            extraTags: ["Công nghệ thông tin", "Chuyên viên"],
-            tags: ["Hot", "1 giờ trước"],
-            logo: "/images/exampleLogo.png",
-          }}
-          ask={(data) => {
-            props.addData(data);
-          }}
-        />
-        <Job
-          jobData={{
-            jobname: "Chuyên Viên Phát Triển Phần Mềm",
-            company: "Công Ty ABC",
-            category: "Công Nghệ Thông Tin",
-            type: "Toàn thời gian",
-            salaryMin: "15 tr",
-            salaryMax: "25 tr",
-            experience: "1 năm",
-            location: "Hà Nội",
-            extraTags: ["Công nghệ thông tin", "Chuyên viên"],
-            tags: ["Hot", "1 giờ trước"],
-            logo: "/images/exampleLogo.png",
-          }}
-          ask={(data) => {
-            props.addData(data);
-          }}
-        />
+        {props.jobData.length == 0 ? (
+          <p className="text-gray-500">Không tìm thấy việc làm phù hợp.</p>
+        ) : (
+          props.jobData.map((jobData) => {
+            return (
+              <Job
+                jobData={{
+                  id: jobData.id,
+                  jobname: jobData.title,
+                  company: "Công Ty ABC",
+                  category: jobData.category,
+                  type: jobData.jobType,
+                  salaryMin: jobData.minSalary,
+                  salaryMax: jobData.maxSalary,
+                  experience: "1 năm",
+                  location:
+                    jobData.location == "Remote"
+                      ? "Làm việc từ xa"
+                      : jobData.location,
+                  extraTags: ["Công nghệ thông tin", "Chuyên viên"],
+                  tags: ["Hot", "1 giờ trước"],
+                  logo: "/images/exampleLogo.png",
+                }}
+                ask={(data) => {
+                  props.addData(data);
+                }}
+              />
+            );
+          })
+        )}
       </div>
     </div>
   );

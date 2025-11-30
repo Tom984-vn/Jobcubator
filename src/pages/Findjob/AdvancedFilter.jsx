@@ -10,6 +10,7 @@ const RadioOption = (props) => {
         name={props.nameFor}
         onClick={() => {
           props.setValue && props.setValue(props.category, props.name);
+          props.select && props.select();
         }}
         className="
           appearance-none w-4 h-4 rounded-full
@@ -35,7 +36,7 @@ const RadioOption = (props) => {
     </div>
   );
 };
-export default function AdvancedFilter() {
+export default function AdvancedFilter(props) {
   return (
     <div className="col-span-1">
       <h1 className="flex items-center raleway-bold text-xl gap-2 border-b border-gray-300 py-1">
@@ -57,15 +58,78 @@ export default function AdvancedFilter() {
       <h2 className="raleway-bold py-2 text-md">Mức lương</h2>
 
       <div className="grid grid-cols-2 gap-2">
-        <RadioOption name="Tất cả" nameFor="salary" />
-        <RadioOption name="Dưới 10 triệu" nameFor="salary" />
-        <RadioOption name="10-15 triệu" nameFor="salary" />
-        <RadioOption name="15-20 triệu" nameFor="salary" />
-        <RadioOption name="20-25 triệu" nameFor="salary" />
-        <RadioOption name="25-30 triệu" nameFor="salary" />
-        <RadioOption name="30-50 triệu" nameFor="salary" />
-        <RadioOption name="Trên 50 triệu" nameFor="salary" />
-        <RadioOption name="Thỏa thuận" nameFor="salary" />
+        <RadioOption
+          name="Tất cả"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", null);
+            props.changeFilterField("maxSalary", null);
+          }}
+        />
+        <RadioOption
+          name="Dưới 10 triệu"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", 0);
+            props.changeFilterField("maxSalary", 10000000);
+          }}
+        />
+        <RadioOption
+          name="10-15 triệu"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", 10000000);
+            props.changeFilterField("maxSalary", 15);
+          }}
+        />
+        <RadioOption
+          name="15-20 triệu"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", 15000000);
+            props.changeFilterField("maxSalary", 20000000);
+          }}
+        />
+        <RadioOption
+          name="20-25 triệu"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", 20000000);
+            props.changeFilterField("maxSalary", 25000000);
+          }}
+        />
+        <RadioOption
+          name="25-30 triệu"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", 25000000);
+            props.changeFilterField("maxSalary", 30000000);
+          }}
+        />
+        <RadioOption
+          name="30-50 triệu"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", 30000000);
+            props.changeFilterField("maxSalary", 50000000);
+          }}
+        />
+        <RadioOption
+          name="Trên 50 triệu"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", 50000000);
+            props.changeFilterField("maxSalary", Infinity);
+          }}
+        />
+        <RadioOption
+          name="Thỏa thuận"
+          nameFor="salary"
+          select={() => {
+            props.changeFilterField("minSalary", null);
+            props.changeFilterField("maxSalary", null);
+          }}
+        />
       </div>
       <div className="grid grid-cols-8 w-full my-3 gap-2">
         <input
@@ -86,11 +150,41 @@ export default function AdvancedFilter() {
       </button>
       <h2 className="raleway-bold py-2 text-md">Hình thức làm việc</h2>
       <div className="grid grid-cols-2 gap-2">
-        <RadioOption name="Tất cả" nameFor="type" />
-        <RadioOption name="Toàn thời gian" nameFor="type" />
-        <RadioOption name="Bán thời gian" nameFor="type" />
-        <RadioOption name="Thực tập" nameFor="type" />
-        <RadioOption name="Khác" nameFor="type" />
+        <RadioOption
+          name="Tất cả"
+          nameFor="type"
+          select={() => {
+            props.changeFilterField("jobType", null);
+          }}
+        />
+        <RadioOption
+          name="Toàn thời gian"
+          nameFor="type"
+          select={() => {
+            props.changeFilterField("jobType", "Full-time");
+          }}
+        />
+        <RadioOption
+          name="Bán thời gian"
+          nameFor="type"
+          select={() => {
+            props.changeFilterField("jobType", "Part-time");
+          }}
+        />
+        <RadioOption
+          name="Thực tập"
+          nameFor="type"
+          select={() => {
+            props.changeFilterField("jobType", "Internship");
+          }}
+        />
+        <RadioOption
+          name="Khác"
+          nameFor="type"
+          select={() => {
+            props.changeFilterField("jobType", null);
+          }}
+        />
       </div>
     </div>
   );

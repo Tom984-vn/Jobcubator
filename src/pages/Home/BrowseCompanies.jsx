@@ -3,6 +3,7 @@ import { useState } from "react";
 import { PiCaretLeft } from "react-icons/pi";
 import { PiCaretRight } from "react-icons/pi";
 import { useEffect } from "react";
+import { fetchTopCompanies } from "../../utils/Company";
 const Company = (props) => {
   return (
     <div
@@ -30,80 +31,6 @@ const Company = (props) => {
     </div>
   );
 };
-const testCompanies = [
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-  {
-    logo: "/images/exampleLogo.png",
-    name: "Google",
-    industry: "Công nghệ thông tin",
-    jobCount: 150,
-  },
-];
 const searchTags = [
   "Tất cả",
   "Công nghệ thông tin",
@@ -113,19 +40,26 @@ const searchTags = [
 ];
 export default function BrowseCompanies() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [companiesPage, setCompaniesPage] = useState(testCompanies.slice(0, 9));
+  const [companiesPage, setCompaniesPage] = useState([]);
   const [currentCompaniesPage, setCurrentCompaniesPage] = useState(1);
   const [animationDirection, setAnimationDirection] = useState("");
-
   const maxPage = 1;
-  const maxCompaniesPage = Math.ceil(testCompanies.length / 9);
+  const maxCompaniesPage = Math.ceil(companiesPage.length / 9);
 
   useEffect(() => {
-    const start = (currentCompaniesPage - 1) * 9;
-    const end = start + 9;
-    setTimeout(() => {
-      setCompaniesPage(testCompanies.slice(start, end));
-    }, 500);
+    const fetchTopCompaniesData = async () => {
+      try {
+        const data = await fetchTopCompanies({
+          page: currentCompaniesPage - 1,
+          size: 9,
+        });
+        console.log(data.content);
+        setCompaniesPage(data.content);
+      } catch (error) {
+        console.error("Error fetching top companies:", error);
+      }
+    };
+    fetchTopCompaniesData();
   }, [currentCompaniesPage]);
 
   return (
@@ -212,10 +146,10 @@ export default function BrowseCompanies() {
               {companiesPage.map((company, index) => (
                 <Company
                   key={index}
-                  logo={company.logo}
+                  logo={"/images/exampleLogo.png"}
                   name={company.name}
-                  industry={company.industry}
-                  jobCount={company.jobCount}
+                  industry={"Công nghệ thông tin"}
+                  jobCount={company.totalVacancies}
                 />
               ))}
             </div>

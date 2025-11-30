@@ -23,7 +23,7 @@ const UserMenu = () => {
   const navigate = useNavigate();
   return (
     <div>
-      <ul className="absolute right-4 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+      <ul className="absolute right-4 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-100">
         <li
           className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
           onClick={() => navigate("/profile")}
@@ -46,6 +46,7 @@ const UserMenu = () => {
     </div>
   );
 };
+import { getUserAvatarUrl } from "../../utils/User";
 export default function NavBar() {
   const accessToken = localStorage.getItem("accessToken");
   const [userData, setUserData] = useState(null);
@@ -53,11 +54,21 @@ export default function NavBar() {
   const [courseDropdownOpen, setCourseDropdownOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [resumeDropdownOpen, setResumeDropdownOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   useEffect(() => {
     if (accessToken) {
       getUserData({ accessToken: accessToken }).then((data) => {
         setUserData(data);
       });
+    }
+    if (accessToken) {
+      getUserAvatarUrl(accessToken)
+        .then((url) => {
+          setAvatarUrl(url);
+        })
+        .catch((error) => {
+          console.error("Error fetching avatar URL:", error);
+        });
     }
   }, [accessToken]);
   const isJobPage = window.location.pathname.startsWith("/jobs");
@@ -117,6 +128,7 @@ export default function NavBar() {
                         ? "group py-2 raleway-bold text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between"
                         : "group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between";
                     }}
+                    end
                     to={"/jobs"}
                   >
                     <div className="flex items-center gap-2">
@@ -132,12 +144,20 @@ export default function NavBar() {
 
                     <GoArrowRight className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
                   </li>
-                  <li className="group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between">
+                  <NavLink
+                    className={({ isActive }) => {
+                      return isActive
+                        ? "group py-2 raleway-bold text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between"
+                        : "group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between";
+                    }}
+                    to={"/jobs/applied"}
+                  >
+                    {" "}
                     <div className="flex items-center gap-2">
                       <IoNewspaperOutline /> Việc làm đã ứng tuyển
                     </div>
                     <GoArrowRight className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
-                  </li>
+                  </NavLink>
                   <li className="group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between">
                     <div className="flex items-center gap-2">
                       <FaBriefcase /> Việc làm phù hợp
@@ -271,12 +291,20 @@ export default function NavBar() {
 
                     <GoArrowRight className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
                   </li>
-                  <li className="group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between">
+                  <NavLink
+                    className={({ isActive }) => {
+                      return isActive
+                        ? "group py-2 raleway-bold text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between"
+                        : "group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between";
+                    }}
+                    to={"/resume-builder/myCV"}
+                  >
+                    {" "}
                     <div className="flex items-center gap-2">
                       <TbFileCv /> Quản lý resume của tôi
                     </div>
                     <GoArrowRight className="opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" />
-                  </li>
+                  </NavLink>
                   <li className="group py-2 text-black hover:text-primary-200 hover:bg-gray-100 cursor-pointer flex items-center rounded-lg px-2 my-2 justify-between">
                     <div className="flex items-center gap-2">
                       <TfiWrite /> Hướng dẫn viết CV
@@ -308,9 +336,9 @@ export default function NavBar() {
         >
           <div className="flex items-center gap-2">
             <img
-              src="/images/defaultAvatar.jpg"
+              src={avatarUrl || "/images/defaultAvatar.jpg"}
               alt="User Avatar"
-              className="w-8 h-8 rounded-full"
+              className="w-10 h-10 rounded-full border border-gray-500 object-cover"
             />
             <p>
               Xin chào, <span>{userData.username}</span>
