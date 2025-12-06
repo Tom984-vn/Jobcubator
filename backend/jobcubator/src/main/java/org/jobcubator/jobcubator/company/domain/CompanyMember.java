@@ -11,7 +11,7 @@ import org.jobcubator.jobcubator.user.domain.User;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "company")
+@Table(name = "company_members")
 public class CompanyMember {
 
     @Id

@@ -63,10 +63,6 @@ public class JobPostServiceImpl implements JobPostService {
         newJobPost.setSchedule(createDTO.schedule());
         newJobPost.setCompany(company);
 
-        if (createDTO.tags() != null && !createDTO.tags().isEmpty()) {
-            Set<Tag> tags = tagService.findOrCreateTags(createDTO.tags());
-            newJobPost.setTags(tags);
-        }
 
         newJobPost = jobPostRepository.save(newJobPost);
         
@@ -255,7 +251,6 @@ public class JobPostServiceImpl implements JobPostService {
                 .requirements(jobPost.getRequirements())
                 .benefits(jobPost.getBenefits())
                 .schedule(jobPost.getSchedule())
-                .tags(jobPost.getTags().stream().map(Tag::getName).collect(Collectors.toSet()))
                 .build();
     }
 

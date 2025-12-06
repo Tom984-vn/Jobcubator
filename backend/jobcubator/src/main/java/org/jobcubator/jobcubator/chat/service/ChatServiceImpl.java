@@ -16,11 +16,12 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
-
+import lombok.extern.slf4j.Slf4j;
 import java.time.Instant;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
@@ -96,6 +97,7 @@ public class ChatServiceImpl implements ChatService {
 
     private void validateSender(User sender, Application application) throws AccessDeniedException {
         // 1. Check if the sender is the candidate who applied
+        log.info("Validating sender: {} for application: {}", sender.getId(), application.getCandidate().getId());
         if (application.getCandidate().getId().equals(sender.getId())) {
             return; // Authorized as Candidate
         }

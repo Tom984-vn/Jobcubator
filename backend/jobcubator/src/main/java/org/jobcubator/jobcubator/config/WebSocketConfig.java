@@ -27,7 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
-
+import org.jobcubator.jobcubator.config.AuthHandshakeInterceptor;
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
@@ -139,7 +139,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-chat")
-                .setAllowedOrigins("*")
+                .setAllowedOrigins("http://localhost:5173")
+                .addInterceptors(new AuthHandshakeInterceptor())
                 .withSockJS();
     }
 }

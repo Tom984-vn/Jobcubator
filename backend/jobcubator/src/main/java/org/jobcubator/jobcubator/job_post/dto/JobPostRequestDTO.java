@@ -47,8 +47,7 @@ public record JobPostRequestDTO(
     String benefits,
 
     @Size(max = 10000)
-    String schedule,
+    String schedule
 
-    Set<String> tags
 ) {
 }

@@ -73,12 +73,10 @@ public class CompanyServiceImpl implements CompanyService{
         company.setDescription(createDTO.description());
         company.addMember(currentUser, CompanyRole.OWNER);
         company = companyRepository.save(company);
-
-        if(currentUser.getRole() == Role.COMPANY){
+        if(currentUser.getRole() == Role.CANDIDATE){
             currentUser.setRole(Role.COMPANY);
             userRepository.save(currentUser);
         }
-
         return CompanyDTO.builder()
                 .id(company.getId())
                 .name(company.getName())

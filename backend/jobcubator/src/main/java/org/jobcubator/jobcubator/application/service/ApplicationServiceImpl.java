@@ -16,7 +16,7 @@ import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.jobcubator.jobcubator.storage.service.StorageService;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,7 +27,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     private final JobPostRepository jobPostRepository;
     private final ApplicationRepository applicationRepository;
     private final CompanySecurityServiceImpl companySecurityService;
-
+    private final StorageService storageService;
     @Override
     @Transactional
     public void applyForJob(User candidate, ApplicationRequest request) {
@@ -120,7 +120,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .candidateName(app.getCandidate().getFullName())
                 .candidateEmail(app.getCandidate().getEmail())
                 .candidateAvatar(app.getCandidate().getUserProfile().getAvatarPath())
-                .candidateCv(app.getCandidate().getUserProfile().getCvPath())
+                .candidateCv(storageService.getUserCvUrl(app.getCandidate()))
                 .build();
     }
 }
