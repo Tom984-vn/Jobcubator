@@ -34,14 +34,9 @@ async def _create_and_store_cv_vector(
         vector_list = await ai_client.get_embedding(cv_text)
         
         if vector_list is not None and len(vector_list) > 0:
-            # Lưu trữ CV mới bằng VectorDBClient
-            add_func = partial(
-                db_client.add_user_cv, 
-                user_id, 
-                cv_text, 
-                vector_list
+            await db_client.add_raw_user_cv(
+                user_id=user_id, cv_text=cv_text, vector=vector_list
             )
-            await asyncio.to_thread(add_func)
             return vector_list
     except Exception as e:
         logger.error(f"❌ Lỗi: Không thể tạo vector cho CV của {user_id}. {e}")
@@ -63,11 +58,13 @@ async def consult_job_rag_logic(
     
     # --- BƯỚC 1: TRUY VẤN/TẠO CV VECTOR CỦA NGƯỜI DÙNG ---
     user_cv_data = await db_client.get_user_cv_vector(user_id)
-    print(user_cv_data)
     current_cv_vector = None
+    cv_text_for_rag = cv_text  # Mặc định dùng CV text từ input
     if user_cv_data is not None:
         logger.info(f"✅ Dùng vector CV đã lưu trữ cho user: {user_id}.")
         current_cv_vector = user_cv_data.get('vector')
+        if user_cv_data.get('cv_text'):
+            cv_text_for_rag = user_cv_data.get('cv_text')  # Ưu tiên dùng CV đã lưu để nhất quán
     else:
         logger.info(f"Tạo vector mới cho CV đầu vào {user_id}")
         current_cv_vector = await _create_and_store_cv_vector(user_id, cv_text,ai_client,db_client)
@@ -78,8 +75,6 @@ async def consult_job_rag_logic(
     if current_cv_vector is None:
         logger.error(f"Không thể tạo vector cho CV của user: {user_id}.")
         return {"error": "Không thể xử lý CV của bạn. Vui lòng kiểm tra lại nội dung CV và thử lại."}
-    else:
-        logger.info(current_cv_vector)
     matching_jobs = await db_client.search_similar_jobs(
         query_vector=current_cv_vector,
         n_results=top_k,
@@ -93,7 +88,7 @@ async def consult_job_rag_logic(
     logger.info(" Đang gọi LLM và chờ phản hồi hoàn chỉnh...")
     
     llm_result = await ai_client.rag_job_advisory( # Đổi tên để phân biệt với hàm cũ
-        cv_text=user_cv_data, 
+        cv_text=cv_text_for_rag, 
         matched_jobs=matching_jobs
     )
     
@@ -166,7 +161,7 @@ async def consult_pipeline_endpoint(
                 # JobInput là schema bạn định nghĩa: id, description, category, location, min_salary, job_type
                 job_detail = JobInput(
                     id=job.get('id', 'N/A'),
-                    title=job.get('title', 'Không có tiêu đề'),
+                    title=metadatas.get('title', 'Không có tiêu đề'),
                     description=job.get('description', 'Không có mô tả chi tiết.'),
                     # Ánh xạ các trường bị thiếu từ metadatas:
                     # Dùng 'group' và 'workType' làm dự phòng vì dữ liệu mẫu của bạn dùng các key này

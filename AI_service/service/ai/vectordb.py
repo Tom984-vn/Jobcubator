@@ -130,10 +130,24 @@ class VectorDBClient:
             user_sample_results = self.user_collection.peek(limit=1)
             logger.info(sample_results)
             logger.info(user_sample_results)
-            sample_id = sample_results.get('ids', ['N/A'])[0]
+            """
+                        sample_id = sample_results.get('ids', ['N/A'])[0]
 
-            sample_doc = sample_results.get('documents', ['N/A'])[0]
-            sample_title = sample_results.get('title', ['N/A'])
+                        sample_doc = sample_results.get('documents', ['N/A'])[0]
+                        sample_title = sample_results.get('title', ['N/A'])
+            """
+            # Trích xuất dữ liệu một cách an toàn từ kết quả peek()
+            sample_id = "N/A"
+            sample_doc = "N/A"
+            sample_title = "N/A"
+
+            if sample_results and sample_results.get('ids'):
+                sample_id = sample_results['ids'][0]
+                sample_doc = sample_results.get('documents', ['N/A'])[0]
+                # SỬA LỖI: 'title' nằm trong 'metadatas', không phải ở cấp cao nhất.
+                first_metadata = sample_results.get('metadatas', [{}])[0]
+                sample_title = first_metadata.get('title', 'N/A') if first_metadata else 'N/A'
+
             logger.info("==================================================")
             logger.info("👀 DEBUG: Kiểm tra Job mẫu đầu tiên từ ChromaDB:")
             logger.info(f"   - ID: {sample_id}")
@@ -167,9 +181,12 @@ class VectorDBClient:
             job_description = job.get("description", "")
             job_requirement = job.get("requirements", "Chưa có")
             job_benefits = job.get("benefits","Chưa có")
-            job_tag = job.get("tags", "")
+            job_tags_list = job.get("tags", [])
+            # Đảm bảo tags là một chuỗi để nối vào text, xử lý trường hợp nó không phải list
+            job_tag_str = ", ".join(job_tags_list) if isinstance(job_tags_list, list) else ""
+
             # Trích xuất văn bản để gọi embedding API (phải là ASYNC)
-            text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}. Yêu cầu: {job_requirement}. Quyền lợi: {job_benefits}. Từ khóa: {job_tag}"
+            text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}. Yêu cầu: {job_requirement}. Quyền lợi: {job_benefits}. Từ khóa: {job_tag_str}"
  
             # Tạo danh sách các coroutine
             embedding_tasks.append(self.ai_client.get_embedding(text_to_embed))
@@ -431,6 +448,28 @@ class VectorDBClient:
             logger.info(f"✅ Đã upsert {len(ids)} User Profiles.")
         except Exception as e:
             logger.error(f"❌ Lỗi khi upsert User Profiles vào VectorDB: {e}")
+            raise
+
+    async def add_raw_user_cv(self, user_id: str, cv_text: str, vector: List[float]):
+        """
+        Thêm/cập nhật một CV người dùng từ văn bản thô và vector đã có.
+        """
+        if not self.user_collection:
+            raise RuntimeError("CV Collection chưa được khởi tạo.")
+
+        try:
+            # Dùng partial để wrap hàm blocking self.user_collection.upsert
+            upsert_func = partial(
+                self.user_collection.upsert,
+                ids=[user_id],
+                documents=[cv_text],
+                embeddings=[vector],
+                metadatas=[{"id": user_id}] # Có thể thêm metadata khác nếu cần
+            )
+            await asyncio.to_thread(upsert_func)
+            logger.info(f"✅ Đã upsert CV thô cho User ID: {user_id}")
+        except Exception as e:
+            logger.error(f"❌ Lỗi khi upsert CV thô cho User ID {user_id}: {e}")
             raise
 
     async def get_user_cv_vector(self, user_id: str) -> Optional[Dict[str, Any]]:
