@@ -48,14 +48,6 @@ async def process_user_upsert(user_data: UserProfileData, db_client: VectorDBCli
     except Exception as e:
         logger.error(f"❌ Lỗi trong quá trình xử lý nền cho User ID {user_id}: {e}")
 
-# --- DEPENDENCY ---
-
-def get_sync_context(
-    db_client: VectorDBClient = Depends(DBClientDep),
-):
-    """Dependency chỉ để lấy các client cần thiết cho việc đồng bộ."""
-    return db_client
-
 
 # --- ENDPOINTS ---
 
@@ -63,17 +55,50 @@ def get_sync_context(
 async def sync_job_post(
     job_data: JobPostData,
     background_tasks: BackgroundTasks,
-    db_client: VectorDBClient = Depends(DBClientDep)  # resolve instance here
+    # SỬA LỖI: Dùng DBClientDep trực tiếp làm type hint, không bọc trong Depends()
+    db_client: DBClientDep
 ):
     background_tasks.add_task(process_job_upsert, job_data, db_client)  # pass instance
     return {"message": f"Job {job_data.id} đang xử lý nền."}
 
+@router.get("/job/{job_id}", summary="Lấy thông tin chi tiết của một Job từ VectorDB")
+async def get_synced_job_details(
+    job_id: str,
+    db_client: DBClientDep
+) -> Dict[str, Any]:
+    """
+    Kiểm tra xem một Job đã được đồng bộ vào VectorDB hay chưa và trả về thông tin của nó.
+    """
+    logger.info(f"Nhận request kiểm tra Job ID: {job_id}")
+    job_details = await db_client.get_job_by_id(job_id)
+
+    if job_details is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Không tìm thấy Job với ID '{job_id}' trong VectorDB.")
+
+    return job_details
+
+@router.get("/user/{user_id}", summary="Lấy thông tin chi tiết của một User từ VectorDB")
+async def get_synced_user_details(
+    user_id: str,
+    db_client: DBClientDep
+) -> Dict[str, Any]:
+    """
+    Kiểm tra xem một User Profile đã được đồng bộ vào VectorDB hay chưa và trả về thông tin của nó.
+    """
+    logger.info(f"Nhận request kiểm tra User ID: {user_id}")
+    user_details = await db_client.get_user_by_id(user_id)
+
+    if user_details is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Không tìm thấy User với ID '{user_id}' trong VectorDB.")
+
+    return user_details
 
 @router.put("/user", summary="Đồng bộ (Upsert) User Profile mới/cập nhật vào VectorDB", status_code=status.HTTP_202_ACCEPTED)
 async def sync_user_post(
     user_data: UserProfileData,
     background_tasks: BackgroundTasks,
-    db_client: VectorDBClient = Depends(DBClientDep)
+    # SỬA LỖI: Dùng DBClientDep trực tiếp làm type hint
+    db_client: DBClientDep
 ) -> Dict[str, str]:
     """
     Nhận yêu cầu đồng bộ từ Backend khi một User Profile được tạo hoặc cập nhật.
@@ -88,11 +113,11 @@ async def sync_user_post(
 
 
 @router.get("/status", summary="Kiểm tra trạng thái VectorDB")
-async def get_sync_status(db_client: VectorDBClient = Depends(get_sync_context)) -> Dict[str, Any]:
+async def get_sync_status(db_client: DBClientDep) -> Dict[str, Any]:
     # Logic kiểm tra sức khỏe và trả về trạng thái của VectorDB (giả định get_info là async)
     try:
-        # Gọi async method
-        info = await db_client.get_info() 
+        # SỬA LỖI: Gọi hàm get_info() đã được thêm vào vectordb.py
+        info = await db_client.get_info()
         return {"status": "ok", "db_info": info}
     except Exception as e:
         logger.error(f"Lỗi khi kiểm tra trạng thái DB: {e}")
@@ -104,13 +129,14 @@ async def get_sync_status(db_client: VectorDBClient = Depends(get_sync_context))
 @router.delete("/clear/{collection_name}", summary="Xóa toàn bộ dữ liệu trong một collection (Cảnh báo)")
 async def clear_collection_data(
     collection_name: str,
-    db_client: VectorDBClient = Depends(get_sync_context)
+    db_client: DBClientDep
 ) -> Dict[str, str]:
     """
     Xóa toàn bộ dữ liệu khỏi một collection (ví dụ: 'jobs', 'user_profiles').
     """
     try:
-        await db_client.clear_collection(collection_name)
+        # SỬA LỖI: Gọi đúng tên hàm là clear_all_data và truyền đúng tham số
+        await db_client.clear_all_data(collection_type=collection_name)
         return {"message": f"Yêu cầu xóa dữ liệu collection '{collection_name}' đã được gửi."}
     except Exception as e:
         raise HTTPException(

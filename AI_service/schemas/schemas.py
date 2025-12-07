@@ -17,11 +17,12 @@ class UserContext(BaseModel):
     experience_level: Optional[str] = None  # Kinh nghiệm (Junior, Senior...)
     last_conversation_summary: Optional[str] = None # Tóm tắt câu hỏi cũ (nếu có)
 
-class TextRequest(BaseModel):
+class ChatRequest(BaseModel):
     text: str
     user_id: Optional[str] = None
     context: Optional[UserContext] = None
 # --- 1. DTO cho Thêm Job (/add-job) ---
+
 class JobInput(BaseModel):
     id: str
     title: str

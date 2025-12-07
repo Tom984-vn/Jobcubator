@@ -146,9 +146,11 @@ class FPTAIClient:
             async with httpx.AsyncClient(timeout=None) as client:
                 async with client.stream("POST", url, headers=self.headers, json=payload) as response:
                     response.raise_for_status()
-                    for line in response.iter_lines():
+                    # SỬA LỖI: Dùng `aiter_lines()` và `async for` cho stream bất đồng bộ
+                    async for line in response.aiter_lines():
                         if not line: continue
-                        text = line.decode("utf-8")
+                        # aiter_lines() đã tự động decode, không cần gọi .decode() nữa
+                        text = line
                         if text.startswith("data: "): text = text[6:].strip()
                         if text == "[DONE]": break
                         yield json.loads(text)
