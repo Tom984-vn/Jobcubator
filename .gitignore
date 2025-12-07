@@ -1,12 +1,32 @@
-.venv
 .env
+.ipynb_checkpoints
+__pycache__
+chroma_data/
 
-.vscode
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-#Passwords
-db_admin_pass.txt
-db_spring_boot_user.txt
-jwt_secret_key.txt
-spring_aws_s3_access_key.txt
-spring_aws_s3_secret_key.txt
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+fpt_ai_key.txt
+open_ai_key.txt

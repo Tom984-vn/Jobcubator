@@ -23,7 +23,7 @@ public record  JobPostDTO(
     String description,
     String requirements,
     String benefits,
-    String schedule,
-    Set<String> tags
+    String schedule
+//    Set<String> tags
 ) {
 }

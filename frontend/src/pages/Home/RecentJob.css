@@ -1,0 +1,3 @@
+.fit-to-grid {
+    grid-template-columns: repeat(auto-fit, 400px);
+}

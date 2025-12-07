@@ -69,12 +69,14 @@ public class UserAuthServiceImpl implements UserAuthService {
     }
 
     @Override
+    @Transactional
     public AuthResponse logoutUser(User user) {
         refreshTokenRepository.deleteByUserId(user.getId());
         return new AuthResponse(null, null);
     }
 
     @Override
+    @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String requestRefreshToken = request.refreshToken();
 

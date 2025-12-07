@@ -18,8 +18,8 @@ public class S3Config {
     @Value("${app.s3.endpoint}")
     private String endpoint;
 
-    @Value("${app.s3.public-endpoint:${app.s3.endpoint}}")
-    private String publicEndpoint;
+//    @Value("${app.s3.public-endpoint:${app.s3.endpoint}}")
+//    private String publicEndpoint;
 
     @Value("${app.s3.access-key}")
     private String accessKey;
@@ -52,7 +52,7 @@ public class S3Config {
         return S3Presigner.builder()
                 .credentialsProvider(credentialsProvider)
                 .region(Region.of(region))
-                .endpointOverride(URI.create(publicEndpoint))
+                .endpointOverride(URI.create(endpoint))
                 // MinIO requires path-style access
                 .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).build())
                 .build();

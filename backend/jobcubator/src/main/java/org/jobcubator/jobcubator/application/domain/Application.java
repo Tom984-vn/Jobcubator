@@ -40,6 +40,7 @@ public class Application {
 
     @Column(nullable = false, updatable = false)
     private Instant appliedAt;
+
     @PrePersist
     public void prePersist() {
         if(appliedAt == null){

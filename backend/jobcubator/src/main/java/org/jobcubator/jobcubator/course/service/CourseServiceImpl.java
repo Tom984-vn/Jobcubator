@@ -55,6 +55,7 @@ public class CourseServiceImpl implements CourseService {
 
     
     @Override
+    @Transactional
     public CourseDTO createCourse(CourseRequestDTO createDTO) {
         if (courseRepository.existsByUrl(createDTO.url())) {
             throw new IllegalArgumentException("Course with URL already exists.");
@@ -76,6 +77,7 @@ public class CourseServiceImpl implements CourseService {
 
     
     @Override
+    @Transactional(readOnly = true)
     public CourseDTO getCourseById(Integer id) {
         Course course = courseRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
@@ -85,6 +87,7 @@ public class CourseServiceImpl implements CourseService {
 
     
     @Override
+    @Transactional
     public CourseDTO updateCourse(Integer id, CourseRequestDTO updateDTO) {
         Course course = courseRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
@@ -103,6 +106,7 @@ public class CourseServiceImpl implements CourseService {
 
     
     @Override
+    @Transactional
     public void deleteCourse(Integer id) {
         if (!courseRepository.existsById(id)) {
             throw new ResourceNotFoundException("Course not found with id: " + id);

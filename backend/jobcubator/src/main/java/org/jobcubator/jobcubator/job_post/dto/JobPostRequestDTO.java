@@ -4,50 +4,34 @@ import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
-import lombok.Builder;
-
 import java.time.Instant;
 import java.util.Set;
+import lombok.Builder;
 
 @Builder
 public record JobPostRequestDTO(
-    @NotBlank
-    @Size(max = 100)
-    String title,
+    @NotBlank @Size(max = 100) String title,
 
-    @Size(max = 50)
-    String category,
+    @Size(max = 50) String category,
 
-    @Size(max = 150)
-    String location,
+    @Size(max = 150) String location,
 
-    @PositiveOrZero
-    Integer numberOfVacancies,
+    @PositiveOrZero Integer numberOfVacancies,
 
-    @NotBlank
-    @Size(max = 100)
-    String jobType,
+    @NotBlank @Size(max = 100) String jobType,
 
     @Future //đảm bảo rằng một giá trị Instant (hoặc Date, LocalDateTime) phải là một thời điểm trong tương lai.
     Instant applicationDeadline,
 
-    @PositiveOrZero
-    Integer minSalary,
+    @PositiveOrZero Integer minSalary,
 
-    @PositiveOrZero
-    Integer maxSalary,
+    @PositiveOrZero Integer maxSalary,
 
-    @Size(max = 10000)
-    String description,
+    @Size(max = 10000) String description,
 
-    @Size(max = 10000)
-    String requirements,
+    @Size(max = 10000) String requirements,
 
-    @Size(max = 10000)
-    String benefits,
+    @Size(max = 10000) String benefits,
 
-    @Size(max = 10000)
-    String schedule
-
-) {
-}
+    @Size(max = 10000) String schedule
+) {}

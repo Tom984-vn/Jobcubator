@@ -87,6 +87,9 @@ public class SecurityConfig {
 
                     .requestMatchers("POST", "/api/courses/filter").permitAll()
                     .requestMatchers("GET", "/api/courses/**").permitAll()
+
+                    .requestMatchers("PUT", "/api/courses/**").hasRole("ADMIN")
+                    .requestMatchers("POST", "/api/courses").hasRole("ADMIN")
                     .anyRequest().authenticated())
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -96,7 +99,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

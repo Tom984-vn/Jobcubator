@@ -1,12 +1,25 @@
-version : '3.8'
+# version : '3.8'
 
 services:
 
-  app:
-    build: ./jobcubator
-    container_name: spring-boot-backend
+  nginx-gateway:
+    image: nginx:alpine
+    container_name: nginx-gateway
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "8080:8080"
+      - "80:80" # Chỉ mở port này ra ngoài
+    depends_on:
+      - frontend
+      - app
+    networks:
+      - backend-network
+
+  app:
+    build: ./backend/jobcubator
+    container_name: spring-boot-backend
+    # ports:
+      # - "8080:8080"
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/jobcubator_application_database
@@ -32,6 +45,21 @@ services:
         - jwt_secret_key
         - spring_aws_s3_access_key
 
+  # --- 3. AI Service (Python FastAPI) ---
+  ai-service:
+    build: ./ai-service 
+    container_name: python-ai-service
+    restart: always
+    # command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "3000"]
+    # environment:
+      # - FPT_AI_API_KEY: ${FPT_AI_API_KEY} 
+      # - OPENAI_API_KEY: ${OPENAI_API_KEY}
+    networks:
+      - backend-network
+    secrets:
+      - open_ai_key
+      - fpt_ai_key
+
   db: 
     image: postgres:18.0-alpine3.22
     container_name: application-database
@@ -42,7 +70,7 @@ services:
       POSTGRES_DB: jobcubator_application_database
 
     volumes: 
-      - ./init-script/:/docker-entrypoint-initdb.d
+      - ./backend/init-script/:/docker-entrypoint-initdb.d
       - postgres-data:/var/lib/postgresql/data
 
     networks:
@@ -61,11 +89,11 @@ services:
   minio:
     container_name: minio
 
-    build: ./minio
+    build: ./backend/minio
 
-    ports:
-      - "9000:9000"  # API port
-      - "9001:9001"  # Console (web UI) port
+    # ports:
+      # - "9000:9000"  # API port
+      # - "9001:9001"  # Console (web UI) port
 
     command: server /data --console-address ":9001"
 
@@ -85,6 +113,12 @@ services:
     networks:
       - backend-network
 
+  frontend:
+    build: ./frontend
+    container_name: frontend-react
+    networks:
+      - backend-network
+
 volumes:
   postgres-data:
     driver: local
@@ -97,16 +131,22 @@ networks:
 
 secrets:
   db_app_password:
-    file: ./db_spring_boot_user.txt  # Path to the app user's password file
+    file: ./backend/db_spring_boot_user.txt  # Path to the app user's password file
     
   db_admin_password:
-    file: ./db_admin_pass.txt # Path to the admin's password file
+    file: ./backend/db_admin_pass.txt # Path to the admin's password file
  
   jwt_secret_key:
-    file: ./jwt_secret_key.txt
+    file: ./backend/jwt_secret_key.txt
 
   spring_aws_s3_access_key:
-    file: ./spring_aws_s3_access_key.txt
+    file: ./backend/spring_aws_s3_access_key.txt
 
   spring_aws_s3_secret_key:
-    file: ./spring_aws_s3_secret_key.txt
+    file: ./backend/spring_aws_s3_secret_key.txt
+
+  fpt_ai_key:
+    file: ./ai-service/fpt_ai_key.txt
+  
+  open_ai_key:
+    file: ./ai-service/open_ai_key.txt
