@@ -1,10 +1,19 @@
 package org.jobcubator.jobcubator.user.dto;
 
-public record UpdateUserProfileRequest(String birthDate,
+import org.jobcubator.jobcubator.user.domain.Gender;
+
+import java.util.List;
+
+public record UpdateUserProfileRequest(String fullName,
+                                       Gender gender,
+                                       String birthDate,
+                                       String phoneNumber,
                                        Integer years_of_experience,
                                        String organization,
                                        String position,
                                        String preferredLocation,
                                        Integer minSalary,
-                                       Integer maxSalary) {
+                                       Integer maxSalary,
+                                       List<ProfileEntryDTO>history
+) {
 }

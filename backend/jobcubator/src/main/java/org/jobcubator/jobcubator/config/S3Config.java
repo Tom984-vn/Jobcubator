@@ -18,6 +18,9 @@ public class S3Config {
     @Value("${app.s3.endpoint}")
     private String endpoint;
 
+//    @Value("${app.s3.public-endpoint:${app.s3.endpoint}}")
+//    private String publicEndpoint;
+
     @Value("${app.s3.access-key}")
     private String accessKey;
 

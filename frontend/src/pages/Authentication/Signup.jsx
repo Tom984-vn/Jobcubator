@@ -9,9 +9,12 @@ import { useState } from "react";
 import { registerUser } from "./Authfunc";
 import { IoEyeOff } from "react-icons/io5";
 import { FaEye } from "react-icons/fa";
+import CreateCompany from "./CreateCompany";
 import { loginUser } from "./Authfunc";
-export default function SignIn() {
+export default function SignUp() {
   const navigate = useNavigate();
+  const [createCompany, setCreateCompany] = useState(false);
+  const [signupAs, setSignupAs] = useState("candidate");
   const [userData, setUserData] = useState({
     name: "",
     username: "",
@@ -76,14 +79,19 @@ export default function SignIn() {
           username: userData.username,
           email: userData.email,
           password: userData.password,
+          fullName: userData.name,
         });
 
         console.log("Registration successful!");
+        if (signupAs === "employer") {
+          setCreateCompany(true);
+          return;
+        }
         navigate("/");
       } catch (err) {
         console.error("Registration/Login failed:", err);
         alert(
-          err.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại!"
+          err.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại!",
         );
       }
     }
@@ -97,144 +105,158 @@ export default function SignIn() {
             Jobcubator
           </span>
         </div>
-        <div className="text-[#1C229E] flex flex-col w-[60%]">
-          <h1 className="font-bold text-3xl mb-2">Đăng Ký</h1>
-          <p className="text-gray-500 mb-4">
-            Bạn đã có tài khoản?{" "}
-            <span
-              className="text-[#1C229E] font-medium hover:font-bold hover:underline hover:text-[#E48309]"
-              onClick={() => navigate("/login")}
-            >
-              Đăng nhập
-            </span>
-          </p>
-          <div>
-            {/* Display the first validation error */}
-            {Object.values(errors).find((error) => error !== "") && (
-              <p className="text-red-500 mb-2">
-                {Object.values(errors).find((error) => error !== "")}
-              </p>
-            )}
-          </div>
-          <div className="flex justify-between">
-            <input
-              type="text"
-              placeholder="Họ và tên"
-              className={`border-1 rounded p-2 mb-4 focus:outline-[#E48309] ${
-                errors.name ? "border-red-500 border-2" : ""
-              }`}
-              onChange={(e) => {
-                handleInputChange("name", e.target.value);
-              }}
-            />
-            <input
-              type="text"
-              placeholder="Tên đăng nhập"
-              className={`border-1 rounded p-2 mb-4 focus:outline-[#E48309] ${
-                errors.username ? "border-red-500 border-2" : ""
-              }`}
-              onChange={(e) => {
-                handleInputChange("username", e.target.value);
-              }}
-            />
-          </div>
-          <input
-            type="text"
-            placeholder="Email của bạn"
-            className={`border-1 rounded-lg p-2 mb-4 focus:outline-[#E48309] ${
-              errors.email ? "border-red-500 border-2" : ""
-            }`}
-            onChange={(e) => {
-              handleInputChange("email", e.target.value);
-            }}
-          />
-          <div className="flex flex-col relative">
-            <input
-              type={showPass ? "text" : "password"}
-              placeholder="Mật khẩu"
-              className={`border-1 rounded-lg p-2 mb-4 focus:outline-[#E48309] ${
-                errors.password ? "border-red-500 border-2" : ""
-              }`}
-              onChange={(e) => {
-                handleInputChange("password", e.target.value);
-              }}
-            />
-            {showPass ? (
-              <IoEyeOff
-                className="absolute right-4 top-[15%] hover:text-blue-500"
-                size={20}
-                onClick={() => {
-                  setShowPass(false);
-                }}
-              />
-            ) : (
-              <FaEye
-                className="absolute right-4 top-[15%] hover:text-blue-500"
-                size={20}
-                onClick={() => {
-                  setShowPass(true);
-                }}
-              />
-            )}
-          </div>
-          <div className="flex flex-col relative">
-            <input
-              type={showPass ? "text" : "password"}
-              placeholder="Nhập lại mật khẩu"
-              className={`border-1 rounded-lg p-2 mb-4 focus:outline-[#E48309] ${
-                errors.confirmPassword ? "border-red-500 border-2" : ""
-              }`}
-              onChange={(e) => {
-                handleInputChange("confirmPassword", e.target.value);
-              }}
-            />
-            {showPass ? (
-              <IoEyeOff
-                className="absolute right-4 top-[15%] hover:text-blue-500"
-                size={20}
-                onClick={() => {
-                  setShowPass(false);
-                }}
-              />
-            ) : (
-              <FaEye
-                className="absolute right-4 top-[15%] hover:text-blue-500"
-                size={20}
-                onClick={() => {
-                  setShowPass(true);
-                }}
-              />
-            )}
-          </div>
-          <label className="flex">
-            <input type="checkbox" />
-            <p className="text-gray-500 ml-2 hover:underline">
-              Tôi đã đọc và đồng ý với{" "}
-              <span className="text-[#1C229E] font-medium hover:font-bold hover:underline hover:text-[#E48309]">
-                Điều Khoản và Điều kiện
+        {createCompany ? (
+          <CreateCompany />
+        ) : (
+          <div className="text-[#1C229E] flex flex-col w-[60%]">
+            <div className="flex justify-between">
+              <h1 className="font-bold text-3xl mb-2">Đăng Ký</h1>
+              <select
+                value={signupAs}
+                onChange={(e) => setSignupAs(e.target.value)}
+                className="border rounded-lg p-2 pr-2 mb-4 focus:outline-[#E48309]"
+              >
+                <option value="candidate">Ứng viên</option>
+                <option value="employer">Nhà tuyển dụng</option>
+              </select>
+            </div>
+            <p className="text-gray-500 mb-4">
+              Bạn đã có tài khoản?{" "}
+              <span
+                className="text-[#1C229E] font-medium hover:font-bold hover:underline hover:text-[#E48309]"
+                onClick={() => navigate("/login")}
+              >
+                Đăng nhập
               </span>
             </p>
-          </label>
-          <button
-            onClick={(e) => {
-              handleSubmit(e);
-            }}
-            className="bg-[#464CBC] text-white hover:bg-[#1C229E] rounded-lg p-2 mt-6 mb-4"
-          >
-            Đăng Ký
-          </button>
-          <p className="text-center text-gray-500 border-b-1 pb-2">Hoặc</p>
-          <div className="flex mt-4 justify-around">
-            <div className="border-2 border-[#464CBC] p-2 rounded-lg text-sm flex items-center cursor-pointer hover:bg-[#1C229E] hover:text-white">
-              <FaGoogle className="inline mr-2" />
-              Đăng ký bằng Google
+            <div>
+              {/* Display the first validation error */}
+              {Object.values(errors).find((error) => error !== "") && (
+                <p className="text-red-500 mb-2">
+                  {Object.values(errors).find((error) => error !== "")}
+                </p>
+              )}
             </div>
-            <div className="border-2 border-[#464CBC] p-2 rounded-lg text-sm flex items-center hover:bg-[#1C229E] hover:text-white cursor-pointer">
-              <FaFacebook className="inline mr-2" />
-              Đăng ký bằng Facebook
+            <div className="flex justify-between">
+              <input
+                type="text"
+                placeholder="Họ và tên"
+                className={`border-1 rounded p-2 mb-4 focus:outline-[#E48309] ${
+                  errors.name ? "border-red-500 border-2" : ""
+                }`}
+                onChange={(e) => {
+                  handleInputChange("name", e.target.value);
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Tên đăng nhập"
+                className={`border-1 rounded p-2 mb-4 focus:outline-[#E48309] ${
+                  errors.username ? "border-red-500 border-2" : ""
+                }`}
+                onChange={(e) => {
+                  handleInputChange("username", e.target.value);
+                }}
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Email của bạn"
+              className={`border-1 rounded-lg p-2 mb-4 focus:outline-[#E48309] ${
+                errors.email ? "border-red-500 border-2" : ""
+              }`}
+              onChange={(e) => {
+                handleInputChange("email", e.target.value);
+              }}
+            />
+            <div className="flex flex-col relative">
+              <input
+                type={showPass ? "text" : "password"}
+                placeholder="Mật khẩu"
+                className={`border-1 rounded-lg p-2 mb-4 focus:outline-[#E48309] ${
+                  errors.password ? "border-red-500 border-2" : ""
+                }`}
+                onChange={(e) => {
+                  handleInputChange("password", e.target.value);
+                }}
+              />
+              {showPass ? (
+                <IoEyeOff
+                  className="absolute right-4 top-[15%] hover:text-blue-500"
+                  size={20}
+                  onClick={() => {
+                    setShowPass(false);
+                  }}
+                />
+              ) : (
+                <FaEye
+                  className="absolute right-4 top-[15%] hover:text-blue-500"
+                  size={20}
+                  onClick={() => {
+                    setShowPass(true);
+                  }}
+                />
+              )}
+            </div>
+            <div className="flex flex-col relative">
+              <input
+                type={showPass ? "text" : "password"}
+                placeholder="Nhập lại mật khẩu"
+                className={`border-1 rounded-lg p-2 mb-4 focus:outline-[#E48309] ${
+                  errors.confirmPassword ? "border-red-500 border-2" : ""
+                }`}
+                onChange={(e) => {
+                  handleInputChange("confirmPassword", e.target.value);
+                }}
+              />
+              {showPass ? (
+                <IoEyeOff
+                  className="absolute right-4 top-[15%] hover:text-blue-500"
+                  size={20}
+                  onClick={() => {
+                    setShowPass(false);
+                  }}
+                />
+              ) : (
+                <FaEye
+                  className="absolute right-4 top-[15%] hover:text-blue-500"
+                  size={20}
+                  onClick={() => {
+                    setShowPass(true);
+                  }}
+                />
+              )}
+            </div>
+            <label className="flex">
+              <input type="checkbox" />
+              <p className="text-gray-500 ml-2 hover:underline">
+                Tôi đã đọc và đồng ý với{" "}
+                <span className="text-[#1C229E] font-medium hover:font-bold hover:underline hover:text-[#E48309]">
+                  Điều Khoản và Điều kiện
+                </span>
+              </p>
+            </label>
+            <button
+              onClick={(e) => {
+                handleSubmit(e);
+              }}
+              className="bg-[#464CBC] text-white hover:bg-[#1C229E] rounded-lg p-2 mt-6 mb-4"
+            >
+              Đăng Ký
+            </button>
+            <p className="text-center text-gray-500 border-b-1 pb-2">Hoặc</p>
+            <div className="flex mt-4 justify-around">
+              <div className="border-2 border-[#464CBC] p-2 rounded-lg text-sm flex items-center cursor-pointer hover:bg-[#1C229E] hover:text-white">
+                <FaGoogle className="inline mr-2" />
+                Đăng ký bằng Google
+              </div>
+              <div className="border-2 border-[#464CBC] p-2 rounded-lg text-sm flex items-center hover:bg-[#1C229E] hover:text-white cursor-pointer">
+                <FaFacebook className="inline mr-2" />
+                Đăng ký bằng Facebook
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="authBanner h-full relative">
         <div className="overlay"></div>

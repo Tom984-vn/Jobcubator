@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -25,6 +27,10 @@ public class UserProfile {
     @JoinColumn(name = "user_id") // This is the FK column
     private User user;
 
+    @Column(name = "gender")
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
+
     @Column(name = "field_of_study", length = 100)
     private String fieldOfStudy;
 
@@ -43,7 +49,7 @@ public class UserProfile {
     @Column(name = "preferred_location", length = 100)
     private String preferredLocation;
 
-    @Column(name = "avatar_path", length = 300)
+    @Column(name = "avatar_path", length = 1000)
     private String avatarPath;
 
     @Column(name = "cv_path", length = 300)
@@ -54,5 +60,13 @@ public class UserProfile {
 
     @Column(name = "max_salary")
     private int maxSalary;
+
+    @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProfileEntry> history = new ArrayList<>();
+
+    public void addEntry(ProfileEntry entry) {
+        history.add(entry);
+        entry.setUserProfile(this);
+    }
 
 }

@@ -1,17 +1,22 @@
 package org.jobcubator.jobcubator.user.service;
 
 import lombok.RequiredArgsConstructor;
+import org.jobcubator.jobcubator.intergration.ai.AiSyncService;
 import org.jobcubator.jobcubator.storage.service.StorageService;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.jobcubator.jobcubator.user.domain.UserProfile;
+import org.jobcubator.jobcubator.user.domain.ProfileEntry;
 import org.jobcubator.jobcubator.user.domain.UserProfileRepository;
 import org.jobcubator.jobcubator.user.domain.UserRepository;
 import org.jobcubator.jobcubator.user.dto.GetUserProfileResponse;
 import org.jobcubator.jobcubator.user.dto.UpdateUserProfileRequest;
 import org.jobcubator.jobcubator.user.dto.UpdateUserProfileResponse;
+import org.jobcubator.jobcubator.user.dto.ProfileEntryDTO;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,13 +25,16 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final UserProfileRepository userProfileRepository;
     private final UserRepository userRepository;
     private final StorageService storageService;
+    private final AiSyncService aiSyncService;
 
     @Override
     @Transactional(readOnly = true)
     public GetUserProfileResponse getUserProfile(User requestUser)
     {
         UserProfile userProfile = userProfileRepository.findById(requestUser.getId()).orElse(null);
-        return GetUserProfileResponse.fromEntities(requestUser, userProfile);
+        GetUserProfileResponse result =  GetUserProfileResponse.fromEntities(requestUser, userProfile);
+        aiSyncService.syncUserToAI(result);
+        return result;
     }
 
     @Override
@@ -36,6 +44,18 @@ public class UserProfileServiceImpl implements UserProfileService {
         UserProfile userProfile = userProfileRepository.findById(requestUser.getId())
                 .orElseThrow(() -> new RuntimeException("UserProfile not found for user: " + requestUser.getUsername()));
 
+        User user = userRepository.findById(requestUser.getId())
+                .orElseThrow(() -> new RuntimeException("UserProfile not found for user: " + requestUser.getUsername()));
+
+        if(request.fullName() != null){
+            user.setFullName(request.fullName());
+        }
+        if(request.gender() != null){
+            userProfile.setGender(request.gender());
+        }
+        if(request.phoneNumber() != null){
+            user.setPhoneNumber(request.phoneNumber());
+        }
         if (request.birthDate() != null) {
             userProfile.setBirthDate(request.birthDate());
         }
@@ -58,17 +78,50 @@ public class UserProfileServiceImpl implements UserProfileService {
             userProfile.setMaxSalary(request.maxSalary());
         }
 
+        if (request.history() != null) {
+            userProfile.getHistory().clear();
+            for (ProfileEntryDTO dto : request.history()) {
+                ProfileEntry entry = ProfileEntry.builder()
+                        .type(dto.type())
+                        .organization(dto.organization())
+                        .title(dto.title())
+                        .startDate(dto.startDate())
+                        .endDate(dto.endDate())
+                        .description(dto.description()).build();
+                userProfile.addEntry(entry);
+            }
+        }
+
         UserProfile savedProfile = userProfileRepository.save(userProfile);
+        userRepository.save(user);
 
-        // Gui api den AI service
+        List<ProfileEntryDTO> historyDtos = savedProfile.getHistory().stream()
+                .map(e -> new ProfileEntryDTO(
+                        e.getType(),
+                        e.getOrganization(),
+                        e.getTitle(),
+                        e.getStartDate(),
+                        e.getEndDate(),
+                        e.getDescription()
+                ))
+                .toList();
 
-        return new UpdateUserProfileResponse(savedProfile.getBirthDate(),
+        GetUserProfileResponse syncData = GetUserProfileResponse.fromEntities(requestUser, savedProfile);
+
+        aiSyncService.syncUserToAI(syncData);
+
+        return new UpdateUserProfileResponse(
+                user.getFullName(),
+                savedProfile.getGender(),
+                savedProfile.getBirthDate(),
+                user.getPhoneNumber(),
                 savedProfile.getYearsOfExperience(),
                 savedProfile.getOrganization(),
                 savedProfile.getPosition(),
                 savedProfile.getPreferredLocation(),
                 savedProfile.getMinSalary(),
-                savedProfile.getMaxSalary());
+                savedProfile.getMaxSalary(),
+                historyDtos);
     }
 
     @Override
@@ -92,6 +145,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
+    @Transactional
     public void saveUserProfileCV(User user, String objectKey) {
         UserProfile userProfile = userProfileRepository.findById(user.getId()).orElseThrow(() -> new RuntimeException("UserProfile not found for user: " + user.getUsername()));
 

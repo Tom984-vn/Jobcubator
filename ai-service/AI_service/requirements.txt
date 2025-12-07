@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+requests
+torch
+python-dotenv
+json
+pydantic
+chromadb

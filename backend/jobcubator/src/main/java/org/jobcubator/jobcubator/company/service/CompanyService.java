@@ -1,11 +1,10 @@
 package org.jobcubator.jobcubator.company.service;
 
+import java.util.List;
 import java.util.UUID;
 
-import org.jobcubator.jobcubator.company.dto.CompanyRequestDTO;
-import org.jobcubator.jobcubator.company.dto.CompanyDTO;
-import org.jobcubator.jobcubator.company.dto.CompanyFilterDTO;
-import org.jobcubator.jobcubator.company.dto.CompanyVacancyDTO;
+import org.jobcubator.jobcubator.company.dto.*;
+import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 public interface CompanyService {
@@ -13,14 +12,16 @@ public interface CompanyService {
      * @param id UUID của công ty cần xóa.
      * @throws ResourceNotFoundException nếu không tìm thấy công ty.
      */
-    void deleteCompany(UUID id);
+    void deleteCompany(User user,UUID id);
+
+    public List<CompanyDTO> getMyCompanies(User currentUser);
 
     /**
      * @param requestDTO Dữ liệu để tạo công ty mới.
      * @return CompanyDTO của công ty vừa được tạo.
      * @throws BadRequestException nếu dữ liệu không hợp lệ.
      */
-    CompanyDTO createCompany(CompanyRequestDTO createDTO);
+    CompanyDTO createCompany(User currentUser, CompanyRequestDTO createDTO);
 
     /**
      * @param id UUID của công ty cần lấy.
@@ -35,7 +36,7 @@ public interface CompanyService {
      * @return CompanyDTO của công ty vừa được cập nhật.
      * @throws ResourceNotFoundException nếu không tìm thấy công ty.
      */
-    CompanyDTO updateCompany(UUID id, CompanyRequestDTO updateDTO);
+    CompanyDTO updateCompany(User currentUser, UUID id, CompanyRequestDTO updateDTO);
 
     /**
      * Lọc và tìm kiếm động các công ty theo nhiều tiêu chí.
@@ -48,5 +49,7 @@ public interface CompanyService {
     Page<CompanyDTO> filterCompanies(CompanyFilterDTO filterDTO, Pageable pageable);
 
     Page<CompanyVacancyDTO> getCompaniesByMostVacancies(String tagName, Pageable pageable);
+
+
 
 }

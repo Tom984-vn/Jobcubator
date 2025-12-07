@@ -17,7 +17,7 @@ import org.jobcubator.jobcubator.tag.domain.Tag;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "jobpost")
+@Table(name = "job_posts")
 public class JobPost {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID) // Chạy thay cho hàm prepersist để tạo ra id tự động 
@@ -35,8 +35,17 @@ public class JobPost {
     @Column(name = "category", length = 50)
     private String category;
 
-    @Column(name = "description_path", length = 100, nullable = false)
-    private String descriptionPath;
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "requirements", columnDefinition = "TEXT")
+    private String requirements;
+
+    @Column(name = "benefits", columnDefinition = "TEXT")
+    private String benefits;
+
+    @Column(name = "schedule", columnDefinition = "TEXT")
+    private String schedule;
 
     @Column(name = "location", length = 150)
     private String location;
@@ -56,16 +65,22 @@ public class JobPost {
     @Column(name = "max_salary")
     private Integer maxSalary;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
-    @ManyToMany
-    @JoinTable(
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+        @JoinTable(
             name = "post_tags",           // Junction table name
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     private Set<Tag> tags;
+
+    @PrePersist
+    void prePersist(){
+        if(createdAt == null)
+            createdAt = Instant.now();
+    }
 
     // Helper methods
     public void addTag(Tag tag) {

@@ -2,14 +2,23 @@ import { CiClock2 } from "react-icons/ci";
 import { BsWallet2 } from "react-icons/bs";
 import { IoLocationOutline } from "react-icons/io5";
 import { FaRegHeart } from "react-icons/fa6";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import "./RecentJob.css";
 import { PiCaretLeft } from "react-icons/pi";
 import { PiCaretRight } from "react-icons/pi";
-
+import { useNavigate } from "react-router-dom";
+import { fetchRecentJobs } from "../../utils/Job";
 const Job = (props) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const navigate = useNavigate();
   return (
-    <div className="h-41 relative bg-white rounded-lg p-4 shadow-lg hover:border-[#E48309] hover:border-2 transition-all duration-100 cursor-pointer group">
+    <div
+      className="relative bg-white rounded-lg box-content p-4 shadow-lg
+                border-2 border-transparent
+                hover:border-[#E48309]
+                transition-all duration-100 cursor-pointer group"
+      onClick={() => navigate(`/jobs/${props.id}`)}
+    >
       <div
         onClick={() => {
           setIsFavorite(!isFavorite);
@@ -44,7 +53,7 @@ const Job = (props) => {
           <p className="text-sm text-gray-500">{props.company}</p>
         </div>
       </div>
-      <div className="flex justify-around">
+      <div className="flex justify-around gap-2 w-full">
         <p className="flex items-center gap-1">
           <CiClock2 color="#E48309" /> {props.type}
         </p>
@@ -59,9 +68,30 @@ const Job = (props) => {
     </div>
   );
 };
+function formatToMillions(amount) {
+  if (amount >= 1_000_000) {
+    return (amount / 1_000_000).toFixed(1) + "tr";
+  } else if (amount >= 1_000) {
+    return (amount / 1_000).toFixed(1) + "K";
+  }
+  return amount.toString();
+}
 export default function RecentJob() {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const maxPage = 5;
+  const [jobs, setJobs] = useState([]);
+
+  useEffect(() => {
+    async function getJobs() {
+      try {
+        const data = await fetchRecentJobs({ page: currentPage, size: 9 });
+        setJobs(data.content);
+      } catch (error) {
+        console.error("Error fetching recent jobs:", error);
+      }
+    }
+    getJobs();
+  }, [currentPage]);
 
   return (
     <div className="bg-[#f3f5f7] py-10">
@@ -73,124 +103,40 @@ export default function RecentJob() {
         <p className="text-[#1C229E] text-right underline hover:font-bold text-lg">
           Xem thêm
         </p>
-        <div className="grid grid-cols-3 gap-6 my-10">
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
-          <Job
-            logo="/images/exampleLogo.png"
-            jobname="Chuyên Viên Phát Triển Phần Mềm"
-            company="Công Ty ABC"
-            category="Công Nghệ Thông Tin"
-            tags={["Hot", "1 giờ trước"]}
-            type="Toàn thời gian"
-            salaryMin="15 tr"
-            salaryMax="25 tr"
-            location="Hà Nội"
-          />
+        <div className="grid grid-cols-3 gap-4 my-10">
+          {jobs &&
+            jobs.map((job) => (
+              <Job
+                key={job.id}
+                id={job.id}
+                logo={"/images/exampleLogo.png"}
+                jobname={job.title}
+                company={"Google"}
+                tags={["Hot", "1 giờ trước"]}
+                type={job.jobType}
+                salaryMin={formatToMillions(job.minSalary)}
+                salaryMax={formatToMillions(job.maxSalary)}
+                location={job.location}
+              />
+            ))}
         </div>
         <div className="flex justify-center items-center gap-2">
           <button
             className={`${
-              currentPage > 1
+              currentPage > 0
                 ? "text-[#E48309] rounded-full border-1 p-1 text-2xl hover:text-white hover:bg-[#E48309] transition-all duration-100"
                 : "text-gray-300 rounded-full border-1 p-1 text-2xl cursor-not-allowed"
             }`}
             onClick={() => {
-              if (currentPage <= 1) return;
+              if (currentPage <= 0) return;
               setCurrentPage(currentPage - 1);
             }}
           >
             <PiCaretLeft />
           </button>
           <p>
-            <span className="text-[#E48309] font-bold">{currentPage}</span> /{" "}
-            {maxPage} trang
+            <span className="text-[#E48309] font-bold">{currentPage + 1}</span>{" "}
+            / {maxPage} trang
           </p>
           <button
             className={`${

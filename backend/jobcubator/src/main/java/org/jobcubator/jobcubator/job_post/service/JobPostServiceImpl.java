@@ -4,39 +4,50 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import lombok.RequiredArgsConstructor;
 import org.jobcubator.jobcubator.company.domain.Company;
 import org.jobcubator.jobcubator.company.domain.CompanyRepository;
+import org.jobcubator.jobcubator.company.service.CompanySecurityService;
+import org.jobcubator.jobcubator.intergration.ai.AiSyncService;
 import org.jobcubator.jobcubator.job_post.domain.JobPost;
 import org.jobcubator.jobcubator.job_post.domain.JobPostRepository;
 import org.jobcubator.jobcubator.job_post.dto.JobPostDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostFilterDTO;
 import org.jobcubator.jobcubator.job_post.dto.JobPostRequestDTO;
+import org.jobcubator.jobcubator.tag.domain.Tag;
+import org.jobcubator.jobcubator.tag.service.TagServiceImpl;
+import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
 
-
 @Service
-@Transactional
+@RequiredArgsConstructor
 public class JobPostServiceImpl implements JobPostService {
 
     private final JobPostRepository jobPostRepository;
     private final CompanyRepository companyRepository;
-
-    public JobPostServiceImpl(JobPostRepository jobPostRepository, CompanyRepository companyRepository) {
-        this.jobPostRepository = jobPostRepository;
-        this.companyRepository = companyRepository;
-    }
+    private final CompanySecurityService companySecurityService;
+    private final TagServiceImpl tagService;
+    private final AiSyncService aiSyncService;
 
     @Override
-    public JobPostDTO createJobPost(UUID companyId, JobPostRequestDTO createDTO) {
+    @Transactional
+    public JobPostDTO createJobPost(User user, UUID companyId, JobPostRequestDTO createDTO) {
         Company company = companyRepository.findById(companyId)
             .orElseThrow(() -> new RuntimeException("Company not found"));
-        
+
+        if(!companySecurityService.canManageApplicationsAndJobPosts(companyId, user)) {
+            throw new AccessDeniedException("Access denied");
+        }
+
         JobPost newJobPost = new JobPost();
         newJobPost.setTitle(createDTO.title());
         newJobPost.setCategory(createDTO.category());
@@ -46,53 +57,47 @@ public class JobPostServiceImpl implements JobPostService {
         newJobPost.setApplicationDeadline(createDTO.applicationDeadline());
         newJobPost.setMinSalary(createDTO.minSalary());
         newJobPost.setMaxSalary(createDTO.maxSalary());
-        newJobPost.setDescriptionPath(createDTO.descriptionPath());
+        newJobPost.setDescription(createDTO.description());
+        newJobPost.setRequirements(createDTO.requirements());
+        newJobPost.setBenefits(createDTO.benefits());
+        newJobPost.setSchedule(createDTO.schedule());
         newJobPost.setCompany(company);
-        
+
+//        if (createDTO.tags() != null && !createDTO.tags().isEmpty()) {
+//            Set<Tag> tags = tagService.findOrCreateTags(createDTO.tags());
+//            newJobPost.setTags(tags);
+//        }
+
         newJobPost = jobPostRepository.save(newJobPost);
         
-        return new JobPostDTO(
-            newJobPost.getId(),
-            newJobPost.getTitle(),
-            newJobPost.getCategory(),
-            newJobPost.getLocation(),
-            newJobPost.getNumberOfVacancies(),
-            newJobPost.getJobType(),
-            newJobPost.getApplicationDeadline(),
-            newJobPost.getMinSalary(),
-            newJobPost.getMaxSalary(),
-            company.getId(),
-            newJobPost.getDescriptionPath()
-        );
+        JobPostDTO result = mapToJobPostDTO(newJobPost, company);
+
+        aiSyncService.syncJobToAI(result);
+
+        return result;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public JobPostDTO getJobPostById(UUID id) {
         JobPost jobPost = jobPostRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("JobPost not found"));
         
         Company company = jobPost.getCompany();
         
-        return new JobPostDTO(
-            jobPost.getId(),
-            jobPost.getTitle(),
-            jobPost.getCategory(),
-            jobPost.getLocation(),
-            jobPost.getNumberOfVacancies(),
-            jobPost.getJobType(),
-            jobPost.getApplicationDeadline(),
-            jobPost.getMinSalary(),
-            jobPost.getMaxSalary(),
-            company.getId(),
-            jobPost.getDescriptionPath()
-        );
+        return mapToJobPostDTO(jobPost, company);
     }
 
     @Override
-    public JobPostDTO updateJobPost(UUID id, JobPostRequestDTO updateDTO) {
+    @Transactional
+    public JobPostDTO updateJobPost(User user, UUID id, JobPostRequestDTO updateDTO) {
         JobPost jobPost = jobPostRepository.findById(id)
         .orElseThrow(() -> new RuntimeException("JobPost not found"));
         Company company = jobPost.getCompany();
+
+        if(!companySecurityService.canManageApplicationsAndJobPosts(company.getId(), user)) {
+            throw new AccessDeniedException("Access denied");
+        }
 
         jobPost.setTitle(updateDTO.title());
         jobPost.setLocation(updateDTO.location());
@@ -102,35 +107,34 @@ public class JobPostServiceImpl implements JobPostService {
         jobPost.setApplicationDeadline(updateDTO.applicationDeadline());
         jobPost.setMinSalary(updateDTO.minSalary());
         jobPost.setMaxSalary(updateDTO.maxSalary());
-        jobPost.setDescriptionPath(updateDTO.descriptionPath());
+        jobPost.setDescription(updateDTO.description());
+        jobPost.setRequirements(updateDTO.requirements());
+        jobPost.setBenefits(updateDTO.benefits());
+        jobPost.setSchedule(updateDTO.schedule());
 
         jobPost = jobPostRepository.save(jobPost);
-        return new JobPostDTO(
-            jobPost.getId(),
-            jobPost.getTitle(),
-            jobPost.getCategory(),
-            jobPost.getLocation(),
-            jobPost.getNumberOfVacancies(),
-            jobPost.getJobType(),
-            jobPost.getApplicationDeadline(),
-            jobPost.getMinSalary(),
-            jobPost.getMaxSalary(),
-            company.getId(),
-            jobPost.getDescriptionPath()
-        );
+        JobPostDTO result = mapToJobPostDTO(jobPost, company);
 
+        aiSyncService.syncJobToAI(result);
+
+        return result;
     }
 
     @Override
-    public void deleteJobPost(UUID id) {
-        if (!jobPostRepository.existsById(id)) { // <-- Thêm dòng này
-            throw new ResourceNotFoundException("JobPost not found with id: " + id);
+    @Transactional
+    public void deleteJobPost(User user, UUID id) {
+        JobPost jobPost = jobPostRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("JobPost not found"));
+
+        if(!companySecurityService.canManageApplicationsAndJobPosts(jobPost.getCompany().getId(), user)) {
+            throw new AccessDeniedException("Access denied");
         }
-        jobPostRepository.deleteById(id);
-        
+
+        jobPostRepository.delete(jobPost);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<JobPostDTO> filterJobPosts(JobPostFilterDTO filter, Pageable pageable) {
         Specification<JobPost> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -178,137 +182,95 @@ public class JobPostServiceImpl implements JobPostService {
                 if (filter.deadlineTo() != null) {
                     predicates.add(cb.lessThanOrEqualTo(root.get("applicationDeadline"), filter.deadlineTo()));
                 }
+
+                // 10. LỌC THEO TAGS (Mới thêm)
+                if (filter.tags() != null && !filter.tags().isEmpty()) {
+                    // a. Join bảng JobPost với bảng Tags
+                    // "tags" là tên biến Set<Tag> tags trong entity JobPost
+                    Join<JobPost, Tag> tagsJoin = root.join("tags", JoinType.INNER);
+
+                    // b. Tạo điều kiện: Tag name nằm trong danh sách user gửi lên
+                    // (Dùng IN để tìm job chứa ít nhất 1 trong các tag đó)
+                    predicates.add(tagsJoin.get("name").in(filter.tags()));
+
+                    // c. QUAN TRỌNG: Khi join 1-nhiều, kết quả có thể bị trùng lặp JobPost
+                    // Ví dụ: 1 Job có 2 tag khớp -> trả về 2 dòng. Cần distinct để gộp lại.
+                    assert query != null;
+                    query.distinct(true);
+                }
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
         Page<JobPost>page = jobPostRepository.findAll(spec,pageable);
-        return page.map(c -> {
-            Company company = c.getCompany();
-            return new JobPostDTO(
-                c.getId(),
-                c.getTitle(),
-                c.getCategory(),
-                c.getLocation(),
-                c.getNumberOfVacancies(),
-                c.getJobType(),
-                c.getApplicationDeadline(),
-                c.getMinSalary(),
-                c.getMaxSalary(),
-                company.getId(),
-                c.getDescriptionPath()
-            );
-        });
+        return mapToJobPostDTO(page);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<JobPostDTO> getJobPostsByCompanyId(UUID companyId, Pageable pageable) {
         // 1. (Nên có) Kiểm tra xem công ty có tồn tại không
         if (!companyRepository.existsById(companyId)) {
         throw new ResourceNotFoundException("Company not found with id: " + companyId);
         }
+
         Page<JobPost> jobPostPage = jobPostRepository.findByCompany_Id(companyId, pageable);
-        return jobPostPage.map(post -> {
-            // 'post' là một đối tượng JobPost
-            Company company = post.getCompany(); // Lấy đối tượng company liên quan
-    
-            return new JobPostDTO(
-                post.getId(),
-                post.getTitle(),
-                post.getCategory(),
-                post.getLocation(),
-                post.getNumberOfVacancies(),
-                post.getJobType(),
-                post.getApplicationDeadline(),
-                post.getMinSalary(),
-                post.getMaxSalary(),
-                company.getId(),     // Lấy companyId
-                post.getDescriptionPath()
-            );
-        });
+        return mapToJobPostDTO(jobPostPage);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<JobPostDTO> getJobPostsByCompanyName(String companyName, Pageable pageable) {
         Page<JobPost> jobPostPage = jobPostRepository.findByCompany_NameContainingIgnoreCase(companyName,pageable);
-        return jobPostPage.map(post -> {   
-            Company company = post.getCompany(); 
-            return new JobPostDTO(
-                post.getId(),
-                post.getTitle(),
-                post.getCategory(),
-                post.getLocation(),
-                post.getNumberOfVacancies(),
-                post.getJobType(),
-                post.getApplicationDeadline(),
-                post.getMinSalary(),
-                post.getMaxSalary(),
-                company.getId(),     
-                post.getDescriptionPath()
-            );
-        });
+        return mapToJobPostDTO(jobPostPage);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<JobPostDTO> getTopVacanciesJobPosts(Pageable pageable) {
         Page<JobPost>page = jobPostRepository.findAllByOrderByNumberOfVacanciesDesc(pageable);
-        return page.map(c -> {
-            Company company = c.getCompany();
-            return new JobPostDTO(
-                    c.getId(),
-                    c.getTitle(),
-                    c.getCategory(),
-                    c.getLocation(),
-                    c.getNumberOfVacancies(),
-                    c.getJobType(),
-                    c.getApplicationDeadline(),
-                    c.getMinSalary(),
-                    c.getMaxSalary(),
-                    company.getId(),
-                    c.getDescriptionPath()
-            );
-        });
+        return mapToJobPostDTO(page);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<JobPostDTO> getRecentJobPosts(Pageable pageable) {
         Page<JobPost>page = jobPostRepository.findAllByOrderByCreatedAtDesc(pageable);
-        return page.map(c -> {
-            Company company = c.getCompany();
-            return new JobPostDTO(
-                    c.getId(),
-                    c.getTitle(),
-                    c.getCategory(),
-                    c.getLocation(),
-                    c.getNumberOfVacancies(),
-                    c.getJobType(),
-                    c.getApplicationDeadline(),
-                    c.getMinSalary(),
-                    c.getMaxSalary(),
-                    company.getId(),
-                    c.getDescriptionPath()
-            );
-        });
+        return mapToJobPostDTO(page);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<JobPostDTO> getJobPostsByTagName(Pageable pageable, String tagName) {
         Page<JobPost>page = jobPostRepository.findByTagName(tagName, pageable);
-        return page.map(c -> {
-            Company company = c.getCompany();
-            return new JobPostDTO(
-                    c.getId(),
-                    c.getTitle(),
-                    c.getCategory(),
-                    c.getLocation(),
-                    c.getNumberOfVacancies(),
-                    c.getJobType(),
-                    c.getApplicationDeadline(),
-                    c.getMinSalary(),
-                    c.getMaxSalary(),
-                    company.getId(),
-                    c.getDescriptionPath()
-            );
+        return mapToJobPostDTO(page);
+    }
+
+    private JobPostDTO mapToJobPostDTO(JobPost jobPost, Company company) {
+        return JobPostDTO.builder()
+                .id(jobPost.getId())
+                .companyName(company.getName())
+                .title(jobPost.getTitle())
+                .category(jobPost.getCategory())
+                .location(jobPost.getLocation())
+                .numberOfVacancies(jobPost.getNumberOfVacancies())
+                .jobType(jobPost.getJobType())
+                .applicationDeadline(jobPost.getApplicationDeadline())
+                .minSalary(jobPost.getMinSalary())
+                .maxSalary(jobPost.getMaxSalary())
+                .companyId(company.getId())
+                .description(jobPost.getDescription())
+                .requirements(jobPost.getRequirements())
+                .benefits(jobPost.getBenefits())
+                .schedule(jobPost.getSchedule())
+//                .tags(jobPost.getTags().stream().map(Tag::getName).collect(Collectors.toSet()))
+                .build();
+    }
+
+    private Page<JobPostDTO> mapToJobPostDTO(Page<JobPost> jobPostPage) {
+        return jobPostPage.map(jobPost -> {
+            Company company = jobPost.getCompany();
+            return mapToJobPostDTO(jobPost, company);
         });
     }
 }

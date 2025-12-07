@@ -6,14 +6,13 @@ import org.jobcubator.jobcubator.authentication.dto.RefreshTokenRequest;
 import org.jobcubator.jobcubator.authentication.dto.UserLoginRequest;
 import org.jobcubator.jobcubator.authentication.dto.UserRegistrationRequest;
 import org.jobcubator.jobcubator.authentication.service.UserAuthService;
+import org.jobcubator.jobcubator.user.domain.User;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth/")
+@RequestMapping("/api/auth")
 class AuthController {
     private final UserAuthService userAuthService;
 
@@ -29,6 +28,11 @@ class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody UserLoginRequest request) {
         return ResponseEntity.ok(userAuthService.loginUser(request));
+    }
+
+    @DeleteMapping("/logout")
+    public ResponseEntity<AuthResponse> logoutUser(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(userAuthService.logoutUser(user));
     }
 
     @PostMapping("/refresh")

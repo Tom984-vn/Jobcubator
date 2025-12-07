@@ -18,9 +18,10 @@ const testJobGroups = [
   "Tài chính - Kế toán",
   "Nhân sự",
 ];
+
 const JobsDropdown = (props) => {
   return (
-    <div className="absolute top-[100%] left-0 bg-white shadow-lg rounded-md mt-2 p-4 pb-0 w-full z-10 w-200 max-h-120">
+    <div className="absolute top-[100%] left-0 bg-white shadow-lg rounded-md mt-2 p-4 pb-0 w-full z-20 w-200 max-h-120">
       <button
         onClick={() => {
           props.cancel();
@@ -139,7 +140,7 @@ const LocationDropDown = () => {
   );
 
   return (
-    <div className="absolute top-[100%] right-0 bg-white shadow-xl rounded-md mt-2 p-1 pb-0 z-10 w-140 max-h-140 grid grid-cols-2 gap-2">
+    <div className="absolute top-[100%] right-0 bg-white shadow-xl rounded-md mt-2 p-1 pb-0 z-20 w-140 max-h-140 grid grid-cols-2 gap-2">
       {/* LEFT COLUMN — Cities */}
       <div className="relative my-3">
         <input
@@ -215,15 +216,25 @@ const LocationDropDown = () => {
             Hãy chọn một tỉnh, thành phố
           </p>
         )}
+        {selectedCities.length > 0 && (
+          <div className="flex justify-end mt-4 border-t border-gray-300 py-3">
+            <button className="bg-gray-200 text-gray-700 px-8 py-2 rounded-full mr-4 hover:bg-gray-300">
+              Hủy
+            </button>
+            <button className="bg-secondary-2-300 text-white  py-2 rounded-full px-10 hover:bg-secondary-2-400">
+              Chọn
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
-export default function SearchBar() {
+export default function SearchBar(props) {
   const [open, setOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   return (
-    <div className="bg-primary-300 py-5 ">
+    <div className="bg-primary-300 py-5 z-20 sticky top-0 w-full shadow-md">
       <div className="flex justify-center bg-white w-fit rounded-xl space-x-3 mx-auto h-12 relative">
         {open && (
           <JobsDropdown
@@ -250,6 +261,11 @@ export default function SearchBar() {
           <input
             placeholder="Vị trí tuyển dụng"
             className="w-100 focus:outline-0 border-r-2 border-gray-300 p-2"
+            onChange={(e) => {
+              if (props.useFilter === false) return;
+              props.changeFilterField("title", e.target.value);
+            }}
+            value={props.filter && props.filter.title}
           />
         </div>
         <div className="flex items-center">

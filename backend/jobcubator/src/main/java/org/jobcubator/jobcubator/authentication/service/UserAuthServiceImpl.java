@@ -6,6 +6,8 @@ import org.jobcubator.jobcubator.authentication.domain.RefreshToken;
 import org.jobcubator.jobcubator.authentication.domain.RefreshTokenRepository;
 import org.jobcubator.jobcubator.authentication.dto.*;
 import org.jobcubator.jobcubator.user.domain.User;
+import org.jobcubator.jobcubator.user.domain.UserProfile;
+import org.jobcubator.jobcubator.user.domain.UserProfileRepository;
 import org.jobcubator.jobcubator.user.domain.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,8 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Date;
-import java.util.Optional;
 
 import static org.jobcubator.jobcubator.authentication.service.JwtTokenServiceImpl.REFRESH_TOKEN_VALIDITY_MILLISECONDS;
 
@@ -26,6 +26,7 @@ public class UserAuthServiceImpl implements UserAuthService {
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
 
@@ -47,8 +48,12 @@ public class UserAuthServiceImpl implements UserAuthService {
         user.setUsername(request.username());
         user.setEmail(request.email());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-
+        
         userRepository.save(user);
+
+        UserProfile profile = new UserProfile();
+        profile.setUser(user);
+        userProfileRepository.save(profile);
 
         return createToken(user.getUsername());
     }
@@ -64,6 +69,14 @@ public class UserAuthServiceImpl implements UserAuthService {
     }
 
     @Override
+    @Transactional
+    public AuthResponse logoutUser(User user) {
+        refreshTokenRepository.deleteByUserId(user.getId());
+        return new AuthResponse(null, null);
+    }
+
+    @Override
+    @Transactional
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String requestRefreshToken = request.refreshToken();
 
@@ -84,6 +97,8 @@ public class UserAuthServiceImpl implements UserAuthService {
     private AuthResponse createToken(String username) {
         User user = userRepository.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Username not found"));
         refreshTokenRepository.deleteByUser(user);
+
+        refreshTokenRepository.flush();
 
         String accessToken = jwtTokenService.generateAccessToken(user.getUsername());
         String refreshToken = jwtTokenService.generateRefreshToken(user.getUsername());

@@ -1,12 +1,15 @@
 package org.jobcubator.jobcubator.config;
 
+import lombok.RequiredArgsConstructor;
 import org.jobcubator.jobcubator.authentication.filter.JwtAuthenticationFilter;
+import org.jobcubator.jobcubator.config.ratelimit.RateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,7 +25,10 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -42,7 +48,7 @@ public class SecurityConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOrigins("http://localhost:5173")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
                         .allowCredentials(true);
             }
@@ -54,7 +60,7 @@ public class SecurityConfig {
         http
 //            .cors() // ✅ Enable CORS support in Spring Security // TODO: these things are deprecated since version 6.1, try to find a replacement.
 //            .and()
-            .csrf(csrf -> csrf.disable())
+            .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
@@ -67,7 +73,25 @@ public class SecurityConfig {
                     // Public JobPost endpoints (GET only)
                     .requestMatchers("GET", "/api/job_posts/**").permitAll()
                     .requestMatchers("POST", "/api/job_posts/filter").permitAll()
+
+                    // Allow websocket
+                    .requestMatchers("/ws-chat/**").permitAll()
+
+                    // Candidate Actions
+                    .requestMatchers("POST", "/api/applications").hasAnyRole("CANDIDATE", "USER")
+                    .requestMatchers("GET", "/api/applications/my-applications").authenticated()
+
+                    // Company Actions
+                    .requestMatchers("GET", "/api/applications/job/**").hasRole("COMPANY")
+                    .requestMatchers("PATCH", "/api/applications/*/status").hasRole("COMPANY")
+
+                    .requestMatchers("POST", "/api/courses/filter").permitAll()
+                    .requestMatchers("GET", "/api/courses/**").permitAll()
+
+                    .requestMatchers("PUT", "/api/courses/**").hasRole("ADMIN")
+                    .requestMatchers("POST", "/api/courses").hasRole("ADMIN")
                     .anyRequest().authenticated())
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -77,7 +101,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
 //        configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);

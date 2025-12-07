@@ -1,10 +1,16 @@
 package org.jobcubator.jobcubator.job_post.dto;
 
+import jakarta.validation.constraints.Size;
+import lombok.Builder;
+
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
-public record JobPostDTO(
+@Builder
+public record  JobPostDTO(
     UUID id,
+    String companyName,
     String title,
     String category,
     String location,
@@ -14,6 +20,10 @@ public record JobPostDTO(
     Integer minSalary,
     Integer maxSalary,
     UUID companyId,
-    String descriptionPath
+    String description,
+    String requirements,
+    String benefits,
+    String schedule
+//    Set<String> tags
 ) {
 }

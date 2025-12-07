@@ -2,8 +2,6 @@ package org.jobcubator.jobcubator.user.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-import org.hibernate.annotations.GenericGenerator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,6 +21,7 @@ import java.util.UUID;
 public class User implements UserDetails {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", updatable = false, nullable = false, unique = true)
     private UUID id;
 
@@ -41,13 +40,20 @@ public class User implements UserDetails {
     @Column(name = "password_hash", updatable = true, nullable = false, length = 100)
     private String passwordHash;
 
-    @Column(name = "created_at", updatable = false, insertable = false)
+    @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    @Builder.Default
+    private Role role = Role.CANDIDATE;
+
     @PrePersist
-    private void ensureId() {
-        if (this.id == null) {
-            this.id = UUID.randomUUID();
+    private void ensureCreatedAt()
+    {
+        if(createdAt == null)
+        {
+            createdAt = Instant.now();
         }
     }
 
@@ -69,9 +75,11 @@ public class User implements UserDetails {
         this.userProfile = userProfile;
     }
 
+    // TODO: Change this so this can return roles in the role col.
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_USER")); // I don't have any intended to create role for user because im very suck at handle security things so yeah.
+        return List.of(new SimpleGrantedAuthority("ROLE_" + this.role.name())); 
     }
 
     @Override

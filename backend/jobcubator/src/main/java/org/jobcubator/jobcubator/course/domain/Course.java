@@ -25,7 +25,7 @@ public class Course {
     private String title;
 
     @Column(name = "level", updatable = false, nullable = false, insertable = false, length = 10)
-    private String level;
+    private String level; 
 
     @Column(name = "provider", updatable = false, nullable = false, insertable = false, length = 50)
     private String provider;

@@ -10,7 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/user/")
+@RequestMapping("/api/user")
 @RequiredArgsConstructor
 class UserController {
 
@@ -18,7 +18,6 @@ class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<GetUserProfileResponse> getCurrentUser(@AuthenticationPrincipal User user) {
-
         GetUserProfileResponse response = userProfileService.getUserProfile(user);
         return ResponseEntity.ok(response);
     }
@@ -30,22 +29,20 @@ class UserController {
     }
 
 
-    @PutMapping("/me/avatar")
-    public ResponseEntity<String> saveUserAvatar(@AuthenticationPrincipal User user, @RequestBody String objectKey)
-    {
-        try
-        {
-            userProfileService.saveUserProfileAvatar(user, objectKey);
-            return ResponseEntity.ok("User's avatar updated successfully");
-        }catch(Exception e) {
-            return ResponseEntity.badRequest().body("Unexpected error while updating user avatar");
-        }
-
+@PutMapping("/me/avatar")
+public ResponseEntity<String> saveUserAvatar(@AuthenticationPrincipal User user,
+                                             @RequestBody String objectKey) {
+    try {
+        // Save only the object key
+        userProfileService.saveUserProfileAvatar(user, objectKey);
+        return ResponseEntity.ok("User's avatar updated successfully");
+    } catch(Exception e) {
+        return ResponseEntity.badRequest().body("Unexpected error while updating user avatar");
     }
+}
 
     @PutMapping("/me/cv")
-    public ResponseEntity<String> saveUserCV(@AuthenticationPrincipal User user, @RequestBody String objectKey)
-    {
+    public ResponseEntity<String> saveUserCV(@AuthenticationPrincipal User user, @RequestBody String objectKey) {
         try
         {
             userProfileService.saveUserProfileCV(user, objectKey);

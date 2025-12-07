@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.jobcubator.jobcubator.authentication.service.JwtTokenService;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.jobcubator.jobcubator.user.domain.UserRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,8 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException{
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException{
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
@@ -52,7 +53,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                 if(jwtTokenService.validateToken(jwt, userDetails.getUsername())) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
+                            null,
+                            userDetails.getAuthorities());
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
@@ -60,25 +63,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-
-            User domainUser = userRepository.findByUsername(username).orElse(null);
-if (domainUser != null) {
-    UsernamePasswordAuthenticationToken auth =
-        new UsernamePasswordAuthenticationToken(domainUser, null, Collections.emptyList());
-    SecurityContextHolder.getContext().setAuthentication(auth);
-}
             
         } catch (Exception e) {
             logger.error("Error while authenticating user", e);
 
-            //HANDLE THE EXCEPTION MORE RESPONSIBLE, THIS IS FOR TESTING.
         }
 
         filterChain.doFilter(request, response);
     }
 }
-//@Override // you don't need this, already defined in config.
-//protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-//    String path = request.getServletPath();
-//    return path.startsWith("/api/auth/");
-//}
