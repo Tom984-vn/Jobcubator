@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+requests
+python-dotenv
+# json
+pydantic
+chromadb
+torch --index-url https://download.pytorch.org/whl/cpu

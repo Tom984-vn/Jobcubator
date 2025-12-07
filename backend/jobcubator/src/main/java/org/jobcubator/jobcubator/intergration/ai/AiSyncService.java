@@ -3,6 +3,7 @@ package org.jobcubator.jobcubator.intergration.ai;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jobcubator.jobcubator.job_post.dto.JobPostDTO;
+import org.jobcubator.jobcubator.user.dto.GetUserProfileResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,7 @@ public class AiSyncService {
 
     private final RestTemplate restTemplate;
 
-    @Value("ai.service.url")
+    @Value("${ai.service.url}")
     private String aiServiceUrl;
 
     @Async
@@ -28,6 +29,17 @@ public class AiSyncService {
             restTemplate.put(endpoint, jobPost);
         } catch (Exception e) {
             log.error("Failed to sync job {} to ai service. Error: {}", jobPost.id(), e.getMessage());
+        }
+    }
+
+    @Async
+    public void syncUserToAI(GetUserProfileResponse userProfile){
+        String endpoint = aiServiceUrl + "/api/v1/sync/user";
+        try {
+            log.info("Starting sync user to AI Service...");
+            restTemplate.put(endpoint, userProfile);
+        } catch (Exception e) {
+            log.error("Failed to sync user {} to ai service. Error: {}", userProfile.userId(), e.getMessage());
         }
     }
 }

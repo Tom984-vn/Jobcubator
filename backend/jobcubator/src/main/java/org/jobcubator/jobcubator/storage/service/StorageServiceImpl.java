@@ -170,7 +170,7 @@ class StorageServiceImpl implements StorageService {
                 .build();
 
         PresignedGetObjectRequest presignedGetObjectRequest = s3Presigner.presignGetObject(presignRequest);
-        return presignedGetObjectRequest.url().toString();
+        return presignedGetObjectRequest.url().toString().replace("http://minio:9000", "/minio");
     }
 
     @Override

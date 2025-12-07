@@ -7,9 +7,11 @@ import org.jobcubator.jobcubator.user.domain.UserProfile;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public record GetUserProfileResponse(
+        UUID userId,
         String fullName,
         String username,
         String email,
@@ -33,6 +35,7 @@ public record GetUserProfileResponse(
                             .toList() : Collections.emptyList();
 
             return new GetUserProfileResponse(
+                    user.getId(),
                     user.getFullName(),
                     user.getUsername(),
                     user.getEmail(),
@@ -50,6 +53,7 @@ public record GetUserProfileResponse(
         }
 
         return new GetUserProfileResponse(
+                user.getId(),
                 user.getFullName(),
                 user.getUsername(),
                 user.getEmail(),

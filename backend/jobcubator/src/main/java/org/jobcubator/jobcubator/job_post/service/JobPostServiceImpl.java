@@ -2,9 +2,7 @@ package org.jobcubator.jobcubator.job_post.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -65,10 +63,10 @@ public class JobPostServiceImpl implements JobPostService {
         newJobPost.setSchedule(createDTO.schedule());
         newJobPost.setCompany(company);
 
-        if (createDTO.tags() != null && !createDTO.tags().isEmpty()) {
-            Set<Tag> tags = tagService.findOrCreateTags(createDTO.tags());
-            newJobPost.setTags(tags);
-        }
+//        if (createDTO.tags() != null && !createDTO.tags().isEmpty()) {
+//            Set<Tag> tags = tagService.findOrCreateTags(createDTO.tags());
+//            newJobPost.setTags(tags);
+//        }
 
         newJobPost = jobPostRepository.save(newJobPost);
         
@@ -265,7 +263,7 @@ public class JobPostServiceImpl implements JobPostService {
                 .requirements(jobPost.getRequirements())
                 .benefits(jobPost.getBenefits())
                 .schedule(jobPost.getSchedule())
-                .tags(jobPost.getTags().stream().map(Tag::getName).collect(Collectors.toSet()))
+//                .tags(jobPost.getTags().stream().map(Tag::getName).collect(Collectors.toSet()))
                 .build();
     }
 

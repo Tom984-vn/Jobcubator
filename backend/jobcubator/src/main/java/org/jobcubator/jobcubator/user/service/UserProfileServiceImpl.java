@@ -1,6 +1,7 @@
 package org.jobcubator.jobcubator.user.service;
 
 import lombok.RequiredArgsConstructor;
+import org.jobcubator.jobcubator.intergration.ai.AiSyncService;
 import org.jobcubator.jobcubator.storage.service.StorageService;
 import org.jobcubator.jobcubator.user.domain.User;
 import org.jobcubator.jobcubator.user.domain.UserProfile;
@@ -24,13 +25,16 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final UserProfileRepository userProfileRepository;
     private final UserRepository userRepository;
     private final StorageService storageService;
+    private final AiSyncService aiSyncService;
 
     @Override
     @Transactional(readOnly = true)
     public GetUserProfileResponse getUserProfile(User requestUser)
     {
         UserProfile userProfile = userProfileRepository.findById(requestUser.getId()).orElse(null);
-        return GetUserProfileResponse.fromEntities(requestUser, userProfile);
+        GetUserProfileResponse result =  GetUserProfileResponse.fromEntities(requestUser, userProfile);
+        aiSyncService.syncUserToAI(result);
+        return result;
     }
 
     @Override
@@ -101,6 +105,10 @@ public class UserProfileServiceImpl implements UserProfileService {
                         e.getDescription()
                 ))
                 .toList();
+
+        GetUserProfileResponse syncData = GetUserProfileResponse.fromEntities(requestUser, savedProfile);
+
+        aiSyncService.syncUserToAI(syncData);
 
         return new UpdateUserProfileResponse(
                 user.getFullName(),
