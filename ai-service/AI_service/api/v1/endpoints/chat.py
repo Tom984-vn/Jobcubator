@@ -1,66 +1,60 @@
 # AI_service/api/v1/endpoints/chat.py
-from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
-from typing import Generator, AsyncGenerator
-from .router import SemanticRouter
+import json
 import inspect
+import logging
+from fastapi import APIRouter, HTTPException, Depends
 
 # <-- Absolute Imports
-from AI_service.schemas.schemas import TextRequest # Cần tạo TextRequest trong schemas/ai.py
-from AI_service.service.ai.clients import FPTAIClient 
-from AI_service.service.ai.vectordb import VectorDBClient
-# Bạn sẽ cần import SemanticRouter nếu bạn định nghĩa nó ở file khác
-# Ví dụ: from AI_service.services.ai.router import SemanticRouter
-# --- KHỞI TẠO SERVICES ---
-ai_client = FPTAIClient()
-INTENT_ROUTER = SemanticRouter(ai_client= ai_client)
-db_client = VectorDBClient(ai_client=ai_client)
+from AI_service.schemas.schemas import ChatRequest
+from AI_service.core.dependencies import AIClientDep, DBClientDep, SemanticRouterDep
+
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# ------------------------------------------------------------------------
-# ENDPOINT: CHAT CHUNG (/general)
-# ------------------------------------------------------------------------
-@router.post("/general")
-async def endpoint_general_chat(data: TextRequest):
+@router.post("/general", summary="Chat tổng quát với AI (JSON Response)")
+async def general_chat_endpoint(
+    data: ChatRequest,
+    ai_client: AIClientDep,
+    db_client: DBClientDep,
+    router_client: SemanticRouterDep,
+):
     """
-    Xử lý câu hỏi chat chung, dùng Semantic Router để điều phối
-    hoặc Light LLM để chuẩn hóa câu hỏi. Trả về streaming response.
-    """
+    Endpoint xử lý chat tổng quát, sử dụng Semantic Router và trả về một JSON object hoàn chỉnh.
     
-    # Hàm tạo luồng (Generator)
-    async def output_generator() -> AsyncGenerator[str, None]:
-        # Dùng logic smart_chat mà bạn đã định nghĩa
-                # Truyền đầy đủ các tham số, bao gồm cả `data.context`
-        result_or_stream = ai_client.smart_chat(
-            user_text=data.text, 
-            router_instance=INTENT_ROUTER, 
-            db_client=db_client,
-            context=data.context  # Truyền ngữ cảnh người dùng vào
-        )
-        """
-        async for chunk in stream:
-            # Xử lý các chunk từ hàm chat_respond_custom (streaming)
-            if "choices" in chunk and len(chunk["choices"]) > 0:
-                delta = chunk["choices"][0].get("delta", {})
-                if "content" in delta:
-                    yield delta["content"]
-            # Xử lý lỗi
-            elif "error" in chunk:
-                 yield f"\n[ERROR]: {chunk['error']}"
-                 break
-        """
-        if inspect.isasyncgen(result_or_stream):
-            async for chunk in result_or_stream:
+    1. Gọi hàm `smart_chat` để lấy về một `async_generator`.
+    2. Tiêu thụ (consume) generator này để ghép các mảnh phản hồi lại.
+    3. Trả về một JSON object chứa toàn bộ nội dung chat.
+    """
+    # 1. Gọi hàm smart_chat, hàm này sẽ trả về một async generator
+    # SỬA LỖI: smart_chat là một coroutine, cần `await` để lấy về generator
+    response_generator = await ai_client.smart_chat(
+        user_text=data.text,
+        router_instance=router_client, # Sử dụng router được inject
+        db_client=db_client,           # Sử dụng db_client được inject
+        context=data.context
+    )
+
+    # 2. **QUAN TRỌNG**: Tiêu thụ generator để xây dựng chuỗi phản hồi đầy đủ
+    full_response_str = ""
+    try:
+        # Kiểm tra xem có phải là generator không
+        if inspect.isasyncgen(response_generator):
+            async for chunk in response_generator:
+                # Logic xử lý chunk từ FPT AI
                 if "choices" in chunk and len(chunk["choices"]) > 0:
                     delta = chunk["choices"][0].get("delta", {})
                     if "content" in delta:
-                        yield delta["content"]
+                        full_response_str += delta["content"]
                 elif "error" in chunk:
-                    yield f"\n[ERROR]: {chunk['error']}"
-                    break
-        else:
-            # Nếu là coroutine → await, sau đó yield kết quả
-            result = await result_or_stream
-            yield str(result)
+                    logger.error(f"Lỗi stream từ LLM: {chunk['error']}")
+                    raise HTTPException(status_code=500, detail=f"Lỗi từ mô hình AI: {chunk['error']}")
+        else: # Nếu không phải generator, nó là một coroutine trả về kết quả cuối cùng
+            result = await response_generator
+            full_response_str = str(result)
 
-    return StreamingResponse(output_generator(), media_type="text/plain")
+    except Exception as e:
+        logger.error(f"Lỗi khi xử lý stream từ LLM: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi khi nhận dữ liệu từ mô hình AI: {e}")
+
+    # 3. Trả về đối tượng JSON hoàn chỉnh cho frontend
+    return {"text": full_response_str}

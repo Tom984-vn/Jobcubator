@@ -117,7 +117,7 @@ class SemanticRouter:
             if isinstance(item, dict) and "samples" in item:
                 for sample in item["samples"]:
                     try:
-                        vec_list = self.ai_client.get_embedding(sample)
+                        vec_list = await self.ai_client.get_embedding(sample)
                         
                         if vec_list:
                             # 1. Chuẩn bị cho ChromaDB

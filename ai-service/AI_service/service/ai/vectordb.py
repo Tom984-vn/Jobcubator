@@ -130,10 +130,24 @@ class VectorDBClient:
             user_sample_results = self.user_collection.peek(limit=1)
             logger.info(sample_results)
             logger.info(user_sample_results)
-            sample_id = sample_results.get('ids', ['N/A'])[0]
+            """
+                        sample_id = sample_results.get('ids', ['N/A'])[0]
 
-            sample_doc = sample_results.get('documents', ['N/A'])[0]
-            sample_title = sample_results.get('title', ['N/A'])
+                        sample_doc = sample_results.get('documents', ['N/A'])[0]
+                        sample_title = sample_results.get('title', ['N/A'])
+            """
+            # Trích xuất dữ liệu một cách an toàn từ kết quả peek()
+            sample_id = "N/A"
+            sample_doc = "N/A"
+            sample_title = "N/A"
+
+            if sample_results and sample_results.get('ids'):
+                sample_id = sample_results['ids'][0]
+                sample_doc = sample_results.get('documents', ['N/A'])[0]
+                # SỬA LỖI: 'title' nằm trong 'metadatas', không phải ở cấp cao nhất.
+                first_metadata = sample_results.get('metadatas', [{}])[0]
+                sample_title = first_metadata.get('title', 'N/A') if first_metadata else 'N/A'
+
             logger.info("==================================================")
             logger.info("👀 DEBUG: Kiểm tra Job mẫu đầu tiên từ ChromaDB:")
             logger.info(f"   - ID: {sample_id}")
@@ -167,9 +181,12 @@ class VectorDBClient:
             job_description = job.get("description", "")
             job_requirement = job.get("requirements", "Chưa có")
             job_benefits = job.get("benefits","Chưa có")
-            job_tag = job.get("tags", "")
+            job_tags_list = job.get("tags", [])
+            # Đảm bảo tags là một chuỗi để nối vào text, xử lý trường hợp nó không phải list
+            job_tag_str = ", ".join(job_tags_list) if isinstance(job_tags_list, list) else ""
+
             # Trích xuất văn bản để gọi embedding API (phải là ASYNC)
-            text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}. Yêu cầu: {job_requirement}. Quyền lợi: {job_benefits}. Từ khóa: {job_tag}"
+            text_to_embed = f"Tiêu đề: {job_title}. Mô tả: {job_description}. Yêu cầu: {job_requirement}. Quyền lợi: {job_benefits}. Từ khóa: {job_tag_str}"
  
             # Tạo danh sách các coroutine
             embedding_tasks.append(self.ai_client.get_embedding(text_to_embed))
@@ -266,12 +283,24 @@ class VectorDBClient:
         if not self.job_collection:
             raise RuntimeError("Job Collection chưa được khởi tạo.")
         
+        # SỬA LỖI: Nếu không có vector, hãy tạo nó từ text.
+        if query_vector is None and query_text:
+            logger.info(f"Vector không được cung cấp. Đang tạo vector từ văn bản: '{query_text[:50]}...'")
+            query_vector = await self.ai_client.get_embedding(query_text)
+            if not query_vector:
+                logger.error("Không thể tạo vector từ query_text. Dừng tìm kiếm.")
+                return []
+        elif query_vector is None and query_text is None:
+             logger.error("Cần cung cấp query_text hoặc query_vector để tìm kiếm.")
+             return []
+
         chroma_where = build_chroma_filters(filter_obj)
         logger.info(f"Bộ lọc ChromaDB WHERE: {chroma_where}") # <-- LOG CẤU TRÚC LỌC ĐỂ DEBUG
         try:
             # [CHANGE] Sử dụng job_collection để tìm kiếm
             query_func = partial(
                 self.job_collection.query,
+                # Giờ đây, query_vector sẽ luôn là một list hợp lệ
                 query_embeddings=[query_vector],
                 n_results=n_results,
                 include=["documents", "metadatas", "distances"],
@@ -301,6 +330,70 @@ class VectorDBClient:
         except Exception as e:
             logger.error(f"❌ Lỗi truy vấn ChromaDB: {e}")
             return []
+
+    async def get_job_by_id(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Lấy thông tin chi tiết của một job bằng ID từ job_collection.
+        """
+        if not self.job_collection:
+            raise RuntimeError("Job Collection chưa được khởi tạo.")
+
+        try:
+            get_func = partial(
+                self.job_collection.get,
+                ids=[job_id],
+                include=["documents", "metadatas", "embeddings"]
+            )
+            results = await asyncio.to_thread(get_func)
+
+            if not results or not results.get('ids'):
+                logger.warning(f"Không tìm thấy Job với ID: {job_id}")
+                return None
+
+            embedding_array = results['embeddings'][0]
+            # Đóng gói kết quả thành một dictionary duy nhất
+            job_data = {
+                "id": results['ids'][0],
+                "document": results['documents'][0],
+                "metadata": results['metadatas'][0],
+                # SỬA LỖI: Chuyển đổi numpy.ndarray sang list để Pydantic có thể serialize
+                "embedding_preview": embedding_array[:5].tolist() if hasattr(embedding_array, 'tolist') else embedding_array[:5]
+            }
+            return job_data
+        except Exception as e:
+            logger.error(f"❌ Lỗi khi lấy Job ID {job_id} từ ChromaDB: {e}")
+            return None
+
+    async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Lấy thông tin chi tiết của một user bằng ID từ user_collection.
+        """
+        if not self.user_collection:
+            raise RuntimeError("User Collection chưa được khởi tạo.")
+
+        try:
+            get_func = partial(
+                self.user_collection.get,
+                ids=[user_id],
+                include=["documents", "metadatas", "embeddings"]
+            )
+            results = await asyncio.to_thread(get_func)
+
+            if not results or not results.get('ids'):
+                logger.warning(f"Không tìm thấy User với ID: {user_id}")
+                return None
+
+            embedding_array = results['embeddings'][0]
+            user_data = {
+                "id": results['ids'][0],
+                "document": results['documents'][0],
+                "metadata": results['metadatas'][0],
+                "embedding_preview": embedding_array[:5].tolist() if hasattr(embedding_array, 'tolist') else embedding_array[:5]
+            }
+            return user_data
+        except Exception as e:
+            logger.error(f"❌ Lỗi khi lấy User ID {user_id} từ ChromaDB: {e}")
+            return None
     # =======================================================
     # PHẦN B: LOGIC CHO USER CV (Sửa lỗi thụt lề & Array Ambiguous)
     # =======================================================
@@ -433,6 +526,28 @@ class VectorDBClient:
             logger.error(f"❌ Lỗi khi upsert User Profiles vào VectorDB: {e}")
             raise
 
+    async def add_raw_user_cv(self, user_id: str, cv_text: str, vector: List[float]):
+        """
+        Thêm/cập nhật một CV người dùng từ văn bản thô và vector đã có.
+        """
+        if not self.user_collection:
+            raise RuntimeError("CV Collection chưa được khởi tạo.")
+
+        try:
+            # Dùng partial để wrap hàm blocking self.user_collection.upsert
+            upsert_func = partial(
+                self.user_collection.upsert,
+                ids=[user_id],
+                documents=[cv_text],
+                embeddings=[vector],
+                metadatas=[{"id": user_id}] # Có thể thêm metadata khác nếu cần
+            )
+            await asyncio.to_thread(upsert_func)
+            logger.info(f"✅ Đã upsert CV thô cho User ID: {user_id}")
+        except Exception as e:
+            logger.error(f"❌ Lỗi khi upsert CV thô cho User ID {user_id}: {e}")
+            raise
+
     async def get_user_cv_vector(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
         Lấy vector và CV gốc của người dùng theo ID từ user_collection.
@@ -529,7 +644,23 @@ class VectorDBClient:
             logger.error(f"❌ Lỗi khi lấy IDs từ collection '{name}': {e}")
             return {"error": f"Lỗi không xác định khi truy vấn DB: {e}"}
 
-    def clear_all_data(self, collection_type: str = 'all') -> Dict[str, Any]:
+    async def get_info(self) -> Dict[str, Any]:
+        """
+        Tổng hợp thông tin trạng thái từ tất cả các collection.
+        """
+        try:
+            job_info = await asyncio.to_thread(self.get_collection_ids, collection_type='job')
+            user_info = await asyncio.to_thread(self.get_collection_ids, collection_type='user_cv')
+            return {
+                "jobs_collection": job_info,
+                "users_collection": user_info
+            }
+        except Exception as e:
+            logger.error(f"❌ Lỗi khi lấy thông tin DB: {e}")
+            return {"error": f"Lỗi khi lấy thông tin DB: {e}"}
+
+
+    async def clear_all_data(self, collection_type: str = 'all') -> Dict[str, Any]:
         """
         Xóa toàn bộ dữ liệu trong một hoặc tất cả các collection.
         :param collection_type: 'job', 'user_cv', hoặc 'all' để xóa tất cả.

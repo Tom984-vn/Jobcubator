@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, validator
-from typing import List, Optional, Set, Union, Any
-from datetime import datetime
+from pydantic import BaseModel, Field
+from typing import List, Optional, Set
+
 
 class MatchRequest(BaseModel):
     user_embedding: List[float]
@@ -17,11 +17,12 @@ class UserContext(BaseModel):
     experience_level: Optional[str] = None  # Kinh nghiệm (Junior, Senior...)
     last_conversation_summary: Optional[str] = None # Tóm tắt câu hỏi cũ (nếu có)
 
-class TextRequest(BaseModel):
+class ChatRequest(BaseModel):
     text: str
     user_id: Optional[str] = None
     context: Optional[UserContext] = None
 # --- 1. DTO cho Thêm Job (/add-job) ---
+
 class JobInput(BaseModel):
     id: str
     title: str
@@ -79,33 +80,24 @@ class ProfileEntrySchema(BaseModel):
 class JobPostData(BaseModel):
     """Định nghĩa cấu trúc dữ liệu JobPost dựa trên JobPostDTO của backend."""
     id: str
-    companyName: Optional[str] = None
+    companyName: str
     title: str
-    category: Optional[str] = None
-    location: Optional[str] = None
-    numberOfVacancies: Optional[int] = 0
-    jobType: Optional[str] = None
-    applicationDeadline: Optional[Union[str, float, int]] = None
-    minSalary: Optional[int] = 0
-    maxSalary: Optional[int] = 0
-    companyId: Optional[str] = None
-    description: Optional[str] = ""
-    requirements: Optional[str] = ""
-    benefits: Optional[str] = ""
-    schedule: Optional[str] = ""
-    tags: Set[str] = set()
-
-    @validator('applicationDeadline', pre=True)
-    def parse_deadline(cls, v):
-        if v is None:
-            return None
-        if isinstance(v, (int, float)):
-            # Chuyển timestamp (giây) sang ISO format string
-            return datetime.fromtimestamp(v).isoformat()
-        return str(v)
+    category: str
+    location: str
+    numberOfVacancies: int
+    jobType: str  #FULL TIME OR PART TIME
+    applicationDeadline: str
+    minSalary: int
+    maxSalary: int
+    companyId: str
+    description: str
+    requirements: str
+    benefits: str
+    schedule: str
+    tags: Set[str] = Field(default_factory=set, description="Các tag/kỹ năng liên quan")
 
 class UserProfileData(BaseModel):
-        userId: str
+        id: str
         fullName: str
         username: str
         email: str
@@ -119,29 +111,3 @@ class UserProfileData(BaseModel):
         minSalary: int
         maxSalary: int
         history: List[ProfileEntrySchema] = Field(default_factory=list, description="Danh sách các mục nhập lịch sử (kinh nghiệm, học vấn)")
-
-class UserSyncSchema(BaseModel):
-    id: str = Field(..., alias="userId")
-    fullName: Optional[str] = None
-    username: Optional[str] = None
-    email: Optional[str] = None
-    
-    # SỬA: Cho phép nhận None (Optional[str] = None là chưa đủ với Pydantic v2 strict mode đôi khi)
-    # Nhưng quan trọng nhất là type hint phải là Optional[str]
-    phoneNumber: Optional[str] = None
-    gender: Optional[str] = None
-    birthDate: Optional[str] = None
-    
-    years_of_experience: Optional[int] = 0
-    organization: Optional[str] = None
-    position: Optional[str] = None
-    preferredLocation: Optional[str] = None
-    
-    minSalary: Optional[int] = 0
-    maxSalary: Optional[int] = 0
-    
-    history: List[Any] = []
-
-    class Config:
-        populate_by_name = True
-        from_attributes = True
