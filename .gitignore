@@ -1,12 +1,4 @@
-.venv
 .env
 
-.vscode
-
-#Passwords
-db_admin_pass.txt
-db_spring_boot_user.txt
-jwt_secret_key.txt
-spring_aws_s3_access_key.txt
-spring_aws_s3_secret_key.txt
-.DS_Store
+fpt_ai_key.txt
+open_ai_key.txt
