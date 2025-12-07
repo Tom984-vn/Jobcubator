@@ -21,6 +21,7 @@ class ChatRequest(BaseModel):
     text: str
     user_id: Optional[str] = None
     context: Optional[UserContext] = None
+    job_ids: Optional[List[str]] = Field(default=None, description="Danh sách các ID công việc để so sánh hoặc phân tích.")
 # --- 1. DTO cho Thêm Job (/add-job) ---
 
 class JobInput(BaseModel):

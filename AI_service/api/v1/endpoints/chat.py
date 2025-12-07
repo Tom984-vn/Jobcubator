@@ -1,8 +1,9 @@
 # AI_service/api/v1/endpoints/chat.py
 import json
+import asyncio
 import inspect
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 
 # <-- Absolute Imports
 from AI_service.schemas.schemas import ChatRequest
@@ -25,15 +26,39 @@ async def general_chat_endpoint(
     2. Tiêu thụ (consume) generator này để ghép các mảnh phản hồi lại.
     3. Trả về một JSON object chứa toàn bộ nội dung chat.
     """
-    # 1. Gọi hàm smart_chat, hàm này sẽ trả về một async generator
-    # SỬA LỖI: smart_chat là một coroutine, cần `await` để lấy về generator
-    response_generator = await ai_client.smart_chat(
-        user_text=data.text,
-        router_instance=router_client, # Sử dụng router được inject
-        db_client=db_client,           # Sử dụng db_client được inject
-        context=data.context
-    )
+    response_generator = None
 
+    # PHÂN NHÁNH LOGIC: Kiểm tra xem có job_ids để so sánh không
+    if data.job_ids:
+        logger.info(f"Nhận request chat so sánh cho các Job IDs: {data.job_ids}")
+        # 1. Lấy thông tin chi tiết của các jobs từ DB
+        job_fetch_tasks = [db_client.get_job_by_id(job_id) for job_id in data.job_ids]
+        job_details_list = await asyncio.gather(*job_fetch_tasks)
+        
+        # Lọc ra các job thực sự tìm thấy
+        found_jobs = [job for job in job_details_list if job is not None]
+        
+        if not found_jobs:
+            raise HTTPException(status_code=404, detail="Không tìm thấy thông tin cho bất kỳ Job ID nào được cung cấp.")
+
+        # 2. Gọi logic chat so sánh mới
+        # SỬA LỖI: compare_jobs_chat là một coroutine, cần `await` để nó thực thi và trả về generator.
+        response_generator = await ai_client.compare_jobs_chat(
+            user_query=data.text,
+            jobs_data=found_jobs,
+            context=data.context
+        )
+
+    else:
+        # Logic cũ: Dùng smart_chat cho các câu hỏi chung
+        logger.info("Nhận request chat chung (không có Job ID).")
+        response_generator = await ai_client.smart_chat(
+            user_text=data.text,
+            router_instance=router_client,
+            db_client=db_client,
+            context=data.context
+        )
+        
     # 2. **QUAN TRỌNG**: Tiêu thụ generator để xây dựng chuỗi phản hồi đầy đủ
     full_response_str = ""
     try:

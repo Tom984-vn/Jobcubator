@@ -157,6 +157,83 @@ class FPTAIClient:
         except Exception as e:
             logger.error(f"Lỗi Chat Stream: {e}")
             yield {"error": f"Lỗi xử lý văn bản: {e}"}
+    
+    async def _analyze_single_job_for_comparison(self, user_query: str, job_data: Dict[str, Any], context: Optional[UserContext] = None) -> str:
+        """
+        [Hàm nội bộ] Dùng LLM để phân tích MỘT công việc dựa trên câu hỏi của người dùng.
+        Trả về một chuỗi phân tích.
+        """
+        metadata = job_data.get('metadata', {})
+        document = job_data.get('document', 'Không có mô tả.')
+        job_title = metadata.get('title', 'N/A')
+
+        context_str = ""
+        if context:
+            context_str += "\n**Thông tin về người dùng (để tham khảo khi phân tích):**\n"
+            if context.experience_level:
+                context_str += f"- Kinh nghiệm: {context.experience_level}\n"
+            if context.cv_industry or context.interested_industry:
+                context_str += f"- Ngành nghề quan tâm: {context.interested_industry or context.cv_industry}\n"
+
+        prompt = f"""**Yêu cầu của người dùng:** "{user_query}"
+
+**Thông tin công việc cần phân tích:**
+- Tiêu đề: {job_title}
+- Công ty: {metadata.get('companyName', 'N/A')}
+- Địa điểm: {metadata.get('location', 'N/A')}
+- Lương: {metadata.get('min_salary', 0)} - {metadata.get('max_salary', 0)}
+- Mô tả chi tiết: {document}
+{context_str}
+
+**Nhiệm vụ của bạn:**
+Dựa vào yêu cầu của người dùng và thông tin về họ, hãy đưa ra một đoạn phân tích ngắn gọn (tối đa 100 từ) về công việc này. Chỉ tập trung vào các khía cạnh liên quan đến câu hỏi của người dùng.
+"""
+        # Sử dụng một hàm gọi LLM non-streaming đơn giản
+        # (Giả sử có hàm chat_refine hoặc tương tự, nếu không có thì tạo một hàm mới)
+        try:
+            analysis = await self.chat_refine(prompt)
+            return f"**Phân tích cho công việc '{job_title}':**\n{analysis}\n"
+        except Exception as e:
+            logger.error(f"Lỗi khi phân tích job '{job_title}': {e}")
+            return f"**Phân tích cho công việc '{job_title}':**\nKhông thể phân tích do lỗi.\n"
+
+    async def compare_jobs_chat(self, user_query: str, jobs_data: List[Dict[str, Any]], context: Optional[UserContext] = None) -> AsyncGenerator[Dict[str, Any], None]:
+        """
+        Xử lý chat so sánh công việc bằng phương pháp Map-Reduce.
+        1. (Map) Phân tích từng công việc một cách riêng rẽ.
+        2. (Reduce) Tổng hợp các phân tích và đưa ra kết luận cuối cùng.
+        """
+        # --- BƯỚC 1: MAP - Phân tích từng job đồng thời ---
+        logger.info(f"Bắt đầu giai đoạn MAP: Phân tích {len(jobs_data)} jobs...")
+        analysis_tasks = [self._analyze_single_job_for_comparison(user_query, job, context) for job in jobs_data]
+        individual_analyses = await asyncio.gather(*analysis_tasks)
+
+        # --- BƯỚC 2: REDUCE - Tổng hợp kết quả ---
+        logger.info("Bắt đầu giai đoạn REDUCE: Tổng hợp các phân tích...")
+        
+        # Ghép các phân tích riêng lẻ lại
+        combined_analysis_text = "\n".join(individual_analyses)
+
+        system_prompt = """Bạn là một chuyên gia tư vấn nghề nghiệp cấp cao của Jobcubator.
+Nhiệm vụ của bạn là tổng hợp các phân tích đã có và đưa ra một câu trả lời so sánh cuối cùng, mạch lạc và hữu ích cho người dùng."""
+
+        final_prompt = f"""**Yêu cầu ban đầu của người dùng:**
+"{user_query}"
+
+**Các phân tích riêng lẻ cho từng công việc:**
+{combined_analysis_text}
+
+**Nhiệm vụ cuối cùng của bạn:**
+Dựa trên các phân tích trên, hãy viết một câu trả lời tổng hợp để so sánh các công việc này theo đúng yêu cầu của người dùng. 
+Hãy trình bày một cách có cấu trúc (ví dụ: dùng gạch đầu dòng, in đậm) để làm nổi bật các điểm chính. Đưa ra kết luận hoặc lời khuyên cuối cùng nếu có thể.
+"""
+
+        # Gọi hàm chat streaming đã có
+        return self.chat_respond_custom(
+            user_text=final_prompt, 
+            sys_prompt=system_prompt,
+            context=context
+        )
 
     async def normalize_question(self, text: str) -> str:
         """
